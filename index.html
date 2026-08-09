@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Home Hub — Workouts</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Workouts" />
+<meta name="theme-color" content="#14213d" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- KID SELECT -->
+<section id="view-select" class="view active">
+  <h1 class="app-title">Nash &amp; Nellie<br />Workout Hub</h1>
+  <div class="kid-grid">
+    <button class="kid-tile kid-nash" data-kid="Nash">
+      <span class="kid-emoji">🎣</span>
+      <span class="kid-name">Nash</span>
+    </button>
+    <button class="kid-tile kid-nellie" data-kid="Nellie">
+      <span class="kid-emoji">🏀</span>
+      <span class="kid-name">Nellie</span>
+    </button>
+  </div>
+</section>
+
+<!-- TODAY'S WORKOUT -->
+<section id="view-today" class="view">
+  <header class="view-header">
+    <button class="btn-back" id="btn-back-to-select">&larr;</button>
+    <h2 id="today-kid-name">Today</h2>
+    <div class="header-spacer"></div>
+  </header>
+  <div id="today-empty" class="empty-state" hidden>
+    <div class="empty-emoji">🌤️</div>
+    <p>No workouts assigned today.<br />Enjoy the day off!</p>
+  </div>
+  <div id="today-list" class="card-list"></div>
+</section>
+
+<!-- PROGRESS -->
+<section id="view-progress" class="view">
+  <header class="view-header">
+    <button class="btn-back" id="btn-back-to-today">&larr;</button>
+    <h2 id="progress-exercise-name">Progress</h2>
+    <div class="header-spacer"></div>
+  </header>
+  <div id="progress-content"></div>
+</section>
+
+<!-- RESULT ENTRY OVERLAY -->
+<div id="result-overlay" class="overlay" hidden>
+  <div class="overlay-card">
+    <h3 id="result-overlay-title">Enter result</h3>
+    <p id="result-overlay-unit" class="overlay-unit"></p>
+    <input id="result-input" type="text" inputmode="decimal" autocomplete="off" placeholder="0" />
+    <div class="overlay-actions">
+      <button id="result-cancel" class="btn-secondary">Cancel</button>
+      <button id="result-confirm" class="btn-primary">Done!</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION CELEBRATION -->
+<div id="celebration" class="celebration" hidden>
+  <div class="celebration-check">✓</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
