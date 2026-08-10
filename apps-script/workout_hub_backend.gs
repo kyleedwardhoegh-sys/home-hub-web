@@ -37,17 +37,22 @@ function setupSheetStructure() {
   lib.setColumnWidths(1, 4, 200);
 
   // --- Daily Assignments ---
+  // "Done"/"Result" columns are per-kid (not a single shared column) because
+  // a "Both" row still needs Nash and Nellie tracked independently.
   var asg = ss.getSheetByName(ASSIGNMENTS_SHEET) || ss.insertSheet(ASSIGNMENTS_SHEET);
   asg.clear();
-  asg.getRange(1, 1, 1, 5).setValues([['Date', 'Kid', 'Exercise Name', 'Sets', 'Reps']]);
-  asg.getRange(1, 1, 1, 5).setFontWeight('bold');
+  var asgHeaders = ['Date', 'Kid', 'Exercise Name', 'Sets', 'Reps', 'Nash Done', 'Nash Result', 'Nellie Done', 'Nellie Result'];
+  asg.getRange(1, 1, 1, asgHeaders.length).setValues([asgHeaders]);
+  asg.getRange(1, 1, 1, asgHeaders.length).setFontWeight('bold');
   asg.getRange(2, 2, 1000, 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(ASSIGNMENT_KID_OPTIONS, true).build()
   );
   asg.getRange(2, 3, 1000, 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInRange(lib.getRange('A2:A500'), true).build()
   );
-  asg.setColumnWidths(1, 5, 150);
+  asg.getRange(2, 6, 1000, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  asg.getRange(2, 8, 1000, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  asg.setColumnWidths(1, asgHeaders.length, 130);
 
   // --- Completion Log (the app writes here — don't hand-edit) ---
   var log = ss.getSheetByName(LOG_SHEET) || ss.insertSheet(LOG_SHEET);
@@ -74,6 +79,78 @@ function addBothToKidDropdown() {
     SpreadsheetApp.newDataValidation().requireValueInList(ASSIGNMENT_KID_OPTIONS, true).build()
   );
   SpreadsheetApp.getUi().alert('Done! "Both" is now a valid option in the Daily Assignments Kid column.');
+}
+
+// ------------------------------------------------------------
+// Run this ONCE to add live "Done"/"Result" tracking columns
+// directly onto Daily Assignments, without touching existing rows.
+// ------------------------------------------------------------
+function addDoneResultColumnsToAssignments() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var asg = ss.getSheetByName(ASSIGNMENTS_SHEET);
+  var lastCol = asg.getLastColumn();
+  var headers = asg.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  var newHeaders = ['Nash Done', 'Nash Result', 'Nellie Done', 'Nellie Result'];
+  var toAdd = newHeaders.filter(function (h) { return headers.indexOf(h) === -1; });
+  if (toAdd.length === 0) {
+    SpreadsheetApp.getUi().alert('Those columns already exist — nothing to do.');
+    return;
+  }
+
+  var startCol = lastCol + 1;
+  asg.getRange(1, startCol, 1, toAdd.length).setValues([toAdd]);
+  asg.getRange(1, startCol, 1, toAdd.length).setFontWeight('bold');
+  asg.setColumnWidths(startCol, toAdd.length, 130);
+
+  toAdd.forEach(function (h, idx) {
+    if (h.indexOf('Done') > -1) {
+      asg.getRange(2, startCol + idx, 1000, 1).setDataValidation(
+        SpreadsheetApp.newDataValidation().requireCheckbox().build()
+      );
+    }
+  });
+
+  SpreadsheetApp.getUi().alert(
+    'Added ' + toAdd.join(', ') + ' to Daily Assignments.\n\n' +
+    'These checkboxes are now the live completion status — the app reads and writes them directly, ' +
+    'and you can tick/untick them yourself any time.'
+  );
+}
+
+// ------------------------------------------------------------
+// Run this ONCE, after addDoneResultColumnsToAssignments, to copy
+// any already-logged completions into the new columns.
+// ------------------------------------------------------------
+function backfillDoneFromCompletionLog() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var asg = ss.getSheetByName(ASSIGNMENTS_SHEET);
+  var asgData = asg.getDataRange().getValues();
+  var headers = asgData[0];
+  var log = sheetToObjects(ss.getSheetByName(LOG_SHEET));
+  var updated = 0;
+
+  log.forEach(function (entry) {
+    if (entry['Done'] !== true) return;
+    var doneCol = headers.indexOf(entry['Kid'] + ' Done');
+    var resultCol = headers.indexOf(entry['Kid'] + ' Result');
+    if (doneCol === -1) return;
+    var ed = new Date(entry['Date']);
+    ed.setHours(0, 0, 0, 0);
+    for (var i = 1; i < asgData.length; i++) {
+      var rd = new Date(asgData[i][0]);
+      rd.setHours(0, 0, 0, 0);
+      var rowKid = asgData[i][1];
+      if (rd.getTime() === ed.getTime() && asgData[i][2] === entry['Exercise Name'] && (rowKid === entry['Kid'] || rowKid === 'Both')) {
+        asg.getRange(i + 1, doneCol + 1).setValue(true);
+        if (resultCol > -1) asg.getRange(i + 1, resultCol + 1).setValue(entry['Result Value'] || '');
+        updated++;
+        break;
+      }
+    }
+  });
+
+  SpreadsheetApp.getUi().alert('Backfill complete. Updated ' + updated + ' row(s).');
 }
 
 // ------------------------------------------------------------
@@ -120,7 +197,6 @@ function getAssignments(dateStr) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var assignments = sheetToObjects(ss.getSheetByName(ASSIGNMENTS_SHEET));
   var library = getLibrary();
-  var log = sheetToObjects(ss.getSheetByName(LOG_SHEET));
 
   var libByName = {};
   library.forEach(function (l) { libByName[l['Exercise Name']] = l; });
@@ -135,62 +211,70 @@ function getAssignments(dateStr) {
   });
 
   // A "Both" row is a single assignment meant for the whole family workout —
-  // expand it into one entry per kid so completion is still tracked
-  // independently (Nash finishing doesn't check off Nellie's box).
+  // expand it into one entry per kid. Each kid's Done/Result columns are
+  // independent, so this doesn't check one off when the other completes it.
   var expanded = [];
   todays.forEach(function (a) {
     if (a['Kid'] === 'Both') {
-      KIDS.forEach(function (k) {
-        var copy = {};
-        for (var key in a) copy[key] = a[key];
-        copy['Kid'] = k;
-        expanded.push(copy);
-      });
+      KIDS.forEach(function (k) { expanded.push(buildAssignmentEntry(a, k, libByName)); });
     } else {
-      expanded.push(a);
+      expanded.push(buildAssignmentEntry(a, a['Kid'], libByName));
     }
   });
 
-  return expanded.map(function (a) {
-    var lib = libByName[a['Exercise Name']] || {};
-    var completed = log.find(function (l) {
-      var ld = new Date(l['Date']);
-      ld.setHours(0, 0, 0, 0);
-      return (
-        ld.getTime() === targetDate.getTime() &&
-        l['Kid'] === a['Kid'] &&
-        l['Exercise Name'] === a['Exercise Name'] &&
-        l['Done'] === true
-      );
-    });
-    return {
-      date: a['Date'],
-      kid: a['Kid'],
-      exercise: a['Exercise Name'],
-      sets: a['Sets'],
-      reps: a['Reps'],
-      youtubeLink: lib['YouTube Link'] || '',
-      category: lib['Category'] || '',
-      resultType: lib['Result Type'] || 'None',
-      done: !!completed,
-      resultValue: completed ? completed['Result Value'] : null
-    };
-  });
+  return expanded;
+}
+
+function buildAssignmentEntry(a, kid, libByName) {
+  var lib = libByName[a['Exercise Name']] || {};
+  return {
+    date: a['Date'],
+    kid: kid,
+    exercise: a['Exercise Name'],
+    sets: a['Sets'],
+    reps: a['Reps'],
+    youtubeLink: lib['YouTube Link'] || '',
+    category: lib['Category'] || '',
+    resultType: lib['Result Type'] || 'None',
+    done: a[kid + ' Done'] === true,
+    resultValue: a[kid + ' Result'] || null
+  };
 }
 
 function markComplete(dateStr, kid, exercise, resultValue) {
-  var log = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(LOG_SHEET);
-  var data = log.getDataRange().getValues();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // The Daily Assignments row's own Done/Result columns are the live
+  // completion state — visible and manually editable right in the sheet.
+  var asg = ss.getSheetByName(ASSIGNMENTS_SHEET);
+  var asgData = asg.getDataRange().getValues();
+  var headers = asgData[0];
+  var doneCol = headers.indexOf(kid + ' Done');
+  var resultCol = headers.indexOf(kid + ' Result');
   var d = new Date(dateStr);
   d.setHours(0, 0, 0, 0);
 
-  for (var i = 1; i < data.length; i++) {
-    var rd = new Date(data[i][0]);
+  for (var i = 1; i < asgData.length; i++) {
+    var rd = new Date(asgData[i][0]);
     rd.setHours(0, 0, 0, 0);
-    if (rd.getTime() === d.getTime() && data[i][1] === kid && data[i][2] === exercise) {
-      log.getRange(i + 1, 4).setValue(true);
-      log.getRange(i + 1, 5).setValue(resultValue || '');
-      log.getRange(i + 1, 6).setValue(new Date());
+    var rowKid = asgData[i][1];
+    if (rd.getTime() === d.getTime() && asgData[i][2] === exercise && (rowKid === kid || rowKid === 'Both')) {
+      if (doneCol > -1) asg.getRange(i + 1, doneCol + 1).setValue(true);
+      if (resultCol > -1) asg.getRange(i + 1, resultCol + 1).setValue(resultValue || '');
+      break;
+    }
+  }
+
+  // Completion Log stays a timestamped history feed for progress charts.
+  var log = ss.getSheetByName(LOG_SHEET);
+  var logData = log.getDataRange().getValues();
+  for (var j = 1; j < logData.length; j++) {
+    var ld = new Date(logData[j][0]);
+    ld.setHours(0, 0, 0, 0);
+    if (ld.getTime() === d.getTime() && logData[j][1] === kid && logData[j][2] === exercise) {
+      log.getRange(j + 1, 4).setValue(true);
+      log.getRange(j + 1, 5).setValue(resultValue || '');
+      log.getRange(j + 1, 6).setValue(new Date());
       return;
     }
   }

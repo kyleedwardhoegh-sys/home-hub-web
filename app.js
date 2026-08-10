@@ -11,7 +11,10 @@ async function apiGet(action, params = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("action", action);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString());
+  // Cache-bust: Apps Script's redirect hop can otherwise get reused by the
+  // browser for an identical URL, serving a stale snapshot after a write.
+  url.searchParams.set("_t", Date.now());
+  const res = await fetch(url.toString(), { cache: "no-store" });
   return res.json();
 }
 
