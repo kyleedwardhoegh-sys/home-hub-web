@@ -116,7 +116,7 @@ function renderCard(a, idx) {
         <p class="card-meta">${a.sets} sets &times; ${a.reps} reps${a.done ? " — done" + (a.resultValue ? `: ${a.resultValue}` : "") : ""}</p>
       </div>
       <button class="card-complete-btn ${a.done ? "done" : ""}" aria-label="Mark complete">
-        ${a.done ? "✓" : ""}
+        <span class="complete-circle">✓</span>
       </button>
     </div>
     <div class="card-video"><div class="video-slot"></div></div>
