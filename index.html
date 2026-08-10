@@ -57,7 +57,21 @@
   <div class="overlay-card">
     <h3 id="result-overlay-title">Enter result</h3>
     <p id="result-overlay-unit" class="overlay-unit"></p>
-    <input id="result-input" type="text" inputmode="decimal" autocomplete="off" placeholder="0" />
+    <input id="result-input" type="text" readonly autocomplete="off" placeholder="0" />
+    <div class="numpad">
+      <button class="numpad-btn" data-key="1">1</button>
+      <button class="numpad-btn" data-key="2">2</button>
+      <button class="numpad-btn" data-key="3">3</button>
+      <button class="numpad-btn" data-key="4">4</button>
+      <button class="numpad-btn" data-key="5">5</button>
+      <button class="numpad-btn" data-key="6">6</button>
+      <button class="numpad-btn" data-key="7">7</button>
+      <button class="numpad-btn" data-key="8">8</button>
+      <button class="numpad-btn" data-key="9">9</button>
+      <button class="numpad-btn" data-key=".">.</button>
+      <button class="numpad-btn" data-key="0">0</button>
+      <button class="numpad-btn numpad-back" data-key="back">⌫</button>
+    </div>
     <div class="overlay-actions">
       <button id="result-cancel" class="btn-secondary">Cancel</button>
       <button id="result-confirm" class="btn-primary">Done!</button>

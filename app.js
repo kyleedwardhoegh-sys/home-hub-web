@@ -113,7 +113,7 @@ function renderCard(a, idx) {
       <div class="card-body">
         <span class="card-category">${a.category || ""}</span>
         <p class="card-title">${a.exercise}</p>
-        <p class="card-meta">${a.sets} sets &times; ${a.reps} reps${a.done ? " — done" : ""}</p>
+        <p class="card-meta">${a.sets} sets &times; ${a.reps} reps${a.done ? " — done" + (a.resultValue ? `: ${a.resultValue}` : "") : ""}</p>
       </div>
       <button class="card-complete-btn ${a.done ? "done" : ""}" aria-label="Mark complete">
         ${a.done ? "✓" : ""}
@@ -184,8 +184,21 @@ function openResultOverlay(a) {
   document.getElementById("result-overlay-unit").textContent = `Enter ${a.resultType.toLowerCase()}`;
   document.getElementById("result-input").value = "";
   document.getElementById("result-overlay").hidden = false;
-  document.getElementById("result-input").focus();
 }
+
+document.querySelectorAll(".numpad-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const input = document.getElementById("result-input");
+    const key = btn.dataset.key;
+    if (key === "back") {
+      input.value = input.value.slice(0, -1);
+    } else if (key === "." && input.value.includes(".")) {
+      // only one decimal point allowed
+    } else {
+      input.value += key;
+    }
+  });
+});
 
 document.getElementById("result-cancel").addEventListener("click", () => {
   document.getElementById("result-overlay").hidden = true;

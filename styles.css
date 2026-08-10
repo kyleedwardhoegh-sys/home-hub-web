@@ -192,10 +192,33 @@ html, body {
   font-size: 40px;
   text-align: center;
   padding: 14px;
-  margin: 18px 0;
+  margin: 18px 0 14px;
   border-radius: 14px;
   border: 2px solid #e2e2e6;
+  background: #fafafa;
+  caret-color: transparent;
 }
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.numpad-btn {
+  padding: 18px 0;
+  font-size: 26px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  background: #f0f0f2;
+  color: var(--ink);
+  cursor: pointer;
+}
+.numpad-btn:active { background: #e2e2e6; transform: scale(0.95); }
+.numpad-back { background: #fce8ea; color: #b3273c; }
+.numpad-back:active { background: #f7d1d6; }
+
 .overlay-actions { display: flex; gap: 12px; }
 .btn-primary, .btn-secondary {
   flex: 1;
