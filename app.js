@@ -130,12 +130,20 @@ function renderCard(a, idx) {
         <span class="complete-circle">✓</span>
       </button>
     </div>
-    <div class="card-video"><div class="video-slot"></div></div>
+    <div class="card-video">
+      <button class="video-close-btn" aria-label="Close video">✕</button>
+      <div class="video-slot"></div>
+    </div>
     <button class="card-progress-link">View progress →</button>
   `;
 
   card.querySelector(".card-main").addEventListener("click", (e) => {
     if (e.target.closest(".card-complete-btn")) return;
+    toggleExpand(card, a);
+  });
+
+  card.querySelector(".video-close-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
     toggleExpand(card, a);
   });
 
