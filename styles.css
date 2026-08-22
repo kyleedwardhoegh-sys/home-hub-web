@@ -179,57 +179,6 @@ html, body {
 }
 .workout-card.expanded .card-video { display: block; }
 .card-video iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
-.video-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 18px;
-  line-height: 1;
-}
-.video-close-btn:active { transform: scale(0.92); }
-
-.btn-home {
-  position: fixed;
-  top: max(16px, env(safe-area-inset-top));
-  left: 16px;
-  z-index: 10;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--card);
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-.btn-home:active { transform: scale(0.92); }
-
-.exit-hold-indicator {
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  transform: scale(0);
-  z-index: 1000;
-  pointer-events: none;
-}
-.exit-hold-indicator.active {
-  transform: scale(1);
-  transition: transform 3s linear;
-}
 .card-progress-link {
   display: block;
   text-align: center;

@@ -130,20 +130,12 @@ function renderCard(a, idx) {
         <span class="complete-circle">✓</span>
       </button>
     </div>
-    <div class="card-video">
-      <button class="video-close-btn" aria-label="Close video">✕</button>
-      <div class="video-slot"></div>
-    </div>
+    <div class="card-video"><div class="video-slot"></div></div>
     <button class="card-progress-link">View progress →</button>
   `;
 
   card.querySelector(".card-main").addEventListener("click", (e) => {
     if (e.target.closest(".card-complete-btn")) return;
-    toggleExpand(card, a);
-  });
-
-  card.querySelector(".video-close-btn").addEventListener("click", (e) => {
-    e.stopPropagation();
     toggleExpand(card, a);
   });
 
@@ -292,38 +284,3 @@ function renderLineChart(points) {
       ${dots}
     </svg>`;
 }
-
-// ---- Touch-only kiosk exit: hold the bottom-right corner for 3s ----
-// Same mechanism as home-hub-dashboard (see that repo's HANDOFF.md for the
-// full setup/registration details) - lets Kyle exit the kiosk from inside
-// this app too, not just from the dashboard's home screen. Deliberately
-// unmarked so it isn't something Nash or Nellie stumble into.
-const EXIT_HOLD_MS = 3000;
-const EXIT_ZONE_SIZE = 80; // px, bottom-right square
-const exitHoldIndicator = document.getElementById("exit-hold-indicator");
-let exitHoldTimer = null;
-
-function inExitZone(x, y) {
-  return x > window.innerWidth - EXIT_ZONE_SIZE && y > window.innerHeight - EXIT_ZONE_SIZE;
-}
-
-function startExitHold(e) {
-  if (!inExitZone(e.clientX, e.clientY)) return;
-  exitHoldIndicator.classList.add("active");
-  exitHoldTimer = setTimeout(() => {
-    window.location.href = "homehubadmin://exit";
-  }, EXIT_HOLD_MS);
-}
-
-function cancelExitHold() {
-  clearTimeout(exitHoldTimer);
-  exitHoldTimer = null;
-  exitHoldIndicator.classList.remove("active");
-}
-
-document.addEventListener("pointerdown", startExitHold);
-document.addEventListener("pointerup", cancelExitHold);
-document.addEventListener("pointercancel", cancelExitHold);
-document.addEventListener("pointermove", (e) => {
-  if (exitHoldTimer && !inExitZone(e.clientX, e.clientY)) cancelExitHold();
-});
