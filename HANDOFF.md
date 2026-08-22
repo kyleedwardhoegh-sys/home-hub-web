@@ -58,8 +58,10 @@ project-root/
 **Family context** (for tone/design decisions, not app logic): Kyle (civil engineer), wife Logan (4th grade teacher), daughter Nellie (b. 2014-02-17, basketball/volleyball), son Nash (b. 2015-10-01, basketball/football/baseball). Maple Grove, MN.
 
 **Live URLs:**
-- Public app: https://kyleedwardhoegh-sys.github.io/home-hub-web/
-- Source repo: https://github.com/kyleedwardhoegh-sys/home-hub-web (public, auto-deploys to Pages on push to `main`)
+- Public app (canonical, migrated from GitHub Pages 2026-08-22): https://home-hub-web-hoegh-home.vercel.app/
+  — Vercel project under the `hoegh-home` team, auto-deploys on push to `main`;
+  Deployment Protection is off so it's reachable without a Vercel login.
+- Source repo: https://github.com/kyleedwardhoegh-sys/home-hub-web (public, still auto-deploys to Pages too, but that URL is no longer canonical — nothing points to it anymore)
 - Google Sheet: https://docs.google.com/spreadsheets/d/1MNiMRR4itYS7FSJxK9lhtrreH29eDBCM-cPJMWmSyMk/edit
 - Apps Script web app (API): `https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec`
 - Local clone: `C:\Users\Owner\source\repos\HomeHub-Web`
@@ -83,7 +85,7 @@ project-root/
 - Per-exercise progress view: hand-rolled SVG line chart for numeric result types, a completion-count message for checkbox-only (`resultType: None`) exercises.
 - Add-to-Home-Screen support (manifest.json) for phone/iPad use outside the house.
 
-**Abandoned side-branch:** `C:\Users\Owner\source\repos\HomeHubSolution\HomeHubApp` — an earlier (2026-01-19) native WinUI 3 (C#/XAML) attempt at a home hub with placeholder tiles. Explicitly abandoned in favor of the web-app approach on 2026-08-08. Leave it alone; don't resurrect it.
+**Abandoned side-branch (removed):** `HomeHubSolution\HomeHubApp` was an earlier (2026-01-19) native WinUI 3 (C#/XAML) attempt at a home hub with placeholder tiles. Explicitly abandoned in favor of the web-app approach on 2026-08-08, and deleted from disk on 2026-08-22 (it was never under version control, so there's nothing to restore). The web-app pattern below is the only path forward — nothing to resurrect.
 
 **Not yet built (known next steps for this project specifically):**
 - Kiosk-mode launcher (Chrome/Edge `--kiosk` pointed at the served app, ideally auto-starting on boot).
@@ -100,3 +102,15 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - Reuse verbatim: `serve.ps1`, the manifest.json/PWA pattern, the CSS `[hidden]` fix, the cache-busting `apiGet` wrapper, the git/GitHub Pages deploy workflow, the "Both"-style server-side expansion idea if a drill applies to a whole position group rather than one player.
 - Don't assume: the exact sheet columns, category lists, or result-type concept — those are workout-specific and should be redesigned around what a practice plan actually needs (periods/time blocks, drill duration, equipment, position groups, etc.) rather than copy-pasted.
 - Start a fresh repo/sheet/Apps Script project rather than extending this one — separate concerns, separate deployments, even though the code will look structurally similar at first.
+
+## Where things live
+
+- Code, CLAUDE.md files, git → the repo folders on this PC
+  (C:\Users\Owner\source\repos\*), worked on in VS Code.
+- Input files and instructional docs for any Home Hub project →
+  Google Drive, "Claude Tools & Instructions" folder (a subfolder
+  per project, plus "Instructions & Guides" for reference docs).
+- Live app data (Sheets) → unmoved, wherever they already were
+  (e.g. "2026 Team Hoegh/Barber 2034", "Nellie/Nash Training").
+- Don't assume Drive files are automatically visible — if a file's
+  needed and not attached, ask Kyle to point to it or attach it.
