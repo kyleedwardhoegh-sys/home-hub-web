@@ -62,6 +62,14 @@ function embedUrl(youtubeLink) {
 function showView(id) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   document.getElementById(id).classList.add("active");
+  // Hiding a view via CSS doesn't stop an expanded card's YouTube iframe
+  // from playing - only removing it from the DOM does. Without this, audio
+  // keeps going in the background after navigating away (e.g. tapping back
+  // to kid-select mid-video).
+  document.querySelectorAll(".workout-card.expanded").forEach((c) => {
+    c.classList.remove("expanded");
+    c.querySelector(".video-slot").innerHTML = "";
+  });
 }
 
 // ---------- Kid select ----------
