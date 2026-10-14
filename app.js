@@ -46,13 +46,36 @@ const today = () => ymd(new Date());
 
 // ---------- API ----------
 
-async function apiGet(action, params = {}) {
+// Network-level failures (timeouts, Google's HTML error pages) come back as
+// { error: "network" } so callers can retry; real API errors (e.g. "unknown player")
+// come back as-is and are not retried.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function apiGet(action, params = {}, timeoutMs = 25000) {
   const url = new URL(API_BASE);
   url.searchParams.set("action", action);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   url.searchParams.set("_t", Date.now()); // cache-bust (see HANDOFF gotcha #5)
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  return res.json();
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store", signal: ctl.signal });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch (e) { return { error: "network" }; }
+  } catch (e) {
+    return { error: "network" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// Up to 3 tries for network failures (Apps Script hiccups are common and short).
+async function apiGetRetry(action, params = {}) {
+  let r;
+  for (const wait of [0, 1500, 4000]) {
+    if (wait) await sleep(wait);
+    r = await apiGet(action, params);
+    if (!r || r.error !== "network") return r;
+  }
+  return r;
 }
 
 // text/plain keeps this a CORS "simple request" (HANDOFF gotcha #2).
@@ -95,7 +118,7 @@ function saveHub() { if (S.hub && !S.demo) store.set(hubKey(S.hub.player.name), 
 const inflight = {};
 function fetchHub(name) {
   if (!inflight[name]) {
-    inflight[name] = apiGet("getHub", { player: name, date: today() })
+    inflight[name] = apiGetRetry("getHub", { player: name, date: today() })
       .then((hub) => { if (hub && !hub.error) store.set(hubKey(name), { ...hub, _at: Date.now() }); return hub; })
       .catch(() => ({ error: "offline" }))
       .finally(() => { delete inflight[name]; });
@@ -117,16 +140,28 @@ async function boot() {
     const cachedPlayers = store.get("training.players");
     // Start the kid's plan now, in parallel with the player list.
     let guess = null;
-    try { guess = want ? (cachedPlayers || []).find((x) => x.name.toLowerCase() === want.toLowerCase())?.name : localStorage.getItem("training.player"); } catch (e) {}
+    // With ?p=Name (the kiosk's links), start that kid's plan immediately even with no saved player list.
+    try { guess = want ? ((cachedPlayers || []).find((x) => x.name.toLowerCase() === want.toLowerCase())?.name || want.charAt(0).toUpperCase() + want.slice(1).toLowerCase()) : localStorage.getItem("training.player"); } catch (e) {}
     if (guess && params.get("pick") === null) fetchHub(guess);
-    const fresh = apiGet("getPlayers").then((r) => { if (Array.isArray(r)) store.set("training.players", r); return r; }).catch(() => ({ error: "offline" }));
+    const fresh = apiGetRetry("getPlayers").then((r) => { if (Array.isArray(r)) store.set("training.players", r); return r; }).catch(() => ({ error: "offline" }));
     if (Array.isArray(cachedPlayers) && cachedPlayers.length) {
       players = cachedPlayers;
       fresh.then((r) => { if (Array.isArray(r)) { S.players = r; if ($("#view-select").classList.contains("active")) renderSelect(); } });
     } else {
       players = await fresh;
+      // A network hiccup must never drop into preview mode (taps there aren't saved):
+      // keep retrying until the real player list loads.
+      for (let attempt = 1; players && players.error === "network"; attempt++) {
+        showView("view-select");
+        $("#select-status").hidden = false;
+        $("#select-status").textContent = `Can't reach Google right now. Trying again… (try ${attempt + 1})`;
+        await sleep(Math.min(30000, 5000 * attempt));
+        players = await apiGetRetry("getPlayers");
+        if (Array.isArray(players)) store.set("training.players", players);
+      }
     }
   }
+  // Preview mode only when asked for (?demo) or when the Sheet's script doesn't have v2 yet.
   if (!Array.isArray(players)) { S.demo = true; players = DEMO.players; $("#demo-banner").hidden = false; }
   S.players = players;
 
@@ -170,13 +205,38 @@ async function openPlayer(name) {
     S.track = match || defaultTrack();
   };
   if (S.demo) { await loadHub(name); pickTrack(); render(); return; }
-  const cached = cachedHub(name), started = Date.now();
-  if (cached) { S.hub = cached; pickTrack(); render(); }
-  else { S.hub = null; $("#track-body").innerHTML = `<div class="empty">Loading ${esc(name)}'s list…</div>`; }
-  const hub = await fetchHub(name);
-  if (hub.error) { if (!cached) toast("Couldn't load the plan. Check the Wi-Fi."); return; }
-  if (!cached) { S.hub = hub; pickTrack(); render(); return; }
-  if (canApply(name, hub, started)) { S.hub = hub; if (!overlayOpen()) render(); }
+  const token = (S.openToken = (S.openToken || 0) + 1); // a newer openPlayer/goHome cancels this one
+  const cached = cachedHub(name);
+  if (cached) { S.hub = cached; setLoading(false); pickTrack(); render(); }
+  else { S.hub = null; setLoading(true, name, 0); }
+  // Keep trying until it loads (never sit on "Loading…" forever).
+  for (let attempt = 1; ; attempt++) {
+    const started = Date.now();
+    const hub = await fetchHub(name);
+    if (token !== S.openToken) return;
+    if (hub && !hub.error) {
+      if (!S.hub) { S.hub = hub; setLoading(false); pickTrack(); render(); }
+      else if (canApply(name, hub, started)) { S.hub = hub; if (!overlayOpen()) render(); }
+      return;
+    }
+    if (hub && hub.error !== "network") { setLoading(true, name, -1, hub.error); return; }
+    if (S.hub) return; // showing today's saved copy; the 1-minute refresh keeps trying
+    setLoading(true, name, attempt);
+    await sleep(Math.min(30000, 5000 * attempt));
+    if (token !== S.openToken) return;
+  }
+}
+
+// Loading screen: hides the empty prize boxes and tabs, and says what's happening.
+function setLoading(on, name, attempt, err) {
+  $("#view-hub").classList.toggle("loading", on);
+  if (!on) return;
+  const msg = attempt === -1
+    ? `<h2>Couldn't load ${esc(name)}'s list</h2><p class="muted">The plan says: ${esc(err)}. Ask Dad to check the Sheet.</p>`
+    : attempt === 0
+      ? `<h2>Loading ${esc(name)}'s list…</h2><p class="muted">This takes a few seconds the first time.</p>`
+      : `<h2>Still loading ${esc(name)}'s list…</h2><p class="muted">Google is being slow. Trying again automatically (try ${attempt + 1}).</p>`;
+  $("#track-body").innerHTML = `<div class="empty loading-msg"><div class="spinner" aria-hidden="true"></div>${msg}</div>`;
 }
 
 async function loadHub(name) {
@@ -547,6 +607,7 @@ function closeOverlays() {
 }
 function goHome() {
   closeOverlays();
+  S.openToken = (S.openToken || 0) + 1; // stop any in-progress load loop
   if (S.locked) { S.track = defaultTrack(); render(); window.scrollTo(0, 0); return; }
   S.hub = null; renderSelect(); window.scrollTo(0, 0);
 }

@@ -167,6 +167,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cat-pill[aria-pressed="true"] { background: var(--accent2); border-color: var(--accent2); color: #fff; }
 .cat-pill .n { font-family: var(--mono); opacity: .7; margin-left: 4px; }
 .empty { text-align: center; padding: 36px 12px; color: var(--ink-2); }
+/* While a kid's list is loading, hide the empty prize boxes / tabs so nothing looks broken. */
+#view-hub.loading .prize-zone, #view-hub.loading .track-tabs, #view-hub.loading #cal-strip, #view-hub.loading .today-pill { display: none; }
+.loading-msg h2 { font-family: var(--display); font-size: 1.6rem; color: var(--ink); margin: 12px 0 4px; }
+.spinner { width: 56px; height: 56px; margin: 0 auto; border-radius: 50%; border: 6px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- drill feedback ---------- */
 .fb-card { background: var(--card); border-radius: 28px; padding: 24px; width: min(720px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 10px; animation: pop .35s cubic-bezier(.2, 1.4, .4, 1); }
