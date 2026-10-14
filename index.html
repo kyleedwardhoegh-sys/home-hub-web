@@ -15,6 +15,15 @@
 </head>
 <body>
 
+<!-- Always-there navigation for phones, iPads and browsers. Hidden on the kitchen
+     kiosk (?kiosk=1), which has its own native Back / Home / Exit corner pills. -->
+<nav id="app-nav" class="app-nav" aria-label="Navigation">
+  <button id="nav-back" class="nav-btn" type="button">&larr; Back</button>
+  <button id="nav-home" class="nav-btn" type="button">&#8962; Home</button>
+  <span class="nav-spacer"></span>
+  <button id="nav-fs" class="nav-btn" type="button" hidden>&#x26F6; Full screen</button>
+</nav>
+
 <div id="demo-banner" class="demo-banner" hidden>Preview mode: sample data, nothing is saved.</div>
 
 <!-- PLAYER SELECT -->
@@ -27,7 +36,6 @@
 <!-- HUB -->
 <section id="view-hub" class="view">
   <header class="hub-head">
-    <button id="btn-switch" class="btn-ghost" aria-label="Switch player">&larr;</button>
     <div class="hub-title">
       <div id="hub-name" class="hub-name"></div>
       <div id="hub-date" class="muted"></div>

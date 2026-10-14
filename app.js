@@ -86,7 +86,7 @@ async function boot() {
 
   if (want) {
     const p = players.find((x) => x.name.toLowerCase() === want.toLowerCase());
-    if (p) { S.locked = p.name; $("#btn-switch").hidden = true; return openPlayer(p.name); }
+    if (p) { S.locked = p.name; return openPlayer(p.name); }
   }
   renderSelect();
   let last = null;
@@ -434,7 +434,38 @@ document.addEventListener("click", (e) => {
   }
 });
 
-$("#btn-switch").addEventListener("click", () => { S.hub = null; renderSelect(); });
+// ---------- navigation (Back / Home / Full screen) ----------
+if (new URLSearchParams(location.search).has("kiosk")) document.documentElement.classList.add("kiosk");
+
+function closeOverlays() {
+  if (!$("#video-overlay").hidden) { $("#video-slot").innerHTML = ""; $("#video-overlay").hidden = true; return true; }
+  if (!$("#boom-overlay").hidden) { $("#boom-overlay").hidden = true; return true; }
+  return false;
+}
+function goHome() {
+  closeOverlays();
+  if (S.locked) { S.track = defaultTrack(); render(); window.scrollTo(0, 0); return; }
+  S.hub = null; renderSelect(); window.scrollTo(0, 0);
+}
+function goBack() {
+  if (closeOverlays()) return;
+  if ($("#view-hub").classList.contains("active") && !S.locked) { goHome(); return; }
+  if (history.length > 1) history.back(); else goHome();
+}
+$("#nav-home").addEventListener("click", goHome);
+$("#nav-back").addEventListener("click", goBack);
+
+const fsBtn = $("#nav-fs");
+if (document.fullscreenEnabled) {
+  fsBtn.hidden = false;
+  const label = () => { fsBtn.innerHTML = document.fullscreenElement ? "&#x2715; Exit full screen" : "&#x26F6; Full screen"; };
+  fsBtn.addEventListener("click", () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => toast("This browser won't go full screen here."));
+  });
+  document.addEventListener("fullscreenchange", label);
+  label();
+}
 $("#btn-visual").addEventListener("click", () => {
   const v = S.hub.player.visual === "Thermometer" ? "Bomb" : "Thermometer";
   S.hub.player.visual = v;

@@ -38,6 +38,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .view { display: none; max-width: 980px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 64px; }
 .view.active { display: block; }
 
+/* ---------- navigation bar ---------- */
+.app-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); background: var(--ink); }
+.nav-btn { min-height: 48px; padding: 0 18px; border-radius: 999px; border: 0; background: rgb(255 255 255 / .14); color: #fff; font-weight: 700; font-size: 1rem; white-space: nowrap; }
+.nav-btn:active { background: rgb(255 255 255 / .28); }
+.nav-spacer { flex: 1; }
+.track-tabs { top: 64px !important; }
+/* Kitchen kiosk: native corner pills handle navigation (Back top-right, Home bottom-left,
+   Exit bottom-right), so hide this bar and keep content clear of those corners. */
+.kiosk .app-nav { display: none; }
+.kiosk .track-tabs { top: 0 !important; padding-right: 116px; }
+.kiosk .hub-head { padding-right: 116px; }
+.kiosk .view { padding-bottom: 96px; }
+
 .demo-banner { background: var(--sun-soft); color: var(--ink); text-align: center; padding: 10px 16px; font-weight: 600; }
 
 /* ---------- player select ---------- */
@@ -52,10 +65,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .t-tatum { background: linear-gradient(150deg, #E09B10, #0E7C86); }
 
 /* ---------- hub header ---------- */
-.hub-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin-bottom: 14px; }
-.hub-head #btn-switch { grid-column: 1; }
-.hub-title { grid-column: 2; min-width: 0; }
-.today-pill { grid-column: 3; }
+.hub-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 14px; }
+.hub-title { grid-column: 1; min-width: 0; }
+.today-pill { grid-column: 2; }
 .hub-name { font-family: var(--display); font-weight: 800; font-size: clamp(1.7rem, 4.5vw, 2.6rem); line-height: 1.05; letter-spacing: -.02em; }
 .btn-ghost { border: 2px solid var(--line); background: var(--card); border-radius: 999px; min-width: 60px; min-height: 60px; padding: 0 18px; font-weight: 700; font-size: 1.3rem; }
 .btn-ghost.small { min-height: 44px; min-width: 0; font-size: .85rem; padding: 0 14px; }
@@ -179,8 +191,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .track-tab { min-height: 72px; padding: 8px 4px; }
   .track-tab .tn { font-size: .95rem; }
   .all-btn { width: 60px; height: 60px; }
-  .hub-head { grid-template-columns: auto 1fr; }
+  .hub-head { grid-template-columns: minmax(0, 1fr); }
   .today-pill { grid-column: 1 / -1; justify-self: start; }
-  .hub-title { grid-column: 2; }
+  .hub-title { grid-column: 1; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
