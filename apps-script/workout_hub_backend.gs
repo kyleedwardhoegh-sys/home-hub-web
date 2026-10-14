@@ -161,6 +161,9 @@ function doGet(e) {
   if (action === 'getAssignments') return jsonResponse(getAssignments(e.parameter.date));
   if (action === 'getProgress') return jsonResponse(getProgress(e.parameter.kid, e.parameter.exercise));
   if (action === 'getLibrary') return jsonResponse(getLibrary());
+  // v2 Training Hub (/training/ frontend)
+  if (action === 'getPlayers') return jsonResponse(v2GetPlayers());
+  if (action === 'getHub') return jsonResponse(v2GetHub(e.parameter.player, e.parameter.date));
   return jsonResponse({ error: 'unknown action' });
 }
 
@@ -170,6 +173,9 @@ function doPost(e) {
     markComplete(data.date, data.kid, data.exercise, data.resultValue);
     return jsonResponse({ success: true });
   }
+  if (data.action === 'toggleSet') return jsonResponse(v2ToggleSet(data));
+  if (data.action === 'setResult') return jsonResponse(v2SetResult(data));
+  if (data.action === 'setVisual') return jsonResponse(v2SetVisual(data));
   return jsonResponse({ error: 'unknown action' });
 }
 
@@ -287,4 +293,393 @@ function getProgress(kid, exercise) {
     .filter(function (l) { return l['Kid'] === kid && l['Exercise Name'] === exercise && l['Done'] === true; })
     .map(function (l) { return { date: l['Date'], value: l['Result Value'] }; })
     .sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+}
+
+
+// ============================================================
+// V2 — TRAINING HUB (frontend lives in /training/)
+// ============================================================
+// Three tracks a day (Morning / After School / Night). Each track is a
+// standing menu of Must-dos plus "pick any" Options from the Activity
+// Library. Every checked set earns points, which feed a weekly fuse
+// (resets Monday) and a long-term Big prize. Kept alongside v1 above so
+// the original app keeps working until the switch-over.
+//
+// Tabs (created by setupV2, safe to re-run — never clears data):
+//   Players          — who can use the hub, which tracks, bomb/thermometer
+//   Activity Library — every drill: category, tracks, sets, points, video
+//   Track Plan       — what shows on each player's tracks (an Activity ID,
+//                      or "Category: X" to list a whole category as options)
+//   Set Log          — one row per checked set (the app writes here)
+//   Prizes           — weekly + big prize names and point targets
+// ============================================================
+
+var V2_PLAYERS = 'Players';
+var V2_LIB = 'Activity Library';
+var V2_PLAN = 'Track Plan';
+var V2_LOG = 'Set Log';
+var V2_PRIZES = 'Prizes';
+var V2_TRACKS = ['Morning', 'After School', 'Night'];
+
+var V2_HEADERS = {
+  'Players': ['Player', 'Tracks', 'Visual', 'Theme', 'Active'],
+  'Activity Library': ['ID', 'Name', 'Category', 'Tracks', 'Sets', 'Per Set', 'Set Labels', 'Points Per Set',
+                       'Video', 'Cue', 'Result', 'Result Of', 'Source', 'Active'],
+  'Track Plan': ['Player', 'Track', 'Activity', 'Type', 'Order', 'Active'],
+  'Set Log': ['Key', 'Date', 'Player', 'Track', 'Activity ID', 'Set', 'Points', 'Result', 'Done', 'Updated At'],
+  'Prizes': ['Player', 'Type', 'Prize', 'Target Points', 'Start Date', 'Note']
+};
+
+// [ID, Name, Category, Tracks, Sets, Per Set, Set Labels (| separated), Points/Set, Video, Cue, Result, Result Of, Source]
+var V2_SEED_LIBRARY = [
+  // Garage / no hoop (morning 6:30 routine)
+  ['G1', 'Ball raises (slow, to set point)', 'Garage / No Hoop', 'Morning', 2, '5 slow reps', '', 1, 'https://youtu.be/0mdidcb1GxU', 'Ball starts on your shooting side. Pause, then lower.', '', '', 'Dunn (garage version)'],
+  ['G2', '1-2-Thru rehearsal (no release)', 'Garage / No Hoop', 'Morning', 2, '5 slow reps', '', 1, 'https://youtu.be/0t2i7OYeWKc', 'Move through the shot, stop before letting go, reset.', '', '', 'Dunn (garage version)'],
+  ['G3', 'One-hand path (freeze before release)', 'Garage / No Hoop', 'Morning', 1, '6 reps', '', 1, 'https://youtu.be/_9xbKNbJ4ag', 'Shooting hand controls the ball. Freeze before release.', '', '', 'Dunn (garage version)'],
+  ['G4', 'Guide-hand slide (no release)', 'Garage / No Hoop', 'Morning', 1, '6 reps', '', 1, 'https://youtu.be/o1gQlfPGFWE', 'Guide hand balances, then slides away. It never pushes.', '', '', 'Dunn (garage version)'],
+  ['G5', 'Movement into set', 'Garage / No Hoop', 'Morning', 2, '3 reps', 'Stationary start ×3|Small step-in ×3', 1, '', 'Self-toss or ball at hip, rise to a balanced set, pause. No jump.', '', '', 'Love (garage version)'],
+  ['G6', 'Finish freeze', 'Garage / No Hoop', 'Morning', 1, '3 slow reps', '', 1, '', 'Hold a relaxed finish 2 seconds, finger toward the target.', '', '', 'Garage routine'],
+  ['G7', 'Reset + name one cue', 'Mindset', 'Morning', 1, '3 breaths + 1 cue', '', 1, '', 'Say one cue to remember next time.', '', '', 'Garage routine'],
+  // Mike Dunn — Ground Up
+  ['D1', 'Ball Raises', 'Dunn Shooting', 'Night', 5, '10 reps', '1–10|11–20|21–30|31–40|41–50', 1, 'https://youtu.be/0mdidcb1GxU', 'Find your comfortable "1" position. Ball moves first.', '', '', 'Mike Dunn · Ground Up'],
+  ['D2', '1-2-Thru', 'Dunn Shooting', 'Night', 5, '20 reps', '1–20|21–40|41–60|61–80|81–100', 1, 'https://youtu.be/0t2i7OYeWKc', 'Choppy is OK. Smooth it out: "just pass it to the basket."', '', '', 'Mike Dunn · Ground Up'],
+  ['D3', 'Shoot the Line', 'Dunn Shooting', 'Night', 5, '5 reps', '1–5|6–10|11–15|16–20|21–25', 1, 'https://youtu.be/YGyu7HBtk3s', 'Ball first, legs second.', '', '', 'Mike Dunn · Ground Up'],
+  ['D4', 'Shoot to Yourself', 'Dunn Shooting', 'Night', 5, '10 reps', '1–10|11–20|21–30|31–40|41–50', 1, '', 'Straight up, catch it straight down, no bounce. Outside or under a high ceiling only.', '', '', 'Mike Dunn · Ground Up'],
+  ['D5', 'Backboard Shots – Flat Side', 'Dunn Shooting', 'After School', 5, '10 reps', '', 1, 'https://youtu.be/bPZNr7iItnE', '', '', '', 'Mike Dunn · Ground Up'],
+  ['D6', 'Backboard Shots – Skinny Side', 'Dunn Shooting', 'After School', 3, '10 reps', '', 1, 'https://youtu.be/U-I576autFs', '', '', '', 'Mike Dunn · Ground Up'],
+  ['D7', 'Wide Stance Shots (5–10 ft)', 'Dunn Shooting', 'After School', 5, '10 makes', 'Baseline R|Wing R|Center|Wing L|Baseline L', 1, 'https://youtu.be/QHhBWyY-TDg', 'The ball never stops from start to finish.', '', '', 'Mike Dunn · Ground Up'],
+  ['D8', 'Roll Ups (5–10 ft)', 'Dunn Shooting', 'After School', 5, '10 makes', 'Baseline R|Wing R|Center|Wing L|Baseline L', 1, 'https://youtu.be/-c7kfpIkccg', 'Smooth from start to finish.', '', '', 'Mike Dunn · Ground Up'],
+  ['D9', 'One Hand Pullbacks (10 ft)', 'Dunn Shooting', 'After School', 5, '5 makes', 'Baseline R|Wing R|Center|Wing L|Baseline L', 1, 'https://youtu.be/_9xbKNbJ4ag', 'One hand isolates the shooting hand.', '', '', 'Mike Dunn · Ground Up'],
+  ['D10', 'One Hand Pullbacks with Hop', 'Dunn Shooting', 'After School', 5, '5 makes', '', 1, 'https://youtu.be/k0U5zyFUHh4', 'Too hard? Hop with two hands, then shoot one-handed.', '', '', 'Mike Dunn · Ground Up'],
+  ['D11', 'Form Shooting with Guide Hand Slides', 'Dunn Shooting', 'After School', 5, '10 makes', '', 1, 'https://youtu.be/o1gQlfPGFWE', 'The guide hand only balances the ball.', '', '', 'Mike Dunn · Ground Up'],
+  ['D12', 'One Position Hops (forward / back)', 'Dunn Shooting', 'After School', 5, '5 makes', 'Baseline R|Wing R|Center|Wing L|Baseline L', 1, 'https://youtu.be/YsOXL_hDHYY', '', '', '', 'Mike Dunn · Ground Up'],
+  ['D13', 'Momentum Shots', 'Dunn Shooting', 'After School', 5, '10 makes', 'Baseline R|Wing R|Center|Wing L|Baseline L', 1, 'https://youtu.be/5qBwsCVxtBE', 'Release the ball on the way up.', '', '', 'Mike Dunn · Ground Up'],
+  ['D14', 'Hand Prep Drill', 'Dunn Shooting', 'After School', 2, '25 makes (5 spots)', 'Right-hand pickup|Left-hand pickup', 2, 'https://youtu.be/QmohmURpaGo', 'Hands ready before the feet land.', '', '', 'Mike Dunn · Ground Up'],
+  ['D15', 'Watch: Pass It to the Basket', 'Film & Study', 'After School,Night', 1, '1 video', '', 2, 'https://youtu.be/j6q-hDPr5VU', '', '', '', 'Mike Dunn · Ground Up'],
+  // Dave Love
+  ['L1', 'Float-up warm-up', 'Love Shooting', 'After School', 3, '10 makes', 'Right block|Middle|Left block', 1, '', '"Let the ball float up into the shelf." Wrist relaxed at the start.', '', '', 'Dave Love'],
+  ['L2', 'Isolation drill (one hand)', 'Love Shooting', 'After School', 4, '8 shots', 'Shots 1–8|9–16|17–24|25–32', 1, '', 'Hold at the set point 3 sec, guide hand off. One-hand from 11–15 ft, new spot every shot. "Point your index finger at the back of the rim."', '', '', 'Dave Love'],
+  ['L3', 'ABC shots', 'Love Shooting', 'After School', 3, '10 shots', 'ABC 1–10|11–20|21–30', 1, '', 'Triple threat → float up to the set point → release with your finger at the rim.', '', '', 'Dave Love'],
+  ['L4', 'Land and freeze', 'Love Shooting', 'After School', 3, '10 shots', 'Right wing|Straight on|Left wing', 1, '', 'From 15 ft. Toes to the rim, land on both feet, freeze 2 sec.', '', '', 'Dave Love'],
+  ['L5', 'Target shooting (front of rim)', 'Love Shooting', 'After School', 4, '10 shots', 'Left wing|Left elbow|Right elbow|Right wing', 1, '', 'Swish it just over the front of the rim.', '', '', 'Dave Love'],
+  ['L6', 'Hop and stick', 'Love Shooting', 'After School', 6, '5 shots', 'Spot 1 hop L|Spot 1 hop R|Spot 2 hop L|Spot 2 hop R|Spot 3 hop L|Spot 3 hop R', 1, '', 'Hop sideways, stay balanced when you land.', '', '', 'Dave Love'],
+  ['L7', 'Free-throw test (20)', 'Tests', 'After School', 4, '5 free throws', 'FTs 1–5|6–10|11–15|16–20', 1, '', 'Normal routine. Enter your makes.', 'Makes', 20, 'Dave Love'],
+  ['L8', 'Spot test: 3 spots × 20 (15 ft)', 'Tests', 'After School', 3, '20 shots', 'Right wing|Straight on|Left wing', 1, '', 'Enter total makes out of 60.', 'Makes', 60, 'Shot Lab standard'],
+  ['L9', 'Film your shot (front + side)', 'Film & Study', 'After School', 2, '3–5 shots', 'Front view|Side view', 2, '', 'Phone at chest height, whole body + rim in the frame.', '', '', 'Dave Love'],
+  ['L10', 'Watch a Total Shooter Transformation lesson', 'Film & Study', 'After School,Night', 1, '1 lesson', '', 3, 'https://www.coachdavelove.com/product/tst', '', '', '', 'Dave Love'],
+  // Dribbling
+  ['B1', 'Stationary pound dribbles', 'Dribbling', 'After School,Night', 4, '30 sec', 'Right hand|Left hand|Right low|Left low', 1, '', 'Eyes up. Pound it hard.', '', '', 'Hoegh basics'],
+  ['B2', 'Crossover series', 'Dribbling', 'After School,Night', 3, '30 sec', 'In front|Between legs|Behind back', 1, '', 'Low and quick.', '', '', 'Hoegh basics'],
+  ['B3', 'Two-ball dribbling', 'Dribbling', 'After School,Night', 3, '30 sec', 'Together|Alternating|High-low', 1, '', 'Weak hand matches strong hand.', '', '', 'Hoegh basics'],
+  ['B4', 'Figure 8s and wraps', 'Dribbling', 'After School,Night', 2, '30 sec', '', 1, '', '', '', '', 'Hoegh basics'],
+  // Lifting (bodyweight, age-appropriate)
+  ['S1', 'Push-ups', 'Lifting', 'Morning,After School,Night', 3, '10 reps', '', 1, '', 'Straight line from head to heels.', '', '', 'Hoegh basics'],
+  ['S2', 'Bodyweight squats', 'Lifting', 'Morning,After School,Night', 3, '12 reps', '', 1, '', 'Chest up, knees over toes.', '', '', 'Hoegh basics'],
+  ['S3', 'Split squats', 'Lifting', 'Morning,After School,Night', 2, '8 each leg', 'Right leg|Left leg', 1, '', 'Slow down, drive up.', '', '', 'Hoegh basics'],
+  ['S4', 'Plank', 'Lifting', 'Morning,After School,Night', 3, '30 sec', '', 1, '', 'Squeeze your glutes and breathe.', '', '', 'Hoegh basics'],
+  ['S5', 'Glute bridges', 'Lifting', 'Morning,After School,Night', 3, '12 reps', '', 1, '', 'Squeeze at the top.', '', '', 'Hoegh basics'],
+  ['S6', 'Calf raises', 'Lifting', 'Morning,After School,Night', 2, '20 reps', '', 1, '', 'All the way up, slow down.', '', '', 'Hoegh basics'],
+  // Explosive / agility
+  ['E1', 'Broad jumps', 'Explosive', 'After School', 3, '3 jumps', '', 1, '', 'Swing your arms, stick the landing.', 'Distance', '', 'Hoegh basics'],
+  ['E2', 'Pogo hops', 'Explosive', 'After School,Night', 3, '20 hops', '', 1, '', 'Quick ankles, tall body.', '', '', 'Hoegh basics'],
+  ['A1', 'Line hops (fast feet)', 'Agility & Quickness', 'After School,Night', 3, '20 sec', 'Side to side|Front to back|Single leg', 1, '', 'Stay on the balls of your feet.', '', '', 'Hoegh basics']
+];
+
+// Player, Track, Activity (ID or "Category: X"), Type, Order
+var V2_SEED_PLAN = [
+  ['All', 'Morning', 'G1', 'Must-do', 1], ['All', 'Morning', 'G2', 'Must-do', 2], ['All', 'Morning', 'G3', 'Must-do', 3],
+  ['All', 'Morning', 'G4', 'Must-do', 4], ['All', 'Morning', 'G5', 'Must-do', 5], ['All', 'Morning', 'G6', 'Must-do', 6],
+  ['All', 'Morning', 'G7', 'Must-do', 7], ['All', 'Morning', 'Category: Lifting', 'Option', 20],
+  ['All', 'After School', 'L1', 'Must-do', 1], ['All', 'After School', 'L2', 'Must-do', 2],
+  ['All', 'After School', 'L3', 'Must-do', 3], ['All', 'After School', 'L4', 'Must-do', 4],
+  ['All', 'After School', 'Category: Love Shooting', 'Option', 10], ['All', 'After School', 'Category: Tests', 'Option', 11],
+  ['All', 'After School', 'Category: Dunn Shooting', 'Option', 12], ['All', 'After School', 'Category: Film & Study', 'Option', 13],
+  ['All', 'After School', 'Category: Dribbling', 'Option', 14], ['All', 'After School', 'Category: Lifting', 'Option', 15],
+  ['All', 'After School', 'Category: Explosive', 'Option', 16], ['All', 'After School', 'Category: Agility & Quickness', 'Option', 17],
+  ['All', 'After School', 'Category: Defense', 'Option', 18], ['All', 'After School', 'Category: Rebounding', 'Option', 19],
+  ['All', 'After School', 'Category: Shooting Feel', 'Option', 20], ['All', 'After School', 'Category: Team & Trainer', 'Option', 21],
+  ['All', 'After School', 'Category: Basketball Skills', 'Option', 22],
+  ['All', 'Night', 'D1', 'Must-do', 1], ['All', 'Night', 'D2', 'Must-do', 2], ['All', 'Night', 'D3', 'Must-do', 3],
+  ['All', 'Night', 'D4', 'Must-do', 4],
+  ['All', 'Night', 'Category: Dribbling', 'Option', 10], ['All', 'Night', 'Category: Lifting', 'Option', 11],
+  ['All', 'Night', 'Category: Agility & Quickness', 'Option', 12], ['All', 'Night', 'Category: Explosive', 'Option', 13],
+  ['All', 'Night', 'Category: Film & Study', 'Option', 14]
+];
+
+// ------------------------------------------------------------
+// Run ONCE from the Apps Script editor (select "setupV2", click Run).
+// Creates only the v2 tabs that don't exist yet, so it's safe to re-run;
+// existing v1 tabs and data are never touched.
+// ------------------------------------------------------------
+function setupV2() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var created = [];
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+  function ensure(name, seedRows) {
+    if (ss.getSheetByName(name)) return null;
+    var sh = ss.insertSheet(name);
+    var h = V2_HEADERS[name];
+    sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    if (seedRows && seedRows.length) sh.getRange(2, 1, seedRows.length, h.length).setValues(seedRows);
+    created.push(name);
+    return sh;
+  }
+
+  ensure(V2_PLAYERS, [
+    ['Nellie', 'Morning,After School,Night', 'Bomb', 'nellie', true],
+    ['Nash', 'Morning,After School,Night', 'Bomb', 'nash', true],
+    ['Titus', 'Night', 'Bomb', 'titus', false],
+    ['Tatum', 'Night', 'Bomb', 'tatum', false]
+  ]);
+
+  var libRows = V2_SEED_LIBRARY.map(function (r) { return r.concat([true]); });
+  libRows = libRows.concat(v2MigrateExerciseLibrary(ss));
+  var lib = ensure(V2_LIB, libRows);
+  if (lib) lib.setColumnWidth(2, 260);
+
+  var plan = ensure(V2_PLAN, V2_SEED_PLAN.map(function (r) { return r.concat([true]); }));
+  if (plan) plan.getRange(2, 4, 500, 1).setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInList(['Must-do', 'Option'], true).build());
+
+  var log = ensure(V2_LOG, []);
+  if (log) log.getRange('A:B').setNumberFormat('@'); // keep keys and dates as plain text
+
+  var prizes = ensure(V2_PRIZES, [
+    ['All', 'Weekly', 'Weekly prize — Dad picks!', 150, today, 'Resets every Monday'],
+    ['All', 'Big', 'Big prize — Dad picks!', 1000, today, 'Counts every point since the start date']
+  ]);
+  if (prizes) prizes.getRange('E:E').setNumberFormat('@');
+
+  var msg = created.length ? 'Created: ' + created.join(', ') : 'All v2 tabs already exist — nothing changed.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (err) { Logger.log(msg); }
+}
+
+// Copies the v1 Exercise Library into v2 rows with best-guess categories.
+function v2MigrateExerciseLibrary(ss) {
+  var sh = ss.getSheetByName(LIBRARY_SHEET);
+  if (!sh) return [];
+  var rows = sheetToObjects(sh);
+  return rows.map(function (r, i) {
+    var name = String(r['Exercise Name']).trim();
+    var n = name.toLowerCase();
+    var cat = { 'Explosiveness': 'Explosive', 'Quickness': 'Agility & Quickness', 'Strength': 'Lifting',
+                'Foundational': 'Agility & Quickness' }[r['Category']] || 'Basketball Skills';
+    if (/dribbl|pound/.test(n)) cat = 'Dribbling';
+    else if (/rebound|tap drill/.test(n)) cat = 'Rebounding';
+    else if (/close out/.test(n)) cat = 'Defense';
+    else if (/session|personal training/.test(n)) cat = 'Team & Trainer';
+    else if (/spin|catch - load/.test(n)) cat = 'Shooting Feel';
+    var tracks = /jump rope/.test(n) ? 'After School,Night' : 'After School';
+    var result = { 'Weight': 'Weight', 'Distance': 'Distance', 'Time': 'Time' }[r['Result Type']] || '';
+    var isSession = cat === 'Team & Trainer';
+    return ['X' + (i + 1), name, cat, tracks, isSession ? 1 : 2, isSession ? '1 session' : 'reps', '',
+            isSession ? 5 : 1, r['YouTube Link'] || '', '', result, '', 'Home Hub library', true];
+  });
+}
+
+// ---------- helpers ----------
+
+function v2Ymd(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return String(v || '').slice(0, 10);
+}
+
+function v2AddDays(ymd, n) {
+  var p = ymd.split('-');
+  var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function v2WeekStart(ymd) { // Monday
+  var p = ymd.split('-');
+  var dow = (new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay() + 6) % 7;
+  return v2AddDays(ymd, -dow);
+}
+
+function v2Rows(name) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sh) return null;
+  return sheetToObjects(sh);
+}
+
+function v2List(s) {
+  return String(s || '').split(',').map(function (x) { return x.trim(); }).filter(String);
+}
+
+function v2Truthy(v) { return !(v === false || String(v).toUpperCase() === 'FALSE'); }
+
+function v2Item(a) {
+  var sets = Math.max(1, parseInt(a['Sets'], 10) || 1);
+  var labels = String(a['Set Labels'] || '').split('|').map(function (x) { return x.trim(); }).filter(String);
+  return {
+    id: String(a['ID']), name: a['Name'], category: a['Category'], source: a['Source'] || '',
+    sets: sets, perSet: a['Per Set'] || '', labels: labels,
+    pts: Number(a['Points Per Set']) || 1, video: a['Video'] || '', cue: a['Cue'] || '',
+    result: a['Result'] || '', resultOf: Number(a['Result Of']) || null
+  };
+}
+
+// ---------- GET ----------
+
+function v2GetPlayers() {
+  var rows = v2Rows(V2_PLAYERS);
+  if (!rows) return { error: 'v2 not set up' };
+  return rows.filter(function (p) { return v2Truthy(p['Active']); }).map(function (p) {
+    return { name: p['Player'], tracks: v2List(p['Tracks']), visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' };
+  });
+}
+
+function v2GetHub(player, date) {
+  var players = v2Rows(V2_PLAYERS), libRows = v2Rows(V2_LIB), plan = v2Rows(V2_PLAN),
+      log = v2Rows(V2_LOG), prizes = v2Rows(V2_PRIZES);
+  if (!players || !libRows || !plan || !log || !prizes) return { error: 'v2 not set up' };
+  date = date || v2Ymd(new Date());
+
+  var p = players.filter(function (x) { return x['Player'] === player && v2Truthy(x['Active']); })[0];
+  if (!p) return { error: 'unknown player' };
+  var tracks = v2List(p['Tracks']).filter(function (t) { return V2_TRACKS.indexOf(t) > -1; });
+
+  var lib = libRows.filter(function (a) { return a['ID'] !== '' && v2Truthy(a['Active']); });
+  var byId = {};
+  lib.forEach(function (a) { byId[String(a['ID'])] = a; });
+
+  var out = {};
+  tracks.forEach(function (t) {
+    var rows = plan.filter(function (r) {
+      var who = v2List(r['Player']);
+      return r['Track'] === t && v2Truthy(r['Active']) && (who.indexOf('All') > -1 || who.indexOf(player) > -1);
+    }).sort(function (a, b) { return (Number(a['Order']) || 0) - (Number(b['Order']) || 0); });
+    var listed = {}, must = [], groups = [];
+    rows.forEach(function (r) {
+      var act = String(r['Activity']).trim();
+      if (act.indexOf('Category:') !== 0 && byId[act]) listed[act] = true;
+    });
+    rows.forEach(function (r) {
+      var act = String(r['Activity']).trim(), type = r['Type'] === 'Must-do' ? 'must' : 'option';
+      var items;
+      if (act.indexOf('Category:') === 0) {
+        var cat = act.slice(9).trim();
+        items = lib.filter(function (a) {
+          return a['Category'] === cat && v2List(a['Tracks']).indexOf(t) > -1 && !listed[String(a['ID'])];
+        });
+      } else {
+        items = byId[act] ? [byId[act]] : [];
+      }
+      items = items.map(v2Item);
+      if (!items.length) return;
+      if (type === 'must') must = must.concat(items);
+      else {
+        items.forEach(function (it) {
+          var g = groups.filter(function (x) { return x.category === it.category; })[0];
+          if (!g) { g = { category: it.category, items: [] }; groups.push(g); }
+          if (!g.items.some(function (x) { return x.id === it.id; })) g.items.push(it);
+        });
+      }
+    });
+    out[t] = { must: must, options: groups };
+  });
+
+  // Prizes: a player-specific row wins over an "All" row; latest start date that has begun.
+  function prizeFor(type) {
+    var rows = prizes.filter(function (r) {
+      return r['Type'] === type && (r['Player'] === player || r['Player'] === 'All') && v2Ymd(r['Start Date']) <= date;
+    }).sort(function (a, b) {
+      var sa = v2Ymd(a['Start Date']), sb = v2Ymd(b['Start Date']);
+      if (sa !== sb) return sa < sb ? 1 : -1;
+      return (a['Player'] === player ? -1 : 1);
+    });
+    var r = rows[0];
+    return r ? { prize: r['Prize'], target: Number(r['Target Points']) || 100, start: v2Ymd(r['Start Date']) } : null;
+  }
+  var weekly = prizeFor('Weekly'), big = prizeFor('Big');
+
+  var ws = v2WeekStart(date), we = v2AddDays(ws, 6);
+  var done = {}, results = {}, history = {};
+  var pts = { today: 0, week: 0, big: 0, lifetime: 0, byDay: {} };
+  log.forEach(function (r) {
+    if (r['Player'] !== player) return;
+    var d = v2Ymd(r['Date']), set = Number(r['Set']), isDone = r['Done'] === true || String(r['Done']).toUpperCase() === 'TRUE';
+    var k = r['Track'] + '|' + r['Activity ID'];
+    if (set === 0) {
+      if (r['Result'] !== '' && r['Result'] != null) {
+        (history[r['Activity ID']] = history[r['Activity ID']] || []).push({ date: d, value: Number(r['Result']) });
+        if (d === date) results[k] = Number(r['Result']);
+      }
+      return;
+    }
+    if (!isDone) return;
+    var pt = Number(r['Points']) || 0;
+    if (d === date) done[k + '|' + set] = true;
+    pts.lifetime += pt;
+    pts.byDay[d] = (pts.byDay[d] || 0) + pt;
+    if (d === date) pts.today += pt;
+    if (d >= ws && d <= we) pts.week += pt;
+    if (big && d >= big.start) pts.big += pt;
+  });
+
+  return {
+    player: { name: p['Player'], tracks: tracks, visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' },
+    date: date, weekStart: ws, tracks: out, done: done, results: results, history: history,
+    points: pts, prizes: { weekly: weekly, big: big }
+  };
+}
+
+// ---------- POST ----------
+
+function v2Upsert(key, row) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V2_LOG);
+  var hit = sh.getRange('A:A').createTextFinder(key).matchEntireCell(true).findNext();
+  if (hit) sh.getRange(hit.getRow(), 1, 1, row.length).setValues([row]);
+  else sh.appendRow(row);
+}
+
+function v2ToggleSet(d) {
+  if (!d.date || !d.player || !d.track || !d.activity || !(Number(d.set) > 0)) return { error: 'bad request' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var lib = v2Rows(V2_LIB) || [];
+    var a = lib.filter(function (x) { return String(x['ID']) === String(d.activity); })[0];
+    var pts = a ? (Number(a['Points Per Set']) || 1) : 1;
+    var key = [d.date, d.player, d.track, d.activity, d.set].join('|');
+    v2Upsert(key, [key, d.date, d.player, d.track, d.activity, Number(d.set), pts, '', d.done === true, new Date()]);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+
+function v2SetResult(d) {
+  if (!d.date || !d.player || !d.track || !d.activity) return { error: 'bad request' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var key = [d.date, d.player, d.track, d.activity, 0].join('|');
+    var val = d.result === null || d.result === '' || d.result === undefined ? '' : Number(d.result);
+    v2Upsert(key, [key, d.date, d.player, d.track, d.activity, 0, 0, val, val !== '', new Date()]);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+
+function v2SetVisual(d) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V2_PLAYERS);
+  if (!sh || ['Bomb', 'Thermometer'].indexOf(d.visual) === -1) return { error: 'bad request' };
+  var data = sh.getDataRange().getValues();
+  var col = data[0].indexOf('Visual');
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === d.player) { sh.getRange(i + 1, col + 1).setValue(d.visual); return { ok: true }; }
+  }
+  return { error: 'unknown player' };
+}
+
+// ------------------------------------------------------------
+// Run ONCE after setupV2: carries the Oct 7 baseline tests over from the
+// old claude.ai Shot Lab (results only — no points, so prizes start fresh).
+// ------------------------------------------------------------
+function v2ImportShotLabBaselines() {
+  [['Nellie', 'L7', 12], ['Nellie', 'L8', 25], ['Nash', 'L7', 14], ['Nash', 'L8', 28]].forEach(function (r) {
+    v2SetResult({ date: '2026-10-07', player: r[0], track: 'After School', activity: r[1], result: r[2] });
+  });
+  try { SpreadsheetApp.getUi().alert('Imported 4 baseline test results from Oct 7.'); } catch (e) {}
 }

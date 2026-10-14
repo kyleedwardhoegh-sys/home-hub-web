@@ -92,6 +92,27 @@ project-root/
 - The vertical/horizontal Windows display-rotation switching helper Kyle originally asked about.
 - Any other planned hub modules (calendar was floated as the next "win" after this one, since Google Calendar is the family's existing scheduling tool).
 
+### v2: Training Hub (`/training/`, started 2026-10-13)
+
+Replaces both the v1 daily-assignment flow and the short-lived claude.ai "Hoegh Shot Lab" artifact (a private claude.ai page that couldn't be shared with Nash's friends Titus and Tatum without them having Claude accounts). Lives at `/training/` in this repo so v1 at `/` keeps working until Kyle switches over.
+
+**Model:** no Day 1/Day 2 and no per-date assignments. Each player has up to three tracks every day (Morning = garage, no hoop; After School = at a hoop; Night = no hoop). Each track is a standing menu of **Must-dos** plus **Pick any** options. Every checked **set** earns points (partial work always counts). Points feed a **weekly fuse** (resets Monday) and a **Big prize** (counts from its start date). Each player picks a **bomb** (fuse burns toward the bomb, BOOM + prize card at 0) or a **thermometer** (fills to the top); the choice is saved to the Players tab.
+
+**Sheet tabs (created by `setupV2()`, safe to re-run, never touches v1 tabs):**
+- **Players** — Player, Tracks (comma list), Visual (Bomb/Thermometer), Theme (nellie/nash/titus/tatum), Active. Titus and Tatum are seeded Night-only and Active = FALSE.
+- **Activity Library** — ID, Name, Category, Tracks, Sets, Per Set, Set Labels (`|`-separated, one per set), Points Per Set, Video, Cue, Result (Makes/Time/Distance/Weight or blank), Result Of, Source, Active. Seeded with Dunn Ground Up drills (with his video links), Dave Love drills built from Nellie's 2026-10-07 shot report, the 6:30 AM garage routine, bodyweight lifting, dribbling, and the whole v1 Exercise Library migrated with mapped categories (IDs `X1…`).
+- **Track Plan** — Player (`All` or a comma list), Track, Activity (an ID, or `Category: X` to list every active activity in that category whose Tracks include this track), Type (Must-do/Option), Order, Active. Editing this tab is how Kyle changes what the kids see; no per-day data entry.
+- **Set Log** — Key (`date|player|track|activityId|set`), Date (plain text YYYY-MM-DD), Player, Track, Activity ID, Set (0 = a result row), Points, Result, Done, Updated At. Upserted by key via TextFinder, so unchecking flips Done rather than deleting history.
+- **Prizes** — Player (`All` or a name; a player-specific row wins), Type (Weekly/Big), Prize, Target Points, Start Date (plain text), Note. The latest row whose start date has passed is the current one; add a new row to set the next prize.
+
+**API additions** (same `/exec` URL, v1 actions untouched): `GET getPlayers`, `GET getHub&player=X&date=YYYY-MM-DD` (tracks with expanded categories, today's done-sets and results, points today/week/big/lifetime, current prizes, result history), `POST toggleSet {date, player, track, activity, set, done}`, `POST setResult {…, result}`, `POST setVisual {player, visual}`. Writes take a script lock.
+
+**Frontend notes:** optimistic UI (points and the fuse move instantly; POSTs go through a sequential queue with a toast on failure); refreshes from the Sheet every 60s when idle; if the backend doesn't know the v2 actions it falls back to a clearly bannered **preview mode** with demo data and saves nothing. URL params: `?p=Titus` locks the screen to one player (for friends' links), `?track=night` opens a track, `?pick` shows the player picker instead of resuming the last player.
+
+**Install steps (Kyle):** paste `apps-script/workout_hub_backend.gs` over the Sheet's Apps Script → run `setupV2` → run `v2ImportShotLabBaselines` (Oct 7 test scores) → Deploy → Manage deployments → edit → New version (keeps the `/exec` URL, gotcha #3).
+
+**Next:** Titus/Tatum (flip Active, share `…/training/?p=titus`), printable week sheets, result charts from `history`, a dashboard tile pointing at `/training/`.
+
 ---
 
 ## Part 3: Using This as a Template for the Football Practice Planner
