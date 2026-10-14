@@ -423,7 +423,7 @@ function demoHub(name) {
     },
     done: {}, results: {}, history: {},
     points: { today: 0, week: 132, big: 410, lifetime: 410, byDay: {} },
-    prizes: { weekly: { prize: "Pick the Friday movie", target: 150, start: today() }, big: { prize: "New basketball shoes", target: 1000, start: today() } },
+    prizes: { weekly: { prize: "Weekly prize — you pick it!", target: 150, start: today() }, big: { prize: "Big prize — you pick it!", target: 1000, start: today() } },
   };
 }
 

@@ -372,6 +372,7 @@ var V2_SEED_LIBRARY = [
   ['B2', 'Crossover series', 'Dribbling', 'After School,Night', 3, '30 sec', 'In front|Between legs|Behind back', 1, '', 'Low and quick.', '', '', 'Hoegh basics'],
   ['B3', 'Two-ball dribbling', 'Dribbling', 'After School,Night', 3, '30 sec', 'Together|Alternating|High-low', 1, '', 'Weak hand matches strong hand.', '', '', 'Hoegh basics'],
   ['B4', 'Figure 8s and wraps', 'Dribbling', 'After School,Night', 2, '30 sec', '', 1, '', '', '', '', 'Hoegh basics'],
+  ['B5', 'Ball-handling reel drill', 'Dribbling', 'After School,Night', 3, '30 sec', '', 1, 'https://www.instagram.com/reel/DeQM9GKBCUg/', 'Watch the reel, then copy the drill.', '', '', 'Ball handling sheet'],
   // Lifting (bodyweight, age-appropriate)
   ['S1', 'Push-ups', 'Lifting', 'Morning,After School,Night', 3, '10 reps', '', 1, '', 'Straight line from head to heels.', '', '', 'Hoegh basics'],
   ['S2', 'Bodyweight squats', 'Lifting', 'Morning,After School,Night', 3, '12 reps', '', 1, '', 'Chest up, knees over toes.', '', '', 'Hoegh basics'],
@@ -447,8 +448,8 @@ function setupV2() {
   if (log) log.getRange('A:B').setNumberFormat('@'); // keep keys and dates as plain text
 
   var prizes = ensure(V2_PRIZES, [
-    ['All', 'Weekly', 'Weekly prize — Dad picks!', 150, today, 'Resets every Monday'],
-    ['All', 'Big', 'Big prize — Dad picks!', 1000, today, 'Counts every point since the start date']
+    ['All', 'Weekly', 'Weekly prize — you pick it!', 150, today, 'Resets every Monday. Type the prize name here once they choose.'],
+    ['All', 'Big', 'Big prize — you pick it!', 1000, today, 'Counts every point since the start date. Type the prize name here once they choose.']
   ]);
   if (prizes) prizes.getRange('E:E').setNumberFormat('@');
 
