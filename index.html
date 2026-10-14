@@ -2,87 +2,91 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Home Hub — Workouts</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hoegh Training Hub</title>
 <link rel="manifest" href="manifest.json" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Workouts" />
-<meta name="theme-color" content="#14213d" />
+<meta name="apple-mobile-web-app-title" content="Training" />
+<meta name="theme-color" content="#2B1838" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- KID SELECT -->
+<div id="demo-banner" class="demo-banner" hidden>Preview mode: sample data, nothing is saved.</div>
+
+<!-- PLAYER SELECT -->
 <section id="view-select" class="view active">
-  <h1 class="app-title">Nash &amp; Nellie<br />Workout Hub</h1>
-  <div class="kid-grid">
-    <button class="kid-tile kid-nash" data-kid="Nash">
-      <span class="kid-emoji">🎣</span>
-      <span class="kid-name">Nash</span>
-    </button>
-    <button class="kid-tile kid-nellie" data-kid="Nellie">
-      <span class="kid-emoji">🏀</span>
-      <span class="kid-name">Nellie</span>
-    </button>
-  </div>
+  <h1 class="select-title">Who's training?</h1>
+  <div id="player-grid" class="player-grid"></div>
+  <p id="select-status" class="muted center">Loading players…</p>
 </section>
 
-<!-- TODAY'S WORKOUT -->
-<section id="view-today" class="view">
-  <header class="view-header">
-    <button class="btn-back" id="btn-back-to-select">&larr;</button>
-    <h2 id="today-kid-name">Today</h2>
-    <div class="header-spacer"></div>
-  </header>
-  <div id="today-empty" class="empty-state" hidden>
-    <div class="empty-emoji">🌤️</div>
-    <p>No workouts assigned today.<br />Enjoy the day off!</p>
-  </div>
-  <div id="today-list" class="card-list"></div>
-</section>
-
-<!-- PROGRESS -->
-<section id="view-progress" class="view">
-  <header class="view-header">
-    <button class="btn-back" id="btn-back-to-today">&larr;</button>
-    <h2 id="progress-exercise-name">Progress</h2>
-    <div class="header-spacer"></div>
-  </header>
-  <div id="progress-content"></div>
-</section>
-
-<!-- RESULT ENTRY OVERLAY -->
-<div id="result-overlay" class="overlay" hidden>
-  <div class="overlay-card">
-    <h3 id="result-overlay-title">Enter result</h3>
-    <p id="result-overlay-unit" class="overlay-unit"></p>
-    <input id="result-input" type="text" readonly autocomplete="off" placeholder="0" />
-    <div class="numpad">
-      <button class="numpad-btn" data-key="1">1</button>
-      <button class="numpad-btn" data-key="2">2</button>
-      <button class="numpad-btn" data-key="3">3</button>
-      <button class="numpad-btn" data-key="4">4</button>
-      <button class="numpad-btn" data-key="5">5</button>
-      <button class="numpad-btn" data-key="6">6</button>
-      <button class="numpad-btn" data-key="7">7</button>
-      <button class="numpad-btn" data-key="8">8</button>
-      <button class="numpad-btn" data-key="9">9</button>
-      <button class="numpad-btn" data-key=".">.</button>
-      <button class="numpad-btn" data-key="0">0</button>
-      <button class="numpad-btn numpad-back" data-key="back">⌫</button>
+<!-- HUB -->
+<section id="view-hub" class="view">
+  <header class="hub-head">
+    <button id="btn-switch" class="btn-ghost" aria-label="Switch player">&larr;</button>
+    <div class="hub-title">
+      <div id="hub-name" class="hub-name"></div>
+      <div id="hub-date" class="muted"></div>
     </div>
-    <div class="overlay-actions">
-      <button id="result-cancel" class="btn-secondary">Cancel</button>
-      <button id="result-confirm" class="btn-primary">Done!</button>
+    <div class="today-pill"><b id="today-pts">0</b> achievements today</div>
+  </header>
+
+  <section id="cal-strip" class="cal-strip" hidden></section>
+
+  <section class="prize-zone">
+    <div class="prize-card prize-weekly">
+      <div class="prize-top">
+        <div>
+          <div class="eyebrow">This week</div>
+          <div id="weekly-prize" class="prize-name"></div>
+        </div>
+        <button id="btn-visual" class="btn-ghost small">Switch to thermometer</button>
+      </div>
+      <div id="weekly-visual" class="visual"></div>
+      <div id="weekly-label" class="prize-label"></div>
     </div>
+    <div class="prize-card prize-big">
+      <div class="prize-top">
+        <div>
+          <div class="eyebrow">Big prize</div>
+          <div id="big-prize" class="prize-name"></div>
+        </div>
+      </div>
+      <div id="big-visual" class="visual small"></div>
+      <div id="big-label" class="prize-label"></div>
+    </div>
+  </section>
+
+  <nav id="track-tabs" class="track-tabs" role="tablist"></nav>
+
+  <section id="track-body"></section>
+</section>
+
+<!-- VIDEO -->
+<div id="video-overlay" class="overlay" hidden>
+  <div class="video-card">
+    <div id="video-slot" class="video-slot"></div>
+    <button id="video-close" class="btn-primary">Close video</button>
   </div>
 </div>
 
-<!-- COMPLETION CELEBRATION -->
-<div id="celebration" class="celebration" hidden>
-  <div class="celebration-check">✓</div>
+<!-- BOOM -->
+<div id="boom-overlay" class="overlay boom" hidden>
+  <div class="boom-card">
+    <div id="boom-burst" class="boom-burst"></div>
+    <div id="boom-title" class="boom-title">BOOM!</div>
+    <div id="boom-prize" class="boom-prize"></div>
+    <p class="boom-note">Show Dad to claim it.</p>
+    <button id="boom-close" class="btn-primary">Awesome!</button>
+  </div>
 </div>
+
+<canvas id="confetti" hidden></canvas>
+<div id="toast" class="toast" hidden></div>
 
 <script src="app.js"></script>
 </body>

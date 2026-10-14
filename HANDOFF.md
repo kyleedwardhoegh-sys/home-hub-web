@@ -92,9 +92,9 @@ project-root/
 - The vertical/horizontal Windows display-rotation switching helper Kyle originally asked about.
 - Any other planned hub modules (calendar was floated as the next "win" after this one, since Google Calendar is the family's existing scheduling tool).
 
-### v2: Training Hub (`/training/`, started 2026-10-13)
+### v2: Training Hub (the site root since 2026-10-13)
 
-Replaces both the v1 daily-assignment flow and the short-lived claude.ai "Hoegh Shot Lab" artifact (a private claude.ai page that couldn't be shared with Nash's friends Titus and Tatum without them having Claude accounts). Lives at `/training/` in this repo so v1 at `/` keeps working until Kyle switches over.
+Replaces both the v1 daily-assignment flow and the short-lived claude.ai "Hoegh Shot Lab" artifact (a private claude.ai page that couldn't be shared with Nash's friends Titus and Tatum without them having Claude accounts). Built at `/training/`, then promoted to the site root the same day (Kyle: the original homepage is obsolete). The v1 frontend files were deleted (they're in git history before commit "Make the Training Hub the homepage"); `training/index.html` and `training/app.js` are now tiny forwarders to `/` so old links and any screen still on the old page land on the root. The v1 API actions (`getAssignments`, `markComplete`, …) and v1 Sheet tabs still exist; home-hub-dashboard still polls `getAssignments` for its per-kid workout panel and celebration, which is now stale — flagged to Kyle, not yet changed.
 
 **Model:** no Day 1/Day 2 and no per-date assignments. Each player has up to three tracks every day (Morning = garage, no hoop; After School = at a hoop; Night = no hoop). Each track is a standing menu of **Must-dos** plus **Pick any** options. Every checked **set** is an **achievement** (shown to the kids as achievements; the code still calls them points) and partial work always counts. Each track opens with an **Up next** card (one giant Done button that walks the must-do sets in order, with Skip for now); tabs show "N to do". Pick-any options are regrouped in the frontend (`FOCUS` in app.js) as Shooting, Jump Rope, Dribbling first, then More (lifting, agility, explosive, etc.). Points feed a **weekly fuse** (resets Monday) and a **Big prize** (counts from its start date). Each player picks a **bomb** (fuse burns toward the bomb, BOOM + prize card at 0) or a **thermometer** (fills to the top); the choice is saved to the Players tab.
 
@@ -111,7 +111,7 @@ Replaces both the v1 daily-assignment flow and the short-lived claude.ai "Hoegh 
 
 **Install steps (Kyle):** paste `apps-script/workout_hub_backend.gs` over the Sheet's Apps Script → run `setupV2` → run `v2ImportShotLabBaselines` (Oct 7 test scores) → Deploy → Manage deployments → edit → New version (keeps the `/exec` URL, gotcha #3).
 
-**Next:** Titus/Tatum (flip Active, share `…/training/?p=titus`), printable week sheets, result charts from `history`, a dashboard tile pointing at `/training/`.
+**Next:** Titus/Tatum (flip Active, share `https://home-hub-web-hoegh-home.vercel.app/?p=titus`), printable week sheets, result charts from `history`, switch home-hub-dashboard's workout panel from v1 `getAssignments` to v2 `getHub`.
 
 ---
 
