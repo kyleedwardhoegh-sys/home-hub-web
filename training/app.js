@@ -9,6 +9,17 @@ const TRACK_ICONS = {
 };
 const CHECK = '<svg class="chk" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const SET_CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const BIG_CHECK = '<svg class="bigchk" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const ach = (n) => `${n} achievement${n === 1 ? "" : "s"}`;
+
+// "Pick any" groups: shooting, jump rope and dribbling come first; everything
+// else (lifting, agility, explosive, defense...) waits under "More".
+const FOCUS = [
+  ["Jump Rope", (it) => /jump rope/i.test(it.name)],
+  ["Dribbling", (it) => it.category === "Dribbling"],
+  ["Shooting", (it) => /shoot|tests|film|garage|feel|mindset/i.test(it.category)],
+];
+const FOCUS_ORDER = ["Shooting", "Jump Rope", "Dribbling", "More"];
 
 const S = {
   demo: false,
@@ -20,6 +31,7 @@ const S = {
   queue: Promise.resolve(),
   pending: 0,
   lastTap: 0,
+  skip: {},         // must-dos skipped in "Up next" this visit
 };
 
 const $ = (s) => document.querySelector(s);
@@ -64,7 +76,9 @@ function send(body) {
 async function boot() {
   const want = new URLSearchParams(location.search).get("p");
   let players;
-  try { players = await apiGet("getPlayers"); } catch (e) { players = { error: "offline" }; }
+  // ?demo forces preview mode (sample data, nothing saved) for testing without touching the Sheet.
+  if (new URLSearchParams(location.search).has("demo")) players = { error: "demo" };
+  else try { players = await apiGet("getPlayers"); } catch (e) { players = { error: "offline" }; }
   if (!Array.isArray(players)) { S.demo = true; players = DEMO.players; $("#demo-banner").hidden = false; }
   S.players = players;
 
@@ -171,8 +185,8 @@ function renderPrizes() {
   $("#weekly-visual").innerHTML = visual === "Bomb" ? bombSVG(P.week, W.target) : thermoSVG(P.week, W.target);
   $("#big-visual").innerHTML = visual === "Bomb" ? bombSVG(P.big, B.target) : thermoSVG(P.big, B.target, true);
   const wLeft = Math.max(0, W.target - P.week), bLeft = Math.max(0, B.target - P.big);
-  $("#weekly-label").innerHTML = wLeft ? `<span class="num">${wLeft}</span> point${wLeft === 1 ? "" : "s"} to ${visual === "Bomb" ? "BOOM" : "the top"} · <span class="num">${P.week}</span>/${W.target}` : "Weekly prize won! New fuse on Monday.";
-  $("#big-label").innerHTML = bLeft ? `<span class="num">${P.big}</span>/${B.target} points` : "Big prize won! Show Dad.";
+  $("#weekly-label").innerHTML = wLeft ? `<span class="num">${wLeft}</span> more ${wLeft === 1 ? "achievement" : "achievements"} to ${visual === "Bomb" ? "BOOM" : "the top"} · <span class="num">${P.week}</span>/${W.target}` : "Weekly prize won! New fuse on Monday.";
+  $("#big-label").innerHTML = bLeft ? `<span class="num">${P.big}</span>/${B.target} achievements` : "Big prize won! Show Dad.";
   $(".prize-weekly").classList.toggle("won", !wLeft);
   $(".prize-big").classList.toggle("won", !bLeft);
 }
@@ -235,29 +249,103 @@ function thermoSVG(pts, target, small) {
 function renderTabs() {
   $("#track-tabs").innerHTML = S.hub.player.tracks.map((t) =>
     `<button class="track-tab" role="tab" data-track="${esc(t)}" aria-selected="${t === S.track}">
-       ${TRACK_ICONS[t] || ""}<span class="tn">${esc(t)}</span><span class="tp">${trackPts(t)} pts</span>
+       ${TRACK_ICONS[t] || ""}<span class="tn">${esc(t)}</span><span class="tp">${tabStatus(t)}</span>
      </button>`).join("");
 }
 
 function renderTrack() {
   const t = S.track, data = S.hub.tracks[t];
   if (!data) { $("#track-body").innerHTML = `<div class="empty">Nothing on this track yet.</div>`; return; }
-  let h = "";
+  let h = upNextHTML(t);
   if (data.must.length) {
     h += `<h2 class="sec-title">Must-dos <small>Dad's picks for today</small></h2><div class="acts">${data.must.map((it) => actHTML(t, it)).join("")}</div>`;
   }
-  if (data.options.length) {
-    const cats = data.options.map((g) => g.category);
+  const groups = focusGroups(t);
+  if (groups.length) {
+    const cats = groups.map((g) => g.category);
     if (!cats.includes(S.cat[t])) S.cat[t] = cats[0];
-    h += `<h2 class="sec-title">Pick any <small>every set counts</small></h2>
-      <div class="cat-pills">${data.options.map((g) => {
+    const sel = groups.find((g) => g.category === S.cat[t]);
+    let list;
+    if (sel.category === "More") {
+      const sub = {};
+      sel.items.forEach((it) => (sub[it.category] = sub[it.category] || []).push(it));
+      list = Object.entries(sub).map(([c, items]) => `<h3 class="more-sub">${esc(c)}</h3><div class="acts">${items.map((it) => actHTML(t, it)).join("")}</div>`).join("");
+    } else {
+      list = `<div class="acts">${sel.items.map((it) => actHTML(t, it)).join("")}</div>`;
+    }
+    h += `<h2 class="sec-title">Pick any <small>every set is an achievement</small></h2>
+      <div class="cat-pills">${groups.map((g) => {
         const n = g.items.reduce((a, it) => a + setsDone(t, it), 0);
         return `<button class="cat-pill" data-cat="${esc(g.category)}" aria-pressed="${g.category === S.cat[t]}">${esc(g.category)}${n ? `<span class="n">${n}</span>` : ""}</button>`;
-      }).join("")}</div>
-      <div class="acts">${data.options.find((g) => g.category === S.cat[t]).items.map((it) => actHTML(t, it)).join("")}</div>`;
+      }).join("")}</div>${list}`;
   }
   $("#track-body").innerHTML = h || `<div class="empty">Nothing on this track yet.</div>`;
   requestAnimationFrame(placeSparks);
+}
+
+function focusGroups(t) {
+  const g = {};
+  (S.hub.tracks[t]?.options || []).forEach((grp) => grp.items.forEach((it) => {
+    const f = (FOCUS.find(([, test]) => test(it)) || ["More"])[0];
+    if (!(g[f] = g[f] || []).some((x) => x.id === it.id)) g[f].push(it);
+  }));
+  return FOCUS_ORDER.filter((k) => g[k]?.length).map((k) => ({ category: k, items: g[k] }));
+}
+
+function mustCount(t) {
+  const must = S.hub.tracks[t]?.must || [];
+  return { total: must.reduce((a, it) => a + it.sets, 0), done: must.reduce((a, it) => a + setsDone(t, it), 0) };
+}
+
+function tabStatus(t) {
+  const { total, done } = mustCount(t);
+  if (total && done < total) return `${total - done} to do`;
+  const n = trackPts(t);
+  return total ? `Done! ${ach(n)}` : ach(n);
+}
+
+// The one thing to do right now: the first unfinished must-do set (skipped ones last).
+function upNext(t) {
+  const must = S.hub.tracks[t]?.must || [];
+  const find = (useSkipped) => {
+    for (const it of must) {
+      if (!useSkipped && S.skip[`${t}|${it.id}`]) continue;
+      for (let s = 1; s <= it.sets; s++) if (!isDone(t, it.id, s)) return { it, s };
+    }
+    return null;
+  };
+  return find(false) || find(true);
+}
+
+function upNextHTML(t) {
+  const must = S.hub.tracks[t]?.must || [];
+  if (!must.length) return "";
+  const { total, done } = mustCount(t), nx = upNext(t);
+  if (!nx) {
+    return `<section class="upnext alldone"><div class="un-top"><span class="eyebrow">Must-dos</span><span class="un-count">${done}/${total}</span></div>
+      <h2>All must-dos done!</h2><p class="cue">Every extra set below is a bonus achievement.</p></section>`;
+  }
+  const { it, s } = nx, label = it.labels[s - 1] || it.perSet || "";
+  const yt = it.video && /youtu/.test(it.video);
+  return `<section class="upnext">
+    <div class="un-top"><span class="eyebrow">Up next</span><span class="un-count">${done}/${total} must-do sets</span></div>
+    <div class="un-bar"><i style="width:${(done / total) * 100}%"></i></div>
+    <h2>${esc(it.name)}</h2>
+    <div class="un-set">Set ${s} of ${it.sets}${label ? ` · ${esc(label)}` : ""}</div>
+    ${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ""}
+    <div class="un-actions">
+      <button class="done-big" data-act="next-done" data-id="${esc(it.id)}" data-set="${s}">${BIG_CHECK}Done</button>
+      ${yt ? `<button class="video-btn" data-act="video" data-url="${esc(it.video)}">Watch video</button>` : ""}
+      ${must.length > 1 ? `<button class="btn-ghost small" data-act="skip" data-id="${esc(it.id)}">Skip for now</button>` : ""}
+    </div>
+  </section>`;
+}
+
+function pop(text) {
+  const el = document.createElement("div");
+  el.className = "pop"; el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 950);
 }
 
 function actHTML(t, it) {
@@ -280,7 +368,7 @@ function actHTML(t, it) {
       ${n && !full ? `<svg class="ring" viewBox="0 0 76 76"><circle cx="38" cy="38" r="34" fill="none" stroke="var(--accent)" stroke-width="5" stroke-dasharray="${c * f} ${c}" stroke-linecap="round"/></svg>` : ""}${CHECK}
     </button>
     <div class="act-body">
-      <div class="act-meta"><span>${esc(it.category)}</span>${it.source ? `<span>${esc(it.source)}</span>` : ""}<span class="pts">+${it.pts} per set</span><span>${n}/${it.sets} sets</span></div>
+      <div class="act-meta"><span>${esc(it.category)}</span>${it.source ? `<span>${esc(it.source)}</span>` : ""}<span class="pts">${ach(it.pts)} per set</span><span>${n}/${it.sets} sets</span></div>
       <h3>${esc(it.name)}</h3>
       ${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ""}
       ${video ? `<div class="act-tools">${video}</div>` : ""}
@@ -305,7 +393,15 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   const act = b.dataset.act, it = b.dataset.id ? findItem(b.dataset.id) : null;
   S.lastTap = Date.now();
-  if (act === "set" && it) {
+  if (act === "next-done" && it) {
+    const before = { ...S.hub.points }, s = Number(b.dataset.set);
+    if (!isDone(S.track, it.id, s)) applySet(S.track, it, s, true);
+    pop(`+${ach(it.pts)}`);
+    afterChange(before);
+  } else if (act === "skip" && it) {
+    S.skip[`${S.track}|${it.id}`] = true;
+    renderTrack();
+  } else if (act === "set" && it) {
     const before = { ...S.hub.points }, s = Number(b.dataset.set);
     applySet(S.track, it, s, !isDone(S.track, it.id, s));
     afterChange(before);
@@ -419,7 +515,10 @@ function demoHub(name) {
                         options: [{ category: "Tests", items: [I("L7", "Free-throw test (20)", "Tests", 4, "5 FTs", ["FTs 1–5", "6–10", "11–15", "16–20"], 1, "", "Enter your makes.", { result: "Makes", of: 20 })] },
                                   { category: "Dribbling", items: [I("B1", "Stationary pound dribbles", "Dribbling", 4, "30 sec", ["Right hand", "Left hand", "Right low", "Left low"], 1, "", "Eyes up.")] }] },
       "Night": { must: [I("D1", "Ball Raises", "Dunn Shooting", 5, "10 reps", ["1–10", "11–20", "21–30", "31–40", "41–50"], 1, "https://youtu.be/0mdidcb1GxU", "Ball moves first.", { source: "Mike Dunn · Ground Up" }),
-                        I("D2", "1-2-Thru", "Dunn Shooting", 5, "20 reps", ["1–20", "21–40", "41–60", "61–80", "81–100"], 1, "https://youtu.be/0t2i7OYeWKc", "Pass it to the basket.", { source: "Mike Dunn · Ground Up" })], options: [] },
+                        I("D2", "1-2-Thru", "Dunn Shooting", 5, "20 reps", ["1–20", "21–40", "41–60", "61–80", "81–100"], 1, "https://youtu.be/0t2i7OYeWKc", "Pass it to the basket.", { source: "Mike Dunn · Ground Up" })],
+                 options: [{ category: "Agility & Quickness", items: [I("X32", "Jump Rope - Regular 2 feet", "Agility & Quickness", 2, "reps", [], 1, "https://youtu.be/XsllO1Z7ocQ", "")] },
+                           { category: "Dribbling", items: [I("B1", "Stationary pound dribbles", "Dribbling", 4, "30 sec", ["Right hand", "Left hand", "Right low", "Left low"], 1, "", "Eyes up.")] },
+                           { category: "Lifting", items: [I("S1", "Push-ups", "Lifting", 3, "10 reps", [], 1, "", "Straight line head to heels.")] }] },
     },
     done: {}, results: {}, history: {},
     points: { today: 0, week: 132, big: 410, lifetime: 410, byDay: {} },
