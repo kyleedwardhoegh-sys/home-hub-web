@@ -684,3 +684,67 @@ function v2ImportShotLabBaselines() {
   });
   try { SpreadsheetApp.getUi().alert('Imported 4 baseline test results from Oct 7.'); } catch (e) {}
 }
+
+// ------------------------------------------------------------
+// Run ONCE (2026-10-13): turns Morning into a garage dribbling track.
+// Stationary / limited-movement drills, each with a verified video (mostly
+// Jr. NBA and Atlanta Hawks). The old garage shooting rehearsal (G1–G7)
+// stays available as Morning options. Safe to re-run.
+// ------------------------------------------------------------
+var V2_MORNING_DRIBBLE_LIB = [
+  // Must-do circuit, easiest to hardest
+  ['M1', 'Ball wraps (head, waist, legs)', 'Dribbling', 'Morning,After School,Night', 3, '10 each way', 'Head ×10 each way|Waist ×10 each way|Legs ×10 each way', 1, 'https://youtu.be/IC9WsV0vkTo', 'Fingertips, not palms. Speed up as it gets easy.', '', '', 'Jr. NBA'],
+  ['M2', 'Pound dribbles', 'Dribbling', 'Morning,After School,Night', 4, '30 sec', 'Right hand|Left hand|Right hand low|Left hand low', 1, 'https://youtu.be/5NGuEN0OHys', 'Pound it hard, eyes up, ball no higher than your waist.', '', '', 'Jr. NBA'],
+  ['M3', 'Pound-pound / cross-cross', 'Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/_GL9QJmvTys', 'Two hard pounds, then two quick crossovers. Stay low.', '', '', 'Billy Clapper Basketball'],
+  ['M4', 'In-and-out dribble', 'Dribbling', 'Morning,After School,Night', 2, '20 reps', 'Right hand ×20|Left hand ×20', 1, 'https://youtu.be/Fy3gNOuxHmw', 'Sell it with your shoulders. Keep the ball on your side.', '', '', 'Jr. NBA'],
+  ['M5', 'Stationary crossover + between the legs', 'Dribbling', 'Morning,After School,Night', 3, '20 reps', 'Crossovers ×20|Between legs, right to left ×20|Between legs, left to right ×20', 1, 'https://youtu.be/h7s31K0kPh4', 'Low and tight. Switch your front foot for between the legs.', '', '', 'Atlanta Hawks'],
+  ['M6', 'Behind-the-back wrap', 'Dribbling', 'Morning,After School,Night', 3, '10 reps', 'Right to left ×10|Left to right ×10|Back and forth ×10', 1, 'https://youtu.be/cGQ7dXW0jCA', 'Wrap the ball around your hip. Do not throw it.', '', '', 'Jr. NBA'],
+  ['M7', 'Figure 8 dribble', 'Dribbling', 'Morning,After School,Night', 2, '30 sec', 'Forward 30 sec|Backward 30 sec', 1, 'https://youtu.be/-vafClV92A4', 'Wide stance, low dribbles through and around your legs.', '', '', 'Atlanta Hawks'],
+  ['M8', '100 Dribble Drill (finisher)', 'Dribbling', 'Morning,After School,Night', 1, '100 dribbles, no mistakes', '100 in a row', 2, 'https://youtu.be/v_jqSQswdbU', 'Lose it? Start that move over.', '', '', 'Jr. NBA'],
+  // Extra options
+  ['M9', 'Spider dribble', 'Dribbling', 'Morning,After School,Night', 3, '20 sec', '', 1, 'https://youtu.be/QWmmIuBgdEI', 'Ball stays between your feet: right, left, behind right, behind left.', '', '', 'Jr. NBA'],
+  ['M10', 'V-dribble challenge', 'Dribbling', 'Morning,After School,Night', 3, '10 reps', 'V cross ×10|V between ×10|V behind ×10', 1, 'https://youtu.be/rRw3YNz7UkU', 'Push the ball side to side in a V. Time yourself for all 30.', 'Time', '', 'Make Yourself'],
+  ['M11', 'Two-ball dribble (same time)', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', 'Low|Middle|High', 1, 'https://youtu.be/6nfnBHvDkRk', 'Both balls hit the floor together. Weak hand keeps up.', '', '', 'Jr. NBA'],
+  ['M12', 'Two-ball series', 'Dribbling', 'Morning,After School,Night', 4, '30 sec', 'Pound together|Alternate|Side to side|Front to back', 1, 'https://youtu.be/EWmvLvlxtJ4', 'Eyes up the whole time.', '', '', 'Premier Hoops'],
+  ['M13', 'Tennis ball dribble', 'Dribbling', 'Morning,After School,Night', 2, '30 sec', 'Right hand|Left hand', 1, 'https://youtu.be/wkusPZJKkis', 'Soft fingertips. Small ball means big control.', '', '', 'Teach Hoops'],
+  ['M14', 'Single-leg wraps', 'Dribbling', 'Morning,After School,Night', 2, '10 each way', 'Right leg|Left leg', 1, 'https://youtu.be/Jy1dH97NW9A', 'Quick hands around one leg, then switch.', '', '', 'Jr. NBA'],
+  ['M15', 'Under-the-leg dribble', 'Dribbling', 'Morning,After School,Night', 2, '10 reps', 'Right to left ×10|Left to right ×10', 1, 'https://youtu.be/KIBJzEn_QG8', 'Step through and switch hands under your leg.', '', '', 'Jr. NBA']
+];
+var V2_MORNING_MUSTS = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8'];
+
+function v2MorningDribbling() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var lib = ss.getSheetByName(V2_LIB), plan = ss.getSheetByName(V2_PLAN);
+  if (!lib || !plan) throw new Error('Run setupV2 first.');
+
+  // Library: add the new drills; retire the old video-less B1–B4 basics they replace.
+  var libData = lib.getDataRange().getValues(), lh = libData[0];
+  var idCol = lh.indexOf('ID'), activeCol = lh.indexOf('Active');
+  var have = {};
+  for (var i = 1; i < libData.length; i++) {
+    have[String(libData[i][idCol])] = true;
+    if (['B1', 'B2', 'B3', 'B4'].indexOf(String(libData[i][idCol])) > -1) lib.getRange(i + 1, activeCol + 1).setValue(false);
+  }
+  var addLib = V2_MORNING_DRIBBLE_LIB.filter(function (r) { return !have[r[0]]; }).map(function (r) { return r.concat([true]); });
+  if (addLib.length) lib.getRange(lib.getLastRow() + 1, 1, addLib.length, addLib[0].length).setValues(addLib);
+
+  // Plan: garage shooting becomes optional; the dribbling circuit becomes the Morning must-dos.
+  var pData = plan.getDataRange().getValues(), ph = pData[0];
+  var pc = { track: ph.indexOf('Track'), act: ph.indexOf('Activity'), type: ph.indexOf('Type') };
+  var planned = {};
+  for (var j = 1; j < pData.length; j++) {
+    if (pData[j][pc.track] !== 'Morning') continue;
+    var a = String(pData[j][pc.act]).trim();
+    planned[a] = true;
+    if (/^G\d$/.test(a) && pData[j][pc.type] === 'Must-do') plan.getRange(j + 1, pc.type + 1).setValue('Option');
+  }
+  var addPlan = [];
+  V2_MORNING_MUSTS.forEach(function (id, k) { if (!planned[id]) addPlan.push(['All', 'Morning', id, 'Must-do', k + 1, true]); });
+  [['Category: Dribbling', 20], ['Category: Garage / No Hoop', 21], ['Category: Mindset', 22]].forEach(function (c) {
+    if (!planned[c[0]]) addPlan.push(['All', 'Morning', c[0], 'Option', c[1], true]);
+  });
+  if (addPlan.length) plan.getRange(plan.getLastRow() + 1, 1, addPlan.length, addPlan[0].length).setValues(addPlan);
+
+  var msg = 'Morning is now a dribbling track: added ' + addLib.length + ' drills and ' + addPlan.length + ' plan rows.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
