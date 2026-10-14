@@ -826,11 +826,11 @@ function v2MorningBillyClapper() {
 // ------------------------------------------------------------
 // CALENDAR HEADER (2026-10-13): today's and tomorrow's events shown at the
 // top of each player's hub. Display only — nothing is added to the tracks.
-//   - Players tab "Calendars" column: calendar IDs whose events ALL belong
-//     to that player (e.g. their OMGBA team calendar).
-//   - V2_NAME_MATCH_CALS: shared family calendars; an event shows for a
-//     player only if their name is in the event title.
-// Titles and times only (no locations), because the API URL is public.
+//   - Shows EVERYTHING (titles, times, locations) from the family calendars
+//     plus both kids' team calendars — Kyle's call (2026-10-13), knowing the
+//     API URL is public.
+//   - Only players with something in the Players tab "Calendars" column get
+//     the strip, so friends' links (Titus, Tatum) never see family events.
 // ------------------------------------------------------------
 var V2_NAME_MATCH_CALS = [
   'kyleedwardhoegh@gmail.com',
@@ -875,15 +875,13 @@ function v2Events(player, ownCals, date, noCache) {
   if (!noCache) { var hit = cache.get(ck); if (hit) return JSON.parse(hit); }
   var tz = Session.getScriptTimeZone();
   var p = date.split('-'), start = new Date(+p[0], +p[1] - 1, +p[2]), end = new Date(+p[0], +p[1] - 1, +p[2] + 2);
-  var nameRe = new RegExp('\\b' + player.replace(/[^A-Za-z]/g, '') + '\\b', 'i');
   var out = [], seen = {};
-  function add(calId, mustMatch) {
+  function add(calId) {
     var cal = null;
     try { cal = CalendarApp.getCalendarById(calId); } catch (e) {}
     if (!cal) return;
     cal.getEvents(start, end).forEach(function (ev) {
       var title = ev.getTitle();
-      if (mustMatch && !nameRe.test(title)) return;
       var s = ev.getStartTime(), allDay = ev.isAllDayEvent();
       var dayStr = Utilities.formatDate(s, tz, 'yyyy-MM-dd');
       if (allDay && dayStr < date) dayStr = date;
@@ -894,19 +892,22 @@ function v2Events(player, ownCals, date, noCache) {
         day: dayStr === date ? 'Today' : 'Tomorrow',
         time: allDay ? '' : Utilities.formatDate(s, tz, 'h:mm a'),
         title: v2CleanTitle(title),
+        location: String(ev.getLocation() || '').trim(),
         sort: (dayStr === date ? 0 : 1) * 1e13 + (allDay ? 0 : s.getTime() % 1e13)
       });
     });
   }
-  ownCals.forEach(function (id) { add(id, false); });
-  V2_NAME_MATCH_CALS.forEach(function (id) { add(id, true); });
+  var ids = ownCals.concat(V2_NAME_MATCH_CALS, Object.keys(V2_TEAM_CALS).map(function (k) { return V2_TEAM_CALS[k]; }));
+  ids.filter(function (id, i) { return ids.indexOf(id) === i; }).forEach(function (id) { add(id); });
   out.sort(function (a, b) { return a.sort - b.sort; });
-  out = out.slice(0, 8).map(function (e) { return { day: e.day, time: e.time, title: e.title }; });
+  out = out.slice(0, 16).map(function (e) { return { day: e.day, time: e.time, title: e.title, location: e.location }; });
   cache.put(ck, JSON.stringify(out), 600);
   return out;
 }
 
 // Calendar strip for the hub header; never lets a calendar problem break the hub.
 function v2EventsFor(p, date) {
-  try { return v2Events(p['Player'], v2List(p['Calendars']), date); } catch (e) { return []; }
+  var own = v2List(p['Calendars']);
+  if (!own.length) return []; // friends' players: no family calendar
+  try { return v2Events(p['Player'], own, date); } catch (e) { return []; }
 }

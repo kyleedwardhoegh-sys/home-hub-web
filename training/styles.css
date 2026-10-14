@@ -68,6 +68,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cal-item.today { border-color: var(--accent2); background: var(--accent2-soft); }
 .cal-day { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); white-space: nowrap; }
 .cal-title { font-family: var(--display); font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
+.cal-item { flex-wrap: wrap; }
+.cal-loc { flex-basis: 100%; font-size: .85rem; color: var(--ink-2); overflow-wrap: anywhere; }
 
 /* ---------- prize zone ---------- */
 .prize-zone { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; margin-bottom: 16px; align-items: start; }
