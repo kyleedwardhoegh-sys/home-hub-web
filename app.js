@@ -77,12 +77,56 @@ function send(body) {
 
 // ---------- boot ----------
 
+// ---------- speed: device cache + parallel loads (2026-10-14) ----------
+// Every call to the Sheet's Apps Script takes ~2–5 s. So the screen shows the last
+// copy saved on this device right away (only if it's from today), fetches fresh data
+// in the background, and starts the player list and the kid's plan at the same time.
+// A fresh copy never replaces the screen if a tap happened while it was loading.
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const hubKey = (name) => `training.hub.${name}`;
+function cachedHub(name) {
+  const h = store.get(hubKey(name));
+  return h && h.date === today() && h.player && h.player.name === name ? h : null;
+}
+function saveHub() { if (S.hub && !S.demo) store.set(hubKey(S.hub.player.name), { ...S.hub, _at: Date.now() }); }
+const inflight = {};
+function fetchHub(name) {
+  if (!inflight[name]) {
+    inflight[name] = apiGet("getHub", { player: name, date: today() })
+      .then((hub) => { if (hub && !hub.error) store.set(hubKey(name), { ...hub, _at: Date.now() }); return hub; })
+      .catch(() => ({ error: "offline" }))
+      .finally(() => { delete inflight[name]; });
+  }
+  return inflight[name];
+}
+// True if `hub` (requested at `startedAt`) can replace what's on screen.
+function canApply(name, hub, startedAt) {
+  return hub && !hub.error && S.hub && S.hub.player.name === name && !S.pending && S.lastTap < startedAt;
+}
+function overlayOpen() { return !$("#boom-overlay").hidden || !$("#video-overlay").hidden || !$("#fb-overlay").hidden; }
+
 async function boot() {
-  const want = new URLSearchParams(location.search).get("p");
+  const params = new URLSearchParams(location.search), want = params.get("p");
   let players;
   // ?demo forces preview mode (sample data, nothing saved) for testing without touching the Sheet.
-  if (new URLSearchParams(location.search).has("demo")) players = { error: "demo" };
-  else try { players = await apiGet("getPlayers"); } catch (e) { players = { error: "offline" }; }
+  if (params.has("demo")) players = { error: "demo" };
+  else {
+    const cachedPlayers = store.get("training.players");
+    // Start the kid's plan now, in parallel with the player list.
+    let guess = null;
+    try { guess = want ? (cachedPlayers || []).find((x) => x.name.toLowerCase() === want.toLowerCase())?.name : localStorage.getItem("training.player"); } catch (e) {}
+    if (guess && params.get("pick") === null) fetchHub(guess);
+    const fresh = apiGet("getPlayers").then((r) => { if (Array.isArray(r)) store.set("training.players", r); return r; }).catch(() => ({ error: "offline" }));
+    if (Array.isArray(cachedPlayers) && cachedPlayers.length) {
+      players = cachedPlayers;
+      fresh.then((r) => { if (Array.isArray(r)) { S.players = r; if ($("#view-select").classList.contains("active")) renderSelect(); } });
+    } else {
+      players = await fresh;
+    }
+  }
   if (!Array.isArray(players)) { S.demo = true; players = DEMO.players; $("#demo-banner").hidden = false; }
   S.players = players;
 
@@ -105,6 +149,8 @@ function renderSelect() {
      </button>`).join("");
   document.documentElement.dataset.theme = "";
   showView("view-select");
+  // Pre-load each kid's page so tapping a name is instant.
+  if (!S.demo) S.players.forEach((p) => { const h = store.get(hubKey(p.name)); if (!h || h.date !== today() || Date.now() - (h._at || 0) > 60000) fetchHub(p.name); });
 }
 
 function showView(id) {
@@ -118,12 +164,19 @@ async function openPlayer(name) {
   $("#hub-name").textContent = `${name}'s Training`;
   $("#hub-date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   showView("view-hub");
-  $("#track-body").innerHTML = `<div class="empty">Loading ${esc(name)}'s list…</div>`;
-  await loadHub(name);
-  const want = new URLSearchParams(location.search).get("track");
-  const match = (S.hub?.player.tracks || []).find((t) => t.toLowerCase().replace(/\s/g, "") === (want || "").toLowerCase().replace(/[\s-]/g, ""));
-  S.track = match || defaultTrack();
-  render();
+  const pickTrack = () => {
+    const want = new URLSearchParams(location.search).get("track");
+    const match = (S.hub?.player.tracks || []).find((t) => t.toLowerCase().replace(/\s/g, "") === (want || "").toLowerCase().replace(/[\s-]/g, ""));
+    S.track = match || defaultTrack();
+  };
+  if (S.demo) { await loadHub(name); pickTrack(); render(); return; }
+  const cached = cachedHub(name), started = Date.now();
+  if (cached) { S.hub = cached; pickTrack(); render(); }
+  else { S.hub = null; $("#track-body").innerHTML = `<div class="empty">Loading ${esc(name)}'s list…</div>`; }
+  const hub = await fetchHub(name);
+  if (hub.error) { if (!cached) toast("Couldn't load the plan. Check the Wi-Fi."); return; }
+  if (!cached) { S.hub = hub; pickTrack(); render(); return; }
+  if (canApply(name, hub, started)) { S.hub = hub; if (!overlayOpen()) render(); }
 }
 
 async function loadHub(name) {
@@ -163,6 +216,7 @@ function applySet(track, it, set, on) {
 
 function afterChange(before) {
   render();
+  saveHub();
   const P = S.hub.points, W = S.hub.prizes.weekly, B = S.hub.prizes.big;
   if (B && before.big < B.target && P.big >= B.target) return boom("big");
   if (W && before.week < W.target && P.week >= W.target) return boom("weekly");
@@ -431,7 +485,7 @@ document.addEventListener("click", (e) => {
   } else if (act === "res" && it) {
     const k = `${S.track}|${it.id}`, cur = S.hub.results[k] ?? 0, max = it.resultOf || 999;
     S.hub.results[k] = Math.max(0, Math.min(max, cur + Number(b.dataset.v)));
-    renderTrack();
+    renderTrack(); saveHub();
     clearTimeout(S.resT);
     const track = S.track;
     S.resT = setTimeout(() => send({ action: "setResult", date: S.hub.date, player: S.hub.player.name, track, activity: it.id, result: S.hub.results[k] }), 700);
@@ -472,6 +526,7 @@ $("#fb-overlay").addEventListener("click", (e) => {
 $("#fb-save").addEventListener("click", () => {
   const { minutes, difficulty, track, it } = fbPick;
   (S.hub.feedback = S.hub.feedback || {})[it.id] = true;
+  saveHub();
   send({ action: "setFeedback", player: S.hub.player.name, activity: it.id, track, minutes, difficulty, date: S.hub.date });
   $("#fb-overlay").hidden = true;
   toast("Thanks! That helps Dad set the points.");
@@ -518,7 +573,7 @@ $("#btn-visual").addEventListener("click", () => {
   const v = S.hub.player.visual === "Thermometer" ? "Bomb" : "Thermometer";
   S.hub.player.visual = v;
   const p = S.players.find((x) => x.name === S.hub.player.name); if (p) p.visual = v;
-  renderPrizes(); requestAnimationFrame(placeSparks);
+  renderPrizes(); requestAnimationFrame(placeSparks); saveHub();
   send({ action: "setVisual", player: S.hub.player.name, visual: v });
 });
 
@@ -581,11 +636,13 @@ function toast(msg) {
 // Keep the screen fresh: pick up Dad's Sheet edits, and roll over at midnight.
 setInterval(async () => {
   if (!S.hub || S.demo || S.pending || Date.now() - S.lastTap < 8000 || document.hidden) return;
-  const name = S.hub.player.name, dateBefore = S.hub.date;
-  await loadHub(name);
-  if (S.hub && S.hub.date !== dateBefore) S.track = null;
+  const name = S.hub.player.name, dateBefore = S.hub.date, started = Date.now();
+  const hub = await fetchHub(name);
+  if (!canApply(name, hub, started)) return; // a tap landed while loading: keep the screen as is
+  S.hub = hub;
+  if (S.hub.date !== dateBefore) S.track = null;
   S.track = defaultTrack();
-  if (!$("#boom-overlay").hidden || !$("#video-overlay").hidden || !$("#fb-overlay").hidden) return;
+  if (overlayOpen()) return;
   render();
 }, 60000);
 addEventListener("resize", () => requestAnimationFrame(placeSparks));
