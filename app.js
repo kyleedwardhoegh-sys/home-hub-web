@@ -36,6 +36,7 @@ const S = {
   skip: {},         // must-dos skipped in "Up next" this visit
   fbSkipped: {},    // drills whose feedback question was skipped this visit
   fbQueue: null,    // feedback waiting for the BOOM card to close
+  showMore: {},     // per track: "Show more options" opened
 };
 
 const $ = (s) => document.querySelector(s);
@@ -389,27 +390,49 @@ function renderTrack() {
   if (data.must.length) {
     h += `<h2 class="sec-title">Must-dos <small>Dad's picks for today</small></h2><div class="acts">${data.must.map((it) => actHTML(t, it)).join("")}</div>`;
   }
-  const groups = focusGroups(t);
-  if (groups.length) {
-    const cats = groups.map((g) => g.category);
-    if (!cats.includes(S.cat[t])) S.cat[t] = cats[0];
-    const sel = groups.find((g) => g.category === S.cat[t]);
-    let list;
-    if (sel.category === "More") {
-      const sub = {};
-      sel.items.forEach((it) => (sub[it.category] = sub[it.category] || []).push(it));
-      list = Object.entries(sub).map(([c, items]) => `<h3 class="more-sub">${esc(c)}</h3><div class="acts">${items.map((it) => actHTML(t, it)).join("")}</div>`).join("");
-    } else {
-      list = `<div class="acts">${sel.items.map((it) => actHTML(t, it)).join("")}</div>`;
-    }
+  // Pick any: every category as its own section (like the Drill Library), shooting / jump
+  // rope / dribbling first. Everything else waits behind "Show more" to keep the focus.
+  const secs = optionSections(t);
+  if (secs.length) {
+    const main = secs.filter((s) => !s.more), more = secs.filter((s) => s.more);
+    const open = !main.length || !!S.showMore[t] || more.some((s) => s.items.some((it) => setsDone(t, it)));
+    const shown = open ? secs : main;
+    const secDone = (s) => s.items.reduce((a, it) => a + setsDone(t, it), 0);
     h += `<h2 class="sec-title">Pick any <small>every set is an achievement</small></h2>
-      <div class="cat-pills">${groups.map((g) => {
-        const n = g.items.reduce((a, it) => a + setsDone(t, it), 0);
-        return `<button class="cat-pill" data-cat="${esc(g.category)}" aria-pressed="${g.category === S.cat[t]}">${esc(g.category)}${n ? `<span class="n">${n}</span>` : ""}</button>`;
-      }).join("")}</div>${list}`;
+      <nav class="cat-jump" aria-label="Jump to a category">${shown.map((s, i) => {
+        const n = secDone(s);
+        return `<button class="cat-chip" data-jump="opt-${i}">${esc(s.title)}${n ? `<span class="n">${n}</span>` : ""}</button>`;
+      }).join("")}</nav>`;
+    h += shown.map((s, i) => {
+      const n = secDone(s);
+      return `<section class="opt-sec" id="opt-${i}">
+        <h3 class="opt-title">${esc(s.title)} <small>${s.items.length} drill${s.items.length === 1 ? "" : "s"}${n ? ` · ${ach(n)} today` : ""}</small></h3>
+        <div class="acts">${s.items.map((it) => actHTML(t, it)).join("")}</div></section>`;
+    }).join("");
+    if (!open) {
+      const count = more.reduce((a, s) => a + s.items.length, 0);
+      h += `<button class="more-btn" data-act="more">Show more options <small>${more.map((s) => esc(s.title)).join(" · ")} · ${count} drill${count === 1 ? "" : "s"}</small></button>`;
+    }
   }
   $("#track-body").innerHTML = h || `<div class="empty">Nothing on this track yet.</div>`;
   requestAnimationFrame(placeSparks);
+}
+
+// Sections for "Pick any": shooting categories each get their own section; jump rope and
+// two-ball are pulled out by name; everything outside the focus list is "more".
+const SHOOT_ORDER = ["Dunn Shooting", "Love Shooting", "Shooting Feel", "Garage / No Hoop", "Tests", "Film & Study", "Mindset"];
+function optionSections(t) {
+  const seen = {}, secs = {};
+  (S.hub.tracks[t]?.options || []).forEach((grp) => grp.items.forEach((it) => {
+    if (seen[it.id]) return;
+    seen[it.id] = true;
+    const f = (FOCUS.find(([, test]) => test(it)) || ["More"])[0];
+    const title = f === "Jump Rope" || f === "Two Ball" || f === "Dribbling" ? f : it.category || "Other";
+    (secs[title] = secs[title] || { title, focus: f, more: f === "More", items: [] }).items.push(it);
+  }));
+  const order = FOCUS_ORDER_BY_TRACK[t] || FOCUS_ORDER;
+  const rank = (s) => order.indexOf(s.focus) * 100 + (s.focus === "Shooting" ? (SHOOT_ORDER.indexOf(s.title) + 1 || 50) : 0);
+  return Object.values(secs).sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
 }
 
 function focusGroups(t) {
@@ -455,8 +478,9 @@ function upNextHTML(t) {
       <h2>All must-dos done!</h2><p class="cue">Every extra set below is a bonus achievement.</p></section>`;
   }
   const { it, s } = nx, label = it.labels[s - 1] || it.perSet || "";
-  const yt = it.video && /youtu/.test(it.video);
-  return `<section class="upnext">
+  const yt = it.video && /youtu/.test(it.video), vid = yt ? ytId(it.video) : null;
+  return `<section class="upnext${vid ? " has-thumb" : ""}">
+    ${vid ? `<button class="un-thumb" data-act="video" data-url="${esc(it.video)}" aria-label="Watch video: ${esc(it.name)}"><img src="https://i.ytimg.com/vi/${esc(vid)}/mqdefault.jpg" alt="" /><span class="play" aria-hidden="true"></span></button>` : ""}
     <div class="un-top"><span class="eyebrow">Up next</span><span class="un-count">${done}/${total} must-do sets</span></div>
     <div class="un-bar"><i style="width:${(done / total) * 100}%"></i></div>
     <h2>${esc(it.name)}</h2>
@@ -484,23 +508,31 @@ function actHTML(t, it) {
     const s = i + 1, on = isDone(t, it.id, s), label = it.labels[i] || (it.sets > 1 ? `Set ${s}` : "Done") + (it.perSet ? ` · ${it.perSet}` : "");
     return `<button class="set ${on ? "on" : ""}" data-act="set" data-id="${esc(it.id)}" data-set="${s}" aria-pressed="${on}"><span class="bx">${SET_CHECK}</span>${esc(label)}</button>`;
   }).join("");
-  const isYT = /youtu/.test(it.video);
-  const video = it.video ? (isYT
-    ? `<button class="video-btn" data-act="video" data-url="${esc(it.video)}">Watch video</button>`
-    : `<a class="video-btn" href="${esc(it.video)}" target="_blank" rel="noopener">Open ↗</a>`) : "";
+  const yt = it.video ? ytId(it.video) : null;
+  const media = yt
+    ? `<button class="act-media" data-act="video" data-url="${esc(it.video)}" aria-label="Watch video: ${esc(it.name)}">
+         <img loading="lazy" src="https://i.ytimg.com/vi/${esc(yt)}/mqdefault.jpg" alt="" /><span class="play" aria-hidden="true"></span>
+         ${full ? `<span class="done-tag">${SET_CHECK}Done</span>` : ""}</button>`
+    : it.video
+      ? `<a class="act-media link" href="${esc(it.video)}" target="_blank" rel="noopener"><span>Open video ↗</span></a>`
+      : `<div class="act-media none"><span>${esc(it.category)}</span>${full ? `<span class="done-tag">${SET_CHECK}Done</span>` : ""}</div>`;
   const stepper = it.result ? `<div class="stepper" role="group" aria-label="${esc(it.result)}">
       <button data-act="res" data-id="${esc(it.id)}" data-v="-5">−5</button><button data-act="res" data-id="${esc(it.id)}" data-v="-1">−1</button>
       <output>${res ?? "–"}</output><span class="muted">${it.resultOf ? `/ ${it.resultOf} ` : ""}${esc(it.result.toLowerCase())}</span>
       <button data-act="res" data-id="${esc(it.id)}" data-v="1">+1</button><button data-act="res" data-id="${esc(it.id)}" data-v="5">+5</button></div>` : "";
   return `<article class="act ${full ? "full" : n ? "part" : ""}">
-    <button class="all-btn" data-act="all" data-id="${esc(it.id)}" aria-label="${full ? "Uncheck all sets" : "Check all sets"}: ${esc(it.name)}">
-      ${n && !full ? `<svg class="ring" viewBox="0 0 76 76"><circle cx="38" cy="38" r="34" fill="none" stroke="var(--accent)" stroke-width="5" stroke-dasharray="${c * f} ${c}" stroke-linecap="round"/></svg>` : ""}${CHECK}
-    </button>
+    ${media}
     <div class="act-body">
-      <div class="act-meta"><span>${esc(it.category)}</span>${it.source ? `<span>${esc(it.source)}</span>` : ""}<span class="pts">${ach(it.pts)} per set</span><span>${n}/${it.sets} sets</span></div>
-      <h3>${esc(it.name)}</h3>
+      <div class="act-head">
+        <button class="all-btn" data-act="all" data-id="${esc(it.id)}" aria-label="${full ? "Uncheck all sets" : "Check all sets"}: ${esc(it.name)}">
+          ${n && !full ? `<svg class="ring" viewBox="0 0 76 76"><circle cx="38" cy="38" r="34" fill="none" stroke="var(--accent)" stroke-width="5" stroke-dasharray="${c * f} ${c}" stroke-linecap="round"/></svg>` : ""}${CHECK}
+        </button>
+        <div class="act-title">
+          <div class="act-meta">${it.source ? `<span>${esc(it.source)}</span>` : `<span>${esc(it.category)}</span>`}<span class="pts">${ach(it.pts)} per set</span><span>${n}/${it.sets} sets</span></div>
+          <h3>${esc(it.name)}</h3>
+        </div>
+      </div>
       ${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ""}
-      ${video ? `<div class="act-tools">${video}</div>` : ""}
       <div class="sets">${sets}</div>
       ${stepper}
     </div>
@@ -516,8 +548,8 @@ document.addEventListener("click", (e) => {
   if (tile) return openPlayer(tile.dataset.player);
   const tab = e.target.closest(".track-tab");
   if (tab) { S.track = tab.dataset.track; render(); return; }
-  const pill = e.target.closest(".cat-pill");
-  if (pill) { S.cat[S.track] = pill.dataset.cat; renderTrack(); return; }
+  const chip = e.target.closest(".cat-chip");
+  if (chip) { const sec = document.getElementById(chip.dataset.jump); if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const act = b.dataset.act, it = b.dataset.id ? findItem(b.dataset.id) : null;
@@ -528,6 +560,9 @@ document.addEventListener("click", (e) => {
     if (!isDone(S.track, it.id, s)) applySet(S.track, it, s, true);
     pop(`+${ach(it.pts)}`);
     afterChange(before);
+  } else if (act === "more") {
+    S.showMore[S.track] = true;
+    renderTrack();
   } else if (act === "skip" && it) {
     S.skip[`${S.track}|${it.id}`] = true;
     renderTrack();

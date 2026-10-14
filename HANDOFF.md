@@ -214,3 +214,10 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
   - Embedding disabled, Jr. NBA (lower intensity), or a non-YouTube link → "Worth a look".
 - Data: `HubData.getPlans()` reads `players` + `plan:*` + `library` from site_data, falling back to the Sheet (getPlayers + getHub). The `library` doc is published by `v3Publish` (added 2026-10-14).
 - Linked from the player-select screen ("Drill library & videos").
+
+### Hub layout like the Drill Library (2026-10-14)
+- Activity cards (`actHTML`) now have the YouTube thumbnail on top (tap to play in the video overlay), then the all-sets check, title, cue and set buttons. Cards sit in a responsive grid (`.acts`): 2 across on the kiosk, 1 on a phone.
+- The Up next card shows the drill's thumbnail beside it.
+- "Pick any" shows every category as its own section (`optionSections`) with jump chips (`.cat-chip`), instead of one tab at a time:
+  - Shooting categories (in `SHOOT_ORDER`), Jump Rope, Dribbling and Two Ball first; Morning puts Dribbling first.
+  - Everything else ("More": lifting, agility, …) waits behind a **Show more options** button (`S.showMore[track]`). It opens automatically if any of those drills has sets done today.
