@@ -652,6 +652,8 @@ function v2GetHub(player, date) {
     return r ? { prize: r['Prize'], target: Number(r['Target Points']) || 100, start: v2Ymd(r['Start Date']) } : null;
   }
   var weekly = prizeFor('Weekly'), big = prizeFor('Big');
+  var events = v2EventsFor(p, date);
+  v2ApplyTodos(out, v2CalendarTodos(data, p, events));
 
   var ws = v2WeekStart(date), we = v2AddDays(ws, 6);
   var done = {}, results = {}, history = {};
@@ -680,7 +682,7 @@ function v2GetHub(player, date) {
   return {
     player: { name: p['Player'], tracks: tracks, visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' },
     date: date, weekStart: ws, tracks: out, done: done, results: results, history: history,
-    points: pts, prizes: { weekly: weekly, big: big }, events: v2EventsFor(p, date),
+    points: pts, prizes: { weekly: weekly, big: big }, events: events,
     feedback: v2FeedbackFor(player),
     players: v2ActivePlayers(players)  // lets the app skip a separate getPlayers call
   };
@@ -973,6 +975,75 @@ function v2Events(player, ownCals, date, noCache) {
 }
 
 // Calendar strip for the hub header; never lets a calendar problem break the hub.
+// ---- Calendar credit (2026-10-14) ----
+// A library row with text in "Calendar Match" (e.g. MBT) becomes a must-do on any day the
+// player's calendar has an event whose title contains that text. If the title names a
+// player ("Nellie MBT ..."), only that player gets it; if it names nobody, everyone does.
+// Its track comes from the row's Tracks column, its points from Points Per Set.
+function v2CalendarTodos(data, p, events) {
+  var rules = (data.lib || []).filter(function (a) {
+    return a['ID'] !== '' && v2Truthy(a['Active']) && String(a['Calendar Match'] || '').trim();
+  });
+  if (!rules.length || !events || !events.length) return [];
+  var me = String(p['Player']), mine = v2List(p['Tracks']);
+  var names = (data.players || []).map(function (x) { return String(x['Player'] || ''); }).filter(String);
+  var out = [];
+  rules.forEach(function (a) {
+    var match = String(a['Calendar Match']).trim().toLowerCase();
+    var ev = events.filter(function (e) {
+      var t = String(e.title || '').toLowerCase();
+      if (e.day !== 'Today' || t.indexOf(match) === -1) return false;
+      var words = t.split(/[^a-z0-9]+/);
+      var named = names.filter(function (n) { return words.indexOf(n.toLowerCase()) > -1; });
+      return !named.length || named.indexOf(me) > -1;
+    })[0];
+    var track = v2List(a['Tracks']).filter(function (t) { return mine.indexOf(t) > -1; })[0];
+    if (!ev || !track) return;
+    var it = v2Item(a);
+    it.perSet = 'On the calendar' + (ev.time ? ' at ' + ev.time : ' today');
+    it.calendar = true;
+    out.push({ track: track, item: it });
+  });
+  return out;
+}
+
+// Put calendar to-dos at the top of their track's must-dos (and out of the options).
+function v2ApplyTodos(tracks, todos) {
+  (todos || []).forEach(function (td) {
+    var t = tracks[td.track];
+    if (!t) return;
+    t.options.forEach(function (g) { g.items = g.items.filter(function (x) { return x.id !== td.item.id; }); });
+    t.options = t.options.filter(function (g) { return g.items.length; });
+    if (!t.must.some(function (x) { return x.id === td.item.id; })) t.must.unshift(td.item);
+  });
+}
+
+// Run ONCE: adds the "Calendar Match" column and the MBT library row (10 points). Safe to re-run.
+function v2CalendarCredit() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V2_LIB);
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  if (head.indexOf('Calendar Match') === -1) {
+    sh.getRange(1, head.length + 1).setValue('Calendar Match').setFontWeight('bold');
+    head.push('Calendar Match');
+  }
+  var ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+  var added = ids.indexOf('MBT1') === -1;
+  if (added) {
+    var v = { 'ID': 'MBT1', 'Name': 'MBT training session', 'Category': 'Team Training', 'Tracks': 'After School',
+              'Sets': 1, 'Per Set': 'Full session', 'Set Labels': 'Session done', 'Points Per Set': 10, 'Video': '',
+              'Cue': 'Go hard the whole session. Coaches notice effort.', 'Result': '', 'Result Of': '',
+              'Source': 'From the calendar', 'Active': true, 'Calendar Match': 'MBT' };
+    sh.appendRow(head.map(function (h) { return h in v ? v[h] : ''; }));
+  }
+  v2BumpCache();
+  try { if (v3On()) v3PublishEvents(); } catch (e) { console.error(e); }
+  var msg = (added ? 'Added' : 'Already had') + ' MBT1 (MBT training session, 10 achievements) in the Activity Library.\n\n' +
+            'Any calendar event with "MBT" in its title now shows up as a must-do in After School for the kid it names. ' +
+            'Change the points, track or matching text in that row any time.';
+  console.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+
 function v2EventsFor(p, date) {
   var own = v2List(p['Calendars']);
   if (!own.length) return []; // friends' players: no family calendar
@@ -1197,7 +1268,10 @@ function v3PublishEvents() {
     var days = {};
     days[today] = v2EventsFor(p, today);
     days[tomorrow] = v2EventsFor(p, tomorrow);
-    return { id: 'events:' + p['Player'], data: { days: days } };
+    var todos = {};
+    todos[today] = v2CalendarTodos(data, p, days[today]);
+    todos[tomorrow] = v2CalendarTodos(data, p, days[tomorrow]);
+    return { id: 'events:' + p['Player'], data: { days: days, todos: todos } };
   });
   return v3PutDocs(docs, false);
 }

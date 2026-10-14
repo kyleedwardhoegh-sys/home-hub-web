@@ -195,3 +195,11 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 ### "On my phone" QR code (2026-10-14)
 - The hub header has an **On my phone** button (hidden under 720px wide, since you're already on a phone). It opens `#qr-overlay` with a QR code for `/?p=<Name>&track=<current track>`, so a kid can scan it from the kitchen screen and keep going on a phone or tablet. Both save to the same database.
 - The QR library is vendored at `vendor/qrcode.min.js` (qrcodejs 1.0.0, MIT) and lazy-loaded on first open. The overlay closes itself after 90 s.
+
+### Calendar credit, e.g. MBT (2026-10-14)
+- Activity Library has a **Calendar Match** column. A row with text there (MBT1: "MBT", 10 points, After School) becomes a must-do at the top of its track on any day the player's calendar has an event whose title contains that text.
+- If the title names a player ("Nellie MBT …"), only that player gets it. If it names no player, all players do. Names are matched as whole words against the Players tab.
+- Code: `v2CalendarTodos` + `v2ApplyTodos`.
+  - Sheet path: applied in `v2GetHub`.
+  - Database path: `v3PublishEvents` stores `todos: {date: [{track, item}]}` in each `events:<Name>` doc, and `hubdata.js` `assemble()` applies the same rule.
+- Install: run `v2CalendarCredit` once. It adds the column and the MBT1 row, and is safe to re-run.

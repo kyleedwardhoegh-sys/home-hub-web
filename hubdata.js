@@ -166,10 +166,19 @@
       if (day >= ws && day <= we) pts.week += v;
       if (big && day >= big.start) pts.big += v;
     });
-    Object.values(plan.tracks || {}).forEach((t) => t.must.concat(...t.options.map((g) => g.items)).forEach((it) => { ptsCache[it.id] = it.pts; }));
+    // Calendar to-dos (e.g. MBT) go on top of their track's must-dos; same rule as v2ApplyTodos.
+    const tracks = JSON.parse(JSON.stringify(plan.tracks || {}));
+    ((d.events && d.events.todos && d.events.todos[date]) || []).forEach((td) => {
+      const t = tracks[td.track];
+      if (!t) return;
+      t.options.forEach((g) => { g.items = g.items.filter((x) => x.id !== td.item.id); });
+      t.options = t.options.filter((g) => g.items.length);
+      if (!t.must.some((x) => x.id === td.item.id)) t.must.unshift(td.item);
+    });
+    Object.values(tracks).forEach((t) => t.must.concat(...t.options.map((g) => g.items)).forEach((it) => { ptsCache[it.id] = it.pts; }));
     const ev = d.events && d.events.days ? d.events.days[date] : null;
     return {
-      player: { ...plan.player, visual }, date, weekStart: ws, tracks: plan.tracks, done, results, history,
+      player: { ...plan.player, visual }, date, weekStart: ws, tracks, done, results, history,
       points: pts, prizes: { weekly, big }, events: ev || [], feedback, players: d.players || [], source: "db",
     };
   }
