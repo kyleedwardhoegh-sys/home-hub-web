@@ -170,9 +170,19 @@ function afterChange(before) {
 
 function render() {
   if (!S.hub) return;
+  renderCalendar();
   renderPrizes();
   renderTabs();
   renderTrack();
+}
+
+// Today/tomorrow from Google Calendar — a heads-up only, not part of the tracks.
+function renderCalendar() {
+  const ev = S.hub.events || [], el = $("#cal-strip");
+  el.hidden = !ev.length;
+  el.innerHTML = ev.map((e) => `<div class="cal-item ${e.day === "Today" ? "today" : ""}">
+      <span class="cal-day">${esc(e.day)}${e.time ? ` · ${esc(e.time)}` : ""}</span><span class="cal-title">${esc(e.title)}</span>
+    </div>`).join("");
 }
 
 function renderPrizes() {
@@ -523,6 +533,7 @@ function demoHub(name) {
                            { category: "Lifting", items: [I("S1", "Push-ups", "Lifting", 3, "10 reps", [], 1, "", "Straight line head to heels.")] }] },
     },
     done: {}, results: {}, history: {},
+    events: [{ day: "Today", time: "7:00 PM", title: "7G1 Practice" }, { day: "Tomorrow", time: "6:30 PM", title: "MBT Training Session" }],
     points: { today: 0, week: 132, big: 410, lifetime: 410, byDay: {} },
     prizes: { weekly: { prize: "Weekly prize — you pick it!", target: 150, start: today() }, big: { prize: "Big prize — you pick it!", target: 1000, start: today() } },
   };

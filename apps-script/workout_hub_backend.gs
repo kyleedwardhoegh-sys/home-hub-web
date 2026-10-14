@@ -624,7 +624,7 @@ function v2GetHub(player, date) {
   return {
     player: { name: p['Player'], tracks: tracks, visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' },
     date: date, weekStart: ws, tracks: out, done: done, results: results, history: history,
-    points: pts, prizes: { weekly: weekly, big: big }
+    points: pts, prizes: { weekly: weekly, big: big }, events: v2EventsFor(p, date)
   };
 }
 
@@ -821,4 +821,92 @@ function v2MorningBillyClapper() {
 
   var msg = 'Billy Clapper morning: added ' + addLib.length + ' drills, retired ' + retired + ' Jr. NBA drills, added ' + addPlan.length + ' plan rows.';
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
+
+// ------------------------------------------------------------
+// CALENDAR HEADER (2026-10-13): today's and tomorrow's events shown at the
+// top of each player's hub. Display only — nothing is added to the tracks.
+//   - Players tab "Calendars" column: calendar IDs whose events ALL belong
+//     to that player (e.g. their OMGBA team calendar).
+//   - V2_NAME_MATCH_CALS: shared family calendars; an event shows for a
+//     player only if their name is in the event title.
+// Titles and times only (no locations), because the API URL is public.
+// ------------------------------------------------------------
+var V2_NAME_MATCH_CALS = [
+  'kyleedwardhoegh@gmail.com',
+  'loganhoegh@gmail.com',
+  'family15716951609174210844@group.calendar.google.com',
+  'rpld6sdps6l5trpdmsl1r56h12phcccv@import.calendar.google.com' // Crossbar
+];
+var V2_TEAM_CALS = {
+  'Nellie': 'rk859ieslvn83ql5tfr1c8ru4utqa794@import.calendar.google.com', // OMGBA 7th Girls 1
+  'Nash': '0hjeajmuvq49iccobne38jc3mp6516jp@import.calendar.google.com'    // OMGBA 5th Boys 1
+};
+
+// Run ONCE: adds the Calendars column, fills in the team calendars, and
+// prompts for Calendar permission. Then Deploy → Manage deployments → New version.
+function v2SetupCalendars() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V2_PLAYERS);
+  var data = sh.getDataRange().getValues(), h = data[0];
+  var col = h.indexOf('Calendars');
+  if (col === -1) { col = h.length; sh.getRange(1, col + 1).setValue('Calendars').setFontWeight('bold'); }
+  for (var i = 1; i < data.length; i++) {
+    var team = V2_TEAM_CALS[data[i][0]];
+    if (team && !String(data[i][col] || '').trim()) sh.getRange(i + 1, col + 1).setValue(team);
+  }
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var lines = ['Nellie', 'Nash'].map(function (p) {
+    var ev = v2Events(p, V2_TEAM_CALS[p] ? [V2_TEAM_CALS[p]] : [], today, true);
+    return p + ': ' + (ev.length ? ev.map(function (e) { return e.day + ' ' + (e.time || 'all day') + ' ' + e.title; }).join('; ') : 'nothing today or tomorrow');
+  });
+  var msg = 'Calendars connected.\n\n' + lines.join('\n');
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
+
+function v2CleanTitle(t) {
+  t = String(t || '').trim();
+  var m = t.match(/^(\S+)\s+-\s+(.*)$/); // "7G1 - 7G1 Practice" → "7G1 Practice"
+  if (m && m[2].indexOf(m[1]) === 0) t = m[2];
+  return t;
+}
+
+function v2Events(player, ownCals, date, noCache) {
+  var cache = CacheService.getScriptCache(), ck = 'ev|' + player + '|' + date;
+  if (!noCache) { var hit = cache.get(ck); if (hit) return JSON.parse(hit); }
+  var tz = Session.getScriptTimeZone();
+  var p = date.split('-'), start = new Date(+p[0], +p[1] - 1, +p[2]), end = new Date(+p[0], +p[1] - 1, +p[2] + 2);
+  var nameRe = new RegExp('\\b' + player.replace(/[^A-Za-z]/g, '') + '\\b', 'i');
+  var out = [], seen = {};
+  function add(calId, mustMatch) {
+    var cal = null;
+    try { cal = CalendarApp.getCalendarById(calId); } catch (e) {}
+    if (!cal) return;
+    cal.getEvents(start, end).forEach(function (ev) {
+      var title = ev.getTitle();
+      if (mustMatch && !nameRe.test(title)) return;
+      var s = ev.getStartTime(), allDay = ev.isAllDayEvent();
+      var dayStr = Utilities.formatDate(s, tz, 'yyyy-MM-dd');
+      if (allDay && dayStr < date) dayStr = date;
+      var key = v2CleanTitle(title) + '|' + s.getTime();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push({
+        day: dayStr === date ? 'Today' : 'Tomorrow',
+        time: allDay ? '' : Utilities.formatDate(s, tz, 'h:mm a'),
+        title: v2CleanTitle(title),
+        sort: (dayStr === date ? 0 : 1) * 1e13 + (allDay ? 0 : s.getTime() % 1e13)
+      });
+    });
+  }
+  ownCals.forEach(function (id) { add(id, false); });
+  V2_NAME_MATCH_CALS.forEach(function (id) { add(id, true); });
+  out.sort(function (a, b) { return a.sort - b.sort; });
+  out = out.slice(0, 8).map(function (e) { return { day: e.day, time: e.time, title: e.title }; });
+  cache.put(ck, JSON.stringify(out), 600);
+  return out;
+}
+
+// Calendar strip for the hub header; never lets a calendar problem break the hub.
+function v2EventsFor(p, date) {
+  try { return v2Events(p['Player'], v2List(p['Calendars']), date); } catch (e) { return []; }
 }

@@ -135,3 +135,5 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
   (e.g. "2026 Team Hoegh/Barber 2034", "Nellie/Nash Training").
 - Don't assume Drive files are automatically visible — if a file's
   needed and not attached, ask Kyle to point to it or attach it.
+
+**Calendar strip (2026-10-13):** `getHub` returns `events` (today + tomorrow, max 8) shown as chips under the player's name. Display only, never added to tracks. Sources: the Players tab `Calendars` column (all events count, e.g. each kid's OMGBA team calendar) plus `V2_NAME_MATCH_CALS` (Kyle, Logan, Family, Crossbar) where the event title must contain the player's name. Titles and times only, no locations, because the API URL is public. Cached 10 minutes per player per day. Needs Calendar permission (`v2SetupCalendars`) and a new deployment version.
