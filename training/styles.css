@@ -63,13 +63,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .today-pill b { font-family: var(--mono); font-size: 1.3rem; color: var(--sun); }
 
 /* ---------- calendar strip ---------- */
-.cal-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
-.cal-item { display: inline-flex; align-items: baseline; gap: 10px; background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 10px 16px; min-width: 0; }
+.cal-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 6px; margin: -4px 0 14px; }
+.cal-item { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); align-items: center; gap: 8px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 7px 12px; min-width: 0; }
 .cal-item.today { border-color: var(--accent2); background: var(--accent2-soft); }
-.cal-day { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); white-space: nowrap; }
-.cal-title { font-family: var(--display); font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
-.cal-item { flex-wrap: wrap; }
-.cal-loc { flex-basis: 100%; font-size: .85rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.cal-day { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent2); line-height: 1.25; display: grid; }
+.cal-day b { font-family: var(--mono); font-weight: 500; font-size: .95rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.cal-text { min-width: 0; display: grid; }
+.cal-title { font-weight: 700; font-size: .95rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cal-loc { font-size: .78rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- prize zone ---------- */
 .prize-zone { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; margin-bottom: 16px; align-items: start; }

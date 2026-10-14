@@ -181,7 +181,8 @@ function renderCalendar() {
   const ev = S.hub.events || [], el = $("#cal-strip");
   el.hidden = !ev.length;
   el.innerHTML = ev.map((e) => `<div class="cal-item ${e.day === "Today" ? "today" : ""}">
-      <span class="cal-day">${esc(e.day)}${e.time ? ` · ${esc(e.time)}` : ""}</span><span class="cal-title">${esc(e.title)}</span>${e.location ? `<span class="cal-loc">${esc(e.location)}</span>` : ""}
+      <span class="cal-day">${esc(e.day)}<b>${esc(e.time || "All day")}</b></span>
+      <span class="cal-text"><span class="cal-title">${esc(e.title)}</span>${e.location ? `<span class="cal-loc">${esc(e.location)}</span>` : ""}</span>
     </div>`).join("");
 }
 
@@ -506,6 +507,21 @@ setInterval(async () => {
   render();
 }, 60000);
 addEventListener("resize", () => requestAnimationFrame(placeSparks));
+
+// Pick up new versions of the site by itself (the kitchen screen never reloads):
+// when app.js changes on the server, reload once the screen has been idle a bit.
+let codeTag = null;
+async function checkForUpdate() {
+  try {
+    const r = await fetch(`app.js?_t=${Date.now()}`, { method: "HEAD", cache: "no-store" });
+    const tag = r.headers.get("etag") || r.headers.get("last-modified");
+    if (!tag) return;
+    if (codeTag === null) { codeTag = tag; return; }
+    const idle = Date.now() - S.lastTap > 120000 && !S.pending && $("#video-overlay").hidden && $("#boom-overlay").hidden;
+    if (tag !== codeTag && idle) location.reload();
+  } catch (e) {}
+}
+if (location.protocol.startsWith("http")) { checkForUpdate(); setInterval(checkForUpdate, 5 * 60000); }
 
 // ---------- preview data (used only until the v2 Sheet tabs are installed) ----------
 
