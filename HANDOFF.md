@@ -153,3 +153,41 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - `getHub` now also returns `players`. The app saves it to `training.players`, and on a cold `?p=` start it uses whichever arrives first, getHub or getPlayers.
 - Verified with a mock harness (old and new backend on the same mock Sheet): output was identical, and a warm getHub reads 1 tab instead of 6.
 - If the Sheet ever looks stale, any edit in the Sheet (even retyping a cell) clears the cache, and it expires after 10 minutes anyway.
+
+## v3: fast database (Supabase), 2026-10-14
+
+**Why:** each Apps Script call costs 2–5 s of Google overhead, even when it's cached. With Supabase, reads and writes take about 0.2 s. The Sheet is still where Kyle edits everything.
+
+**Flow**
+- **Sheet → database (the plan).** `v3Tick` runs every minute. If `v2gen` changed (from the simple `onEdit`, the installable `onChange` → `v3OnChange`, `v2SetVisual`, or the setup functions), `v3Publish` uploads `site_data` docs:
+  - `players`
+  - `plan:<Name>`: player, tracks built by `v2PlanFor` (the same code getHub uses), and raw prize rows.
+  - Only docs whose MD5 changed are uploaded.
+- **Every 5 minutes, `v3Sync`:**
+  - `v3Mirror` copies `set_log` → the **Set Log** tab, `feedback` → **Drill Feedback**, and `player_settings.visual` → **Players › Visual**. It's incremental by `updated_at`, with a 2-minute overlap, and skips rows already up to date.
+  - `v3PublishEvents` writes `events:<Name>` = `{days: {today: [...], tomorrow: [...]}}`.
+  - Once an hour it force-republishes everything.
+  - These calls also keep the free Supabase project from pausing.
+- **Website ↔ database.** `hubdata.js` (`window.HubData`) is shared by app.js and the dashboard (which loads it from this site's URL; `vercel.json` adds CORS for it).
+  - **Reads:** `getHub` = one RPC, `hub(p_player, p_day)` from `supabase/setup.sql`. `assemble()` then rebuilds exactly the old getHub shape: points from `byDay`, plus prizes, results, history, feedback, events.
+  - **Writes:** `post` upserts rows (same `date|player|track|activity|set` keys as the Sheet).
+- **Fallbacks:**
+  - Supabase not configured (`SB_URL` empty), plan not published yet, or unreachable twice → the Apps Script, exactly as before.
+  - Writes that fail go to the Apps Script (`v2ToggleSet` etc. now also `v3Forward` into Supabase). If that fails too, they wait in the localStorage outbox (`training.outbox`), are overlaid onto reads, and retry every 20 s. The kid sees "Saved on this screen…".
+  - `training.dbLive` (localStorage) decides whether writes go to Supabase. It's set by the first successful database read.
+
+**Keys and setup**
+- `hubdata.js`: `SB_URL` and `SB_KEY` hold the **publishable** (anon) key. It's public by design: row-level security (RLS) allows select/insert/update on the log tables and read-only access to `site_data`; there are no deletes.
+- Apps Script, Project Settings → Script properties: `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the secret / service_role key; never put it in the website).
+- Setup:
+  1. Run `supabase/setup.sql` in the Supabase SQL editor.
+  2. Add the script properties.
+  3. Run **`v3Install`** once. It authorizes UrlFetch and triggers, imports history (only rows the database lacks, so re-running is safe), publishes, and creates the `v3Tick` / `v3Sync` / `v3OnChange` triggers.
+  4. Deploy a new web-app version. Do this *after* authorizing, or the web app shows an authorization error.
+- `v3Status` shows the docs, the last mirror time and the triggers.
+
+**Gotchas**
+- If Kyle edits **Set Log** rows by hand, the database doesn't see it (it's database → Sheet only). Change check-offs on the website instead.
+- Bomb/thermometer: the database value wins over a hand edit in the Sheet.
+- An inactive player's `plan:` doc stays in `site_data`, but `hub` callers treat a player missing from the `players` doc as unknown.
+- Test harness: `scratchpad/gscheck/e2e.html` + `mock2.js` (fake PostgREST + `hub()` in JS). It checks that database getHub == Sheet getHub after install, taps, mirror, edits, outages and re-install.

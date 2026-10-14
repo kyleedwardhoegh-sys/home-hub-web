@@ -576,15 +576,12 @@ function v2GetPlayers() {
   return v2ActivePlayers(rows);
 }
 
-function v2GetHub(player, date) {
-  var data = v2Data();
-  var players = data.players, libRows = data.lib, plan = data.plan, prizes = data.prizes,
-      log = v2Rows(V2_LOG);
-  if (!players || !libRows || !plan || !log || !prizes) return { error: 'v2 not set up' };
-  date = date || v2Ymd(new Date());
-
+// One player's tracks (must-dos + option groups), built from the cached Sheet tabs.
+// Used by getHub and by v3Publish (which copies it into the fast database).
+function v2PlanFor(data, player) {
+  var players = data.players, libRows = data.lib, plan = data.plan;
   var p = players.filter(function (x) { return x['Player'] === player && v2Truthy(x['Active']); })[0];
-  if (!p) return { error: 'unknown player' };
+  if (!p) return null;
   var tracks = v2List(p['Tracks']).filter(function (t) { return V2_TRACKS.indexOf(t) > -1; });
 
   var lib = libRows.filter(function (a) { return a['ID'] !== '' && v2Truthy(a['Active']); });
@@ -630,6 +627,17 @@ function v2GetHub(player, date) {
     });
     out[t] = { must: must, options: groups };
   });
+  return { p: p, trackNames: tracks, tracks: out };
+}
+
+function v2GetHub(player, date) {
+  var data = v2Data();
+  var players = data.players, prizes = data.prizes, log = v2Rows(V2_LOG);
+  if (!players || !data.lib || !data.plan || !log || !prizes) return { error: 'v2 not set up' };
+  date = date || v2Ymd(new Date());
+  var built = v2PlanFor(data, player);
+  if (!built) return { error: 'unknown player' };
+  var p = built.p, tracks = built.trackNames, out = built.tracks;
 
   // Prizes: a player-specific row wins over an "All" row; latest start date that has begun.
   function prizeFor(type) {
@@ -697,6 +705,7 @@ function v2ToggleSet(d) {
     var pts = a ? (Number(a['Points Per Set']) || 1) : 1;
     var key = [d.date, d.player, d.track, d.activity, d.set].join('|');
     v2Upsert(key, [key, d.date, d.player, d.track, d.activity, Number(d.set), pts, '', d.done === true, new Date()]);
+    v3Forward('set_log', { id: key, day: d.date, player: d.player, track: d.track, activity: String(d.activity), set_no: Number(d.set), points: pts, result: null, done: d.done === true });
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -709,6 +718,7 @@ function v2SetResult(d) {
     var key = [d.date, d.player, d.track, d.activity, 0].join('|');
     var val = d.result === null || d.result === '' || d.result === undefined ? '' : Number(d.result);
     v2Upsert(key, [key, d.date, d.player, d.track, d.activity, 0, 0, val, val !== '', new Date()]);
+    v3Forward('set_log', { id: key, day: d.date, player: d.player, track: d.track, activity: String(d.activity), set_no: 0, points: 0, result: val === '' ? null : val, done: val !== '' });
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -719,7 +729,11 @@ function v2SetVisual(d) {
   var data = sh.getDataRange().getValues();
   var col = data[0].indexOf('Visual');
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === d.player) { sh.getRange(i + 1, col + 1).setValue(d.visual); v2BumpCache(); return { ok: true }; }
+    if (data[i][0] === d.player) {
+      sh.getRange(i + 1, col + 1).setValue(d.visual); v2BumpCache();
+      v3Forward('player_settings', { player: d.player, visual: d.visual });
+      return { ok: true };
+    }
   }
   return { error: 'unknown player' };
 }
@@ -1020,6 +1034,7 @@ function v2SetFeedback(d) {
     if (hit) sh.getRange(hit.getRow(), 1, 1, row.length).setValues([row]);
     else sh.appendRow(row);
     try { CacheService.getScriptCache().remove('v2fb'); } catch (e) {}
+    v3Forward('feedback', { id: key, player: d.player, activity: String(d.activity), activity_name: a ? a['Name'] : null, track: d.track || null, minutes: minutes, difficulty: Math.round(diff), day: d.date || null });
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -1082,4 +1097,293 @@ function v2EasyMustDos() {
   var msg = 'Easy must-dos set: ' + changed + ' plan rows updated, ' + add.length + ' added. Drill Feedback tab ready.';
   v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
+
+// ============================================================
+// v3: FAST DATABASE (Supabase), 2026-10-14
+// The Sheet stays the place to edit drills, plans and prizes. This code publishes a
+// computer-friendly copy of the plan into Supabase (within about a minute of an edit)
+// and copies the kids' check-offs, drill ratings and bomb/thermometer picks back into
+// the Sheet every 5 minutes. The website reads and writes Supabase directly (~0.2 s
+// instead of 2–5 s) and falls back to this script by itself if Supabase can't be reached.
+//
+// One-time setup (HANDOFF "v3: fast database"):
+//   1. Project Settings (gear icon) → Script properties → add
+//        SUPABASE_URL         https://xxxx.supabase.co
+//        SUPABASE_SECRET_KEY  the project's secret (service_role) key
+//   2. Run v3Install once and approve the permissions. Safe to run again any time.
+// ============================================================
+
+function v3Cfg() {
+  var p = PropertiesService.getScriptProperties();
+  return {
+    url: String(p.getProperty('SUPABASE_URL') || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, ''),
+    key: String(p.getProperty('SUPABASE_SECRET_KEY') || '').trim()
+  };
+}
+function v3On() { var c = v3Cfg(); return !!(c.url && c.key); }
+
+function v3Req(method, path, body, prefer) {
+  var c = v3Cfg();
+  if (!c.url || !c.key) throw new Error('Add SUPABASE_URL and SUPABASE_SECRET_KEY under Project Settings → Script properties first.');
+  var headers = { apikey: c.key };
+  if (/^eyJ/.test(c.key)) headers.Authorization = 'Bearer ' + c.key; // older-style keys
+  if (prefer) headers.Prefer = prefer;
+  var opt = { method: method, headers: headers, muteHttpExceptions: true };
+  if (body !== undefined) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(body); }
+  var res = UrlFetchApp.fetch(c.url + '/rest/v1/' + path, opt);
+  var code = res.getResponseCode(), text = res.getContentText();
+  if (code >= 300) throw new Error('Supabase said ' + code + ': ' + text.slice(0, 300));
+  return text ? JSON.parse(text) : null;
+}
+
+function v3Upsert(table, rows) {
+  for (var i = 0; i < rows.length; i += 500) {
+    v3Req('post', table, rows.slice(i, i + 500), 'resolution=merge-duplicates,return=minimal');
+  }
+}
+
+// Saves made through this script (older screens, or the website's fallback) also land
+// in the database, so nothing is lost while devices switch over.
+function v3Forward(table, row) {
+  if (!v3On()) return;
+  try { v3Upsert(table, [row]); } catch (e) { console.error('v3Forward ' + e); }
+}
+
+function v3Hash(s) {
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, s, Utilities.Charset.UTF_8));
+}
+
+// Upload only the documents that changed since the last upload (or all, with force).
+function v3PutDocs(docs, force) {
+  var props = PropertiesService.getScriptProperties();
+  var changed = docs.filter(function (d) {
+    d.h = v3Hash(JSON.stringify(d.data));
+    return force || props.getProperty('v3h|' + d.id) !== d.h;
+  });
+  if (!changed.length) return 0;
+  var now = new Date().toISOString();
+  v3Upsert('site_data', changed.map(function (d) { return { id: d.id, data: d.data, updated_at: now }; }));
+  changed.forEach(function (d) { props.setProperty('v3h|' + d.id, d.h); });
+  return changed.length;
+}
+
+// The plan: player list + each active player's tracks and prizes.
+function v3Publish(force) {
+  if (force) v2BumpCache();
+  var data = v2Data();
+  if (!data.players || !data.lib || !data.plan || !data.prizes) throw new Error('The v2 tabs are missing (run setupV2).');
+  var active = v2ActivePlayers(data.players);
+  var docs = [{ id: 'players', data: active }];
+  active.forEach(function (ap) {
+    var built = v2PlanFor(data, ap.name);
+    if (!built) return;
+    var prizes = data.prizes.filter(function (r) { return r['Player'] === ap.name || r['Player'] === 'All'; }).map(function (r) {
+      return { player: r['Player'], type: r['Type'], prize: r['Prize'], target: Number(r['Target Points']) || 100, start: v2Ymd(r['Start Date']) };
+    });
+    docs.push({ id: 'plan:' + ap.name, data: {
+      player: { name: built.p['Player'], tracks: built.trackNames, visual: built.p['Visual'] || 'Bomb', theme: built.p['Theme'] || '' },
+      tracks: built.tracks, prizes: prizes
+    } });
+  });
+  return v3PutDocs(docs, force);
+}
+
+// Calendar strip: today's and tomorrow's events for each player with calendars.
+function v3PublishEvents() {
+  var data = v2Data();
+  var today = v2Ymd(new Date()), tomorrow = v2AddDays(today, 1);
+  var docs = (data.players || []).filter(function (p) { return v2Truthy(p['Active']); }).map(function (p) {
+    var days = {};
+    days[today] = v2EventsFor(p, today);
+    days[tomorrow] = v2EventsFor(p, tomorrow);
+    return { id: 'events:' + p['Player'], data: { days: days } };
+  });
+  return v3PutDocs(docs, false);
+}
+
+// Write rows (column A = key) into a tab: update rows whose key exists, append the rest.
+// Rows already up to date (same "Updated At", the last column) are skipped.
+function v3WriteKeyed(sh, rows) {
+  if (!rows.length) return 0;
+  var width = rows[0].length, last = sh.getLastRow();
+  var vals = last > 1 ? sh.getRange(2, 1, last - 1, width).getValues() : [];
+  var at = {};
+  vals.forEach(function (r, i) { if (r[0] !== '') at[String(r[0])] = i; });
+  var updates = [], adds = [];
+  rows.forEach(function (r) {
+    var i = at[String(r[0])];
+    if (i === undefined) { at[String(r[0])] = -1; adds.push(r); return; }
+    if (i === -1) return;
+    var was = vals[i][width - 1];
+    if (was instanceof Date && Math.abs(was.getTime() - r[width - 1].getTime()) < 1000) return;
+    vals[i] = r;
+    updates.push(i);
+  });
+  if (updates.length > 20) sh.getRange(2, 1, vals.length, width).setValues(vals);
+  else updates.forEach(function (i) { sh.getRange(i + 2, 1, 1, width).setValues([vals[i]]); });
+  if (adds.length) sh.getRange(Math.max(last, 1) + 1, 1, adds.length, width).setValues(adds);
+  return updates.length + adds.length;
+}
+
+// Copy one table's recent changes into its tab. Re-reads a 2-minute overlap each time so
+// a save that was still finishing during the last copy is never missed.
+function v3MirrorTable(table, propKey, sh, toRow) {
+  var props = PropertiesService.getScriptProperties();
+  var since = props.getProperty(propKey);
+  var from = since ? new Date(new Date(since).getTime() - 120000).toISOString() : '1970-01-01T00:00:00Z';
+  var rows = [];
+  for (var off = 0; ; off += 1000) {
+    var page = v3Req('get', table + '?select=*&updated_at=gte.' + encodeURIComponent(from) + '&order=updated_at.asc,id.asc&offset=' + off + '&limit=1000') || [];
+    rows = rows.concat(page);
+    if (page.length < 1000) break;
+  }
+  if (!rows.length) return 0;
+  var n = v3WriteKeyed(sh, rows.map(toRow));
+  props.setProperty(propKey, rows[rows.length - 1].updated_at);
+  return n;
+}
+
+function v3Mirror() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var n = v3MirrorTable('set_log', 'v3since_log', ss.getSheetByName(V2_LOG), function (r) {
+    return [r.id, r.day, r.player, r.track, r.activity, Number(r.set_no), Number(r.points),
+            r.result === null ? '' : Number(r.result), r.done === true, new Date(r.updated_at)];
+  });
+  n += v3MirrorTable('feedback', 'v3since_fb', v2FeedbackSheet(), function (r) {
+    return [r.id, r.player, r.activity, r.activity_name || '', r.track || '', Number(r.minutes), Number(r.difficulty),
+            r.day || '', new Date(r.updated_at)];
+  });
+  // Bomb / thermometer picks made on the website.
+  var st = v3Req('get', 'player_settings?select=player,visual') || [];
+  if (st.length) {
+    var sh = ss.getSheetByName(V2_PLAYERS), vals = sh.getDataRange().getValues(), col = vals[0].indexOf('Visual'), changed = false;
+    st.forEach(function (s) {
+      for (var i = 1; i < vals.length; i++) {
+        if (vals[i][0] === s.player && s.visual && vals[i][col] !== s.visual) { sh.getRange(i + 1, col + 1).setValue(s.visual); changed = true; }
+      }
+    });
+    if (changed) v2BumpCache();
+  }
+  return n;
+}
+
+// Every minute: republish the plan if the Sheet changed (onEdit / onChange bump v2gen).
+function v3Tick() {
+  if (!v3On()) return;
+  var props = PropertiesService.getScriptProperties(), gen = v2CacheGen();
+  if (props.getProperty('v3gen') === gen) return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try { v3Publish(false); props.setProperty('v3gen', gen); } finally { lock.releaseLock(); }
+}
+
+// Every 5 minutes: copy check-offs into the Sheet, refresh calendar events, and once an
+// hour re-upload the whole plan just in case. (These calls also keep the free Supabase
+// project from ever being paused for inactivity.)
+function v3Sync() {
+  if (!v3On()) return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return;
+  try {
+    try { v3Mirror(); } catch (e) { console.error('v3Mirror ' + e); }
+    try { v3PublishEvents(); } catch (e) { console.error('v3PublishEvents ' + e); }
+    if (new Date().getMinutes() < 5) { try { v3Publish(true); } catch (e) { console.error('v3Publish ' + e); } }
+  } finally { lock.releaseLock(); }
+}
+
+// Installable onChange trigger: also catches inserted / deleted rows, which onEdit misses.
+function v3OnChange(e) { v2BumpCache(); }
+
+// Copy everything the database doesn't have yet. Never overwrites newer website saves.
+function v3ImportHistory() {
+  function ids(table, idCol) {
+    var have = {};
+    for (var off = 0; ; off += 1000) {
+      var page = v3Req('get', table + '?select=' + idCol + '&order=' + idCol + '.asc&offset=' + off + '&limit=1000') || [];
+      page.forEach(function (r) { have[r[idCol]] = true; });
+      if (page.length < 1000) break;
+    }
+    return have;
+  }
+  function dedupe(rows, idCol) {
+    var by = {};
+    rows.forEach(function (r) { by[r[idCol]] = r; });
+    return Object.keys(by).map(function (k) { return by[k]; });
+  }
+  var haveLog = ids('set_log', 'id');
+  var log = dedupe((v2Rows(V2_LOG) || []).filter(function (r) { return r['Key'] && !haveLog[String(r['Key'])]; }).map(function (r) {
+    var res = r['Result'];
+    return {
+      id: String(r['Key']), day: v2Ymd(r['Date']), player: r['Player'], track: r['Track'], activity: String(r['Activity ID']),
+      set_no: Number(r['Set']) || 0, points: Number(r['Points']) || 0,
+      result: res === '' || res === null || isNaN(Number(res)) ? null : Number(res),
+      done: r['Done'] === true || String(r['Done']).toUpperCase() === 'TRUE'
+    };
+  }), 'id');
+  v3Upsert('set_log', log);
+
+  var haveFb = ids('feedback', 'id');
+  var fb = dedupe((v2Rows(V2_FEEDBACK) || []).filter(function (r) { return r['Key'] && !haveFb[String(r['Key'])]; }).map(function (r) {
+    return {
+      id: String(r['Key']), player: r['Player'], activity: String(r['Activity ID']), activity_name: r['Activity'] || null,
+      track: r['Track'] || null, minutes: Number(r['Minutes']) || null, difficulty: Number(r['Difficulty (1-10)']) || null,
+      day: r['Date'] ? v2Ymd(r['Date']) : null
+    };
+  }), 'id');
+  v3Upsert('feedback', fb);
+
+  var haveSt = ids('player_settings', 'player');
+  var st = (v2Rows(V2_PLAYERS) || []).filter(function (p) { return p['Player'] && !haveSt[p['Player']] && p['Visual']; })
+    .map(function (p) { return { player: p['Player'], visual: p['Visual'] }; });
+  v3Upsert('player_settings', st);
+
+  // Start the Sheet copy from the newest change now in the database.
+  var props = PropertiesService.getScriptProperties();
+  [['set_log', 'v3since_log'], ['feedback', 'v3since_fb']].forEach(function (t) {
+    var top = v3Req('get', t[0] + '?select=updated_at&order=updated_at.desc&limit=1') || [];
+    if (top.length && !props.getProperty(t[1])) props.setProperty(t[1], top[0].updated_at);
+  });
+  return { log: log.length, feedback: fb.length, settings: st.length };
+}
+
+function v3Triggers() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (['v3Tick', 'v3Sync', 'v3OnChange'].indexOf(t.getHandlerFunction()) > -1) ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('v3Tick').timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger('v3Sync').timeBased().everyMinutes(5).create();
+  ScriptApp.newTrigger('v3OnChange').forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet()).onChange().create();
+}
+
+// Run ONCE (safe to re-run): copies history in, publishes the plan, starts the triggers.
+function v3Install() {
+  v3Req('get', 'site_data?select=id&limit=1'); // fails early with a clear message if keys / SQL are missing
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var got, plans, events;
+  try {
+    got = v3ImportHistory();
+    plans = v3Publish(true);
+    events = v3PublishEvents();
+    PropertiesService.getScriptProperties().setProperty('v3gen', v2CacheGen());
+  } finally { lock.releaseLock(); }
+  v3Triggers();
+  var msg = 'Fast database is on.\n\nCopied in: ' + got.log + ' check-offs, ' + got.feedback + ' drill ratings, ' +
+            got.settings + ' bomb/thermometer picks.\nPublished: ' + plans + ' plan files, ' + events + ' calendar files.\n\n' +
+            'From now on: edit the Sheet as usual. The website picks up changes in about a minute, and the kids\' ' +
+            'check-offs show up in the Set Log tab within 5 minutes.';
+  console.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+
+// Optional: run to see that everything is flowing.
+function v3Status() {
+  var props = PropertiesService.getScriptProperties();
+  var docs = v3Req('get', 'site_data?select=id,updated_at&order=id.asc') || [];
+  var msg = 'Database files:\n' + docs.map(function (d) { return '  ' + d.id + '  (' + d.updated_at.slice(0, 16).replace('T', ' ') + ' UTC)'; }).join('\n') +
+            '\n\nLast check-off copied to the Sheet: ' + (props.getProperty('v3since_log') || 'none yet') +
+            '\nTriggers: ' + ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }).join(', ');
+  console.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
 }

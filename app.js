@@ -1,5 +1,5 @@
-// Same Apps Script deployment as the v1 app (../app.js) — v2 actions live alongside v1's.
-const API_BASE = "https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec";
+// Data comes through hubdata.js (window.HubData): the fast Supabase database when it's
+// set up, otherwise the Sheet's Apps Script. See HANDOFF "v3: fast database".
 
 const TRACKS = ["Morning", "After School", "Night"];
 const TRACK_ICONS = {
@@ -50,21 +50,13 @@ const today = () => ymd(new Date());
 // { error: "network" } so callers can retry; real API errors (e.g. "unknown player")
 // come back as-is and are not retried.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function apiGet(action, params = {}, timeoutMs = 25000) {
-  const url = new URL(API_BASE);
-  url.searchParams.set("action", action);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  url.searchParams.set("_t", Date.now()); // cache-bust (see HANDOFF gotcha #5)
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+async function apiGet(action, params = {}) {
   try {
-    const res = await fetch(url.toString(), { cache: "no-store", signal: ctl.signal });
-    const text = await res.text();
-    try { return JSON.parse(text); } catch (e) { return { error: "network" }; }
+    if (action === "getHub") return await HubData.getHub(params.player, params.date);
+    if (action === "getPlayers") return await HubData.getPlayers();
+    return await HubData.sheetGet(action, params);
   } catch (e) {
     return { error: "network" };
-  } finally {
-    clearTimeout(timer);
   }
 }
 // Up to 3 tries for network failures (Apps Script hiccups are common and short).
@@ -78,22 +70,17 @@ async function apiGetRetry(action, params = {}) {
   return r;
 }
 
-// text/plain keeps this a CORS "simple request" (HANDOFF gotcha #2).
-async function apiPost(body) {
-  const res = await fetch(API_BASE, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
+async function apiPost(body) { return HubData.post(body); }
 
 function send(body) {
   if (S.demo) return;
   S.pending++;
   S.queue = S.queue
     .then(() => apiPost(body))
-    .then((r) => { if (r && r.error) throw new Error(r.error); })
+    .then((r) => {
+      if (r && r.error) throw new Error(r.error);
+      if (r && r.queued) toast("Saved on this screen. It will sync by itself when the Wi-Fi is back.");
+    })
     .catch(() => toast("Couldn't save that. Check the Wi-Fi and tap again."))
     .finally(() => { S.pending--; });
 }
@@ -245,7 +232,7 @@ function setLoading(on, name, attempt, err) {
     ? `<h2>Couldn't load ${esc(name)}'s list</h2><p class="muted">The plan says: ${esc(err)}. Ask Dad to check the Sheet.</p>`
     : attempt === 0
       ? `<h2>Loading ${esc(name)}'s list…</h2><p class="muted">This takes a few seconds the first time.</p>`
-      : `<h2>Still loading ${esc(name)}'s list…</h2><p class="muted">Google is being slow. Trying again automatically (try ${attempt + 1}).</p>`;
+      : `<h2>Still loading ${esc(name)}'s list…</h2><p class="muted">The internet is being slow. Trying again automatically (try ${attempt + 1}).</p>`;
   $("#track-body").innerHTML = `<div class="empty loading-msg"><div class="spinner" aria-hidden="true"></div>${msg}</div>`;
 }
 
@@ -280,7 +267,7 @@ function applySet(track, it, set, on) {
   const P = S.hub.points;
   P.today += d; P.week += d; P.lifetime += d;
   if (S.hub.prizes.big && S.hub.date >= S.hub.prizes.big.start) P.big += d;
-  send({ action: "toggleSet", date: S.hub.date, player: S.hub.player.name, track, activity: it.id, set, done: on });
+  send({ action: "toggleSet", date: S.hub.date, player: S.hub.player.name, track, activity: it.id, set, done: on, pts: it.pts });
   return d;
 }
 
@@ -597,7 +584,7 @@ $("#fb-save").addEventListener("click", () => {
   const { minutes, difficulty, track, it } = fbPick;
   (S.hub.feedback = S.hub.feedback || {})[it.id] = true;
   saveHub();
-  send({ action: "setFeedback", player: S.hub.player.name, activity: it.id, track, minutes, difficulty, date: S.hub.date });
+  send({ action: "setFeedback", player: S.hub.player.name, activity: it.id, activityName: it.name, track, minutes, difficulty, date: S.hub.date });
   $("#fb-overlay").hidden = true;
   toast("Thanks! That helps Dad set the points.");
 });
@@ -719,13 +706,16 @@ setInterval(async () => {
 addEventListener("resize", () => requestAnimationFrame(placeSparks));
 
 // Pick up new versions of the site by itself (the kitchen screen never reloads):
-// when app.js changes on the server, reload once the screen has been idle a bit.
+// when app.js or hubdata.js changes on the server, reload once the screen has been idle a bit.
 let codeTag = null;
 async function checkForUpdate() {
   try {
-    const r = await fetch(`app.js?_t=${Date.now()}`, { method: "HEAD", cache: "no-store" });
-    const tag = r.headers.get("etag") || r.headers.get("last-modified");
-    if (!tag) return;
+    const tags = await Promise.all(["app.js", "hubdata.js"].map(async (f) => {
+      const r = await fetch(`${f}?_t=${Date.now()}`, { method: "HEAD", cache: "no-store" });
+      return r.headers.get("etag") || r.headers.get("last-modified");
+    }));
+    if (tags.some((t) => !t)) return;
+    const tag = tags.join(" ");
     if (codeTag === null) { codeTag = tag; return; }
     const idle = Date.now() - S.lastTap > 120000 && !S.pending && $("#video-overlay").hidden && $("#boom-overlay").hidden;
     if (tag !== codeTag && idle) location.reload();
