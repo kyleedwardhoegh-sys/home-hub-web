@@ -119,7 +119,14 @@ const inflight = {};
 function fetchHub(name) {
   if (!inflight[name]) {
     inflight[name] = apiGetRetry("getHub", { player: name, date: today() })
-      .then((hub) => { if (hub && !hub.error) store.set(hubKey(name), { ...hub, _at: Date.now() }); return hub; })
+      .then((hub) => {
+        if (hub && !hub.error) {
+          store.set(hubKey(name), { ...hub, _at: Date.now() });
+          // Newer backends send the player list too; saving it makes the next cold start skip a wait.
+          if (Array.isArray(hub.players) && hub.players.length) store.set("training.players", hub.players);
+        }
+        return hub;
+      })
       .catch(() => ({ error: "offline" }))
       .finally(() => { delete inflight[name]; });
   }
@@ -142,13 +149,16 @@ async function boot() {
     let guess = null;
     // With ?p=Name (the kiosk's links), start that kid's plan immediately even with no saved player list.
     try { guess = want ? ((cachedPlayers || []).find((x) => x.name.toLowerCase() === want.toLowerCase())?.name || want.charAt(0).toUpperCase() + want.slice(1).toLowerCase()) : localStorage.getItem("training.player"); } catch (e) {}
-    if (guess && params.get("pick") === null) fetchHub(guess);
+    const guessHub = guess && params.get("pick") === null ? fetchHub(guess) : null;
     const fresh = apiGetRetry("getPlayers").then((r) => { if (Array.isArray(r)) store.set("training.players", r); return r; }).catch(() => ({ error: "offline" }));
     if (Array.isArray(cachedPlayers) && cachedPlayers.length) {
       players = cachedPlayers;
       fresh.then((r) => { if (Array.isArray(r)) { S.players = r; if ($("#view-select").classList.contains("active")) renderSelect(); } });
     } else {
-      players = await fresh;
+      // The kid's plan carries the player list too (newer backend), so use whichever arrives first.
+      const never = new Promise(() => {});
+      const fromHub = guessHub ? guessHub.then((h) => (h && Array.isArray(h.players) && h.players.length ? h.players : never)) : never;
+      players = await Promise.race([fresh, fromHub]);
       // A network hiccup must never drop into preview mode (taps there aren't saved):
       // keep retrying until the real player list loads.
       for (let attempt = 1; players && players.error === "network"; attempt++) {

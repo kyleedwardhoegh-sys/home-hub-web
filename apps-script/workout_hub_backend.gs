@@ -455,6 +455,7 @@ function setupV2() {
   if (prizes) prizes.getRange('E:E').setNumberFormat('@');
 
   var msg = created.length ? 'Created: ' + created.join(', ') : 'All v2 tabs already exist — nothing changed.';
+  v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (err) { Logger.log(msg); }
 }
 
@@ -507,6 +508,49 @@ function v2Rows(name) {
   return sheetToObjects(sh);
 }
 
+// ---- Sheet cache (2026-10-14) ----
+// Every Apps Script call already costs ~2 s of Google overhead, and getHub used to read
+// six tabs on top of that. The four tabs that rarely change (Players, Activity Library,
+// Track Plan, Prizes) are now cached for up to 10 minutes and dropped the moment the
+// Sheet is edited by hand (onEdit below) or a setup function / setVisual changes them.
+// The Set Log is still read fresh on every call, so check-offs are never stale.
+function v2CacheGen() {
+  var c = CacheService.getScriptCache(), g = c.get('v2gen');
+  if (!g) { g = String(Date.now()); c.put('v2gen', g, 21600); }
+  return g;
+}
+function v2BumpCache() {
+  try {
+    var c = CacheService.getScriptCache();
+    c.put('v2gen', String(Date.now()) + '-' + Math.floor(Math.random() * 1e6), 21600);
+    c.remove('v2fb');
+  } catch (e) {}
+}
+// Simple trigger: runs on any manual edit to the Sheet (not on the app's own writes).
+function onEdit(e) { v2BumpCache(); }
+
+function v2Data() {
+  var c = CacheService.getScriptCache(), key = 'v2data|' + v2CacheGen();
+  try { var hit = c.get(key); if (hit) return JSON.parse(hit); } catch (e) {}
+  // Dates become plain YYYY-MM-DD text so the cached copy reads exactly like the sheet.
+  var clean = function (rows) {
+    return rows && rows.map(function (r) {
+      var o = {};
+      Object.keys(r).forEach(function (k) { o[k] = r[k] instanceof Date ? v2Ymd(r[k]) : r[k]; });
+      return o;
+    });
+  };
+  var d = { players: clean(v2Rows(V2_PLAYERS)), lib: clean(v2Rows(V2_LIB)), plan: clean(v2Rows(V2_PLAN)), prizes: clean(v2Rows(V2_PRIZES)) };
+  if (d.players && d.lib && d.plan && d.prizes) { try { c.put(key, JSON.stringify(d), 600); } catch (e) {} }
+  return d;
+}
+
+function v2ActivePlayers(rows) {
+  return (rows || []).filter(function (p) { return v2Truthy(p['Active']); }).map(function (p) {
+    return { name: p['Player'], tracks: v2List(p['Tracks']), visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' };
+  });
+}
+
 function v2List(s) {
   return String(s || '').split(',').map(function (x) { return x.trim(); }).filter(String);
 }
@@ -527,16 +571,15 @@ function v2Item(a) {
 // ---------- GET ----------
 
 function v2GetPlayers() {
-  var rows = v2Rows(V2_PLAYERS);
+  var rows = v2Data().players;
   if (!rows) return { error: 'v2 not set up' };
-  return rows.filter(function (p) { return v2Truthy(p['Active']); }).map(function (p) {
-    return { name: p['Player'], tracks: v2List(p['Tracks']), visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' };
-  });
+  return v2ActivePlayers(rows);
 }
 
 function v2GetHub(player, date) {
-  var players = v2Rows(V2_PLAYERS), libRows = v2Rows(V2_LIB), plan = v2Rows(V2_PLAN),
-      log = v2Rows(V2_LOG), prizes = v2Rows(V2_PRIZES);
+  var data = v2Data();
+  var players = data.players, libRows = data.lib, plan = data.plan, prizes = data.prizes,
+      log = v2Rows(V2_LOG);
   if (!players || !libRows || !plan || !log || !prizes) return { error: 'v2 not set up' };
   date = date || v2Ymd(new Date());
 
@@ -630,7 +673,8 @@ function v2GetHub(player, date) {
     player: { name: p['Player'], tracks: tracks, visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' },
     date: date, weekStart: ws, tracks: out, done: done, results: results, history: history,
     points: pts, prizes: { weekly: weekly, big: big }, events: v2EventsFor(p, date),
-    feedback: v2FeedbackFor(player)
+    feedback: v2FeedbackFor(player),
+    players: v2ActivePlayers(players)  // lets the app skip a separate getPlayers call
   };
 }
 
@@ -648,7 +692,7 @@ function v2ToggleSet(d) {
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    var lib = v2Rows(V2_LIB) || [];
+    var lib = v2Data().lib || [];
     var a = lib.filter(function (x) { return String(x['ID']) === String(d.activity); })[0];
     var pts = a ? (Number(a['Points Per Set']) || 1) : 1;
     var key = [d.date, d.player, d.track, d.activity, d.set].join('|');
@@ -675,7 +719,7 @@ function v2SetVisual(d) {
   var data = sh.getDataRange().getValues();
   var col = data[0].indexOf('Visual');
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === d.player) { sh.getRange(i + 1, col + 1).setValue(d.visual); return { ok: true }; }
+    if (data[i][0] === d.player) { sh.getRange(i + 1, col + 1).setValue(d.visual); v2BumpCache(); return { ok: true }; }
   }
   return { error: 'unknown player' };
 }
@@ -752,6 +796,7 @@ function v2MorningDribbling() {
   if (addPlan.length) plan.getRange(plan.getLastRow() + 1, 1, addPlan.length, addPlan[0].length).setValues(addPlan);
 
   var msg = 'Morning is now a dribbling track: added ' + addLib.length + ' drills and ' + addPlan.length + ' plan rows.';
+  v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
@@ -826,6 +871,7 @@ function v2MorningBillyClapper() {
   if (addPlan.length) plan.getRange(plan.getLastRow() + 1, 1, addPlan.length, addPlan[0].length).setValues(addPlan);
 
   var msg = 'Billy Clapper morning: added ' + addLib.length + ' drills, retired ' + retired + ' Jr. NBA drills, added ' + addPlan.length + ' plan rows.';
+  v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
@@ -866,6 +912,7 @@ function v2SetupCalendars() {
     return p + ': ' + (ev.length ? ev.map(function (e) { return e.day + ' ' + (e.time || 'all day') + ' ' + e.title; }).join('; ') : 'nothing today or tomorrow');
   });
   var msg = 'Calendars connected.\n\n' + lines.join('\n');
+  v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
@@ -947,7 +994,12 @@ function v2FeedbackSheet() {
 function v2FeedbackFor(player) {
   var out = {};
   try {
-    var rows = v2Rows(V2_FEEDBACK) || [];
+    var c = CacheService.getScriptCache(), hit = c.get('v2fb'), rows;
+    if (hit) rows = JSON.parse(hit);
+    else {
+      rows = (v2Rows(V2_FEEDBACK) || []).map(function (r) { return { 'Player': r['Player'], 'Activity ID': String(r['Activity ID']) }; });
+      try { c.put('v2fb', JSON.stringify(rows), 600); } catch (e) {}
+    }
     rows.forEach(function (r) { if (r['Player'] === player) out[String(r['Activity ID'])] = true; });
   } catch (e) {}
   return out;
@@ -967,6 +1019,7 @@ function v2SetFeedback(d) {
     var hit = sh.getRange('A:A').createTextFinder(key).matchEntireCell(true).findNext();
     if (hit) sh.getRange(hit.getRow(), 1, 1, row.length).setValues([row]);
     else sh.appendRow(row);
+    try { CacheService.getScriptCache().remove('v2fb'); } catch (e) {}
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -1027,5 +1080,6 @@ function v2EasyMustDos() {
 
   v2FeedbackSheet();
   var msg = 'Easy must-dos set: ' + changed + ' plan rows updated, ' + add.length + ' added. Drill Feedback tab ready.';
+  v2BumpCache();
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
