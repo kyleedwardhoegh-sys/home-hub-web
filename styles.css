@@ -59,6 +59,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .player-tile { border: 0; border-radius: 28px; min-height: 220px; padding: 24px; display: grid; align-content: end; gap: 6px; text-align: left; color: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
 .player-tile .pn { font-family: var(--display); font-weight: 800; font-size: 2.4rem; line-height: 1; }
 .player-tile .pw { font-weight: 600; opacity: .9; }
+.lib-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; margin-top: 28px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--ink-2); font-weight: 700; text-decoration: none; }
 .t-nellie { background: linear-gradient(150deg, #F23D66, #5B2E7A); }
 .t-nash { background: linear-gradient(150deg, #1D63D8, #0F2436); }
 .t-titus { background: linear-gradient(150deg, #138A4E, #1F3A6B); }

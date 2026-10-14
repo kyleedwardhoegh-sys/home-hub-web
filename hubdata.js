@@ -212,5 +212,33 @@
     return sheetGet("getPlayers");
   }
 
-  window.HubData = { getHub, getPlayers, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
+  // Everything the /drills/ page needs: players, each player's plan, and the whole library
+  // (the library doc only exists once the Sheet script publishes it).
+  async function getPlans() {
+    if (SB_ON) {
+      const d = parse(await timed(`${SB_URL}/rest/v1/site_data?or=(id.like.plan:*,id.eq.library,id.eq.players)&select=id,data`, { headers: sbHeaders() }, 12000));
+      if (Array.isArray(d) && d.some((x) => x.id === "players")) {
+        const out = { players: [], plans: {}, library: null, source: "db" };
+        d.forEach((x) => {
+          if (x.id === "players") out.players = x.data;
+          else if (x.id === "library") out.library = x.data;
+          else out.plans[x.id.slice(5)] = x.data;
+        });
+        out.players.forEach((p) => { if (!out.plans[p.name]) out.plans[p.name] = null; });
+        return out;
+      }
+    }
+    const players = await sheetGet("getPlayers");
+    if (!Array.isArray(players)) return { error: players.error || "network" };
+    const out = { players, plans: {}, library: null, source: "sheet" };
+    const date = new Date(), pad = (n) => String(n).padStart(2, "0");
+    const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    await Promise.all(players.map(async (p) => {
+      const h = await sheetGet("getHub", { player: p.name, date: ymd });
+      out.plans[p.name] = h && !h.error ? { player: h.player, tracks: h.tracks } : null;
+    }));
+    return out;
+  }
+
+  window.HubData = { getHub, getPlayers, getPlans, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
 })();

@@ -1246,6 +1246,14 @@ function v3Publish(force) {
   if (!data.players || !data.lib || !data.plan || !data.prizes) throw new Error('The v2 tabs are missing (run setupV2).');
   var active = v2ActivePlayers(data.players);
   var docs = [{ id: 'players', data: active }];
+  // Whole Activity Library (incl. drills not in any plan) for the /drills/ page.
+  docs.push({ id: 'library', data: data.lib.filter(function (a) { return a['ID'] !== ''; }).map(function (a) {
+    var it = v2Item(a);
+    it.tracks = v2List(a['Tracks']);
+    it.active = v2Truthy(a['Active']);
+    it.calendarMatch = String(a['Calendar Match'] || '');
+    return it;
+  }) });
   active.forEach(function (ap) {
     var built = v2PlanFor(data, ap.name);
     if (!built) return;

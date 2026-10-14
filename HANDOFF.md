@@ -203,3 +203,14 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
   - Sheet path: applied in `v2GetHub`.
   - Database path: `v3PublishEvents` stores `todos: {date: [{track, item}]}` in each `events:<Name>` doc, and `hubdata.js` `assemble()` applies the same rule.
 - Install: run `v2CalendarCredit` once. It adds the column and the MBT1 row, and is safe to re-run.
+
+### Drill Library page `/drills/` (2026-10-14)
+- Dad-facing review page showing every drill in the kids' plans with its video, grouped by category (shooting first, then handles, then the rest).
+  - **Status chips:** Good video / Worth a look / Needs a video. They double as filters.
+  - **Filters:** track, kid, search, and (once the `library` doc exists) "Whole library" to include drills that aren't in any plan.
+  - Videos play inline (youtube-nocookie). Drills without a video get a "Find one on YouTube" search link (Billy Clapper for dribbling, Mike Dunn / Dave Love for their shooting).
+- Every YouTube link is checked with YouTube oEmbed (CORS allowed for this origin), cached in localStorage for 3 days. The page shows the real channel and title.
+  - Removed videos → "Needs a video".
+  - Embedding disabled, Jr. NBA (lower intensity), or a non-YouTube link → "Worth a look".
+- Data: `HubData.getPlans()` reads `players` + `plan:*` + `library` from site_data, falling back to the Sheet (getPlayers + getHub). The `library` doc is published by `v3Publish` (added 2026-10-14).
+- Linked from the player-select screen ("Drill library & videos").

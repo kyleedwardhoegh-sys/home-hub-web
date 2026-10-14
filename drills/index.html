@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Drill Library</title>
+<meta name="theme-color" content="#2B1838" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" />
+<link rel="stylesheet" href="../styles.css" />
+<link rel="stylesheet" href="drills.css" />
+</head>
+<body>
+
+<!-- Always-there navigation (hidden on the kitchen kiosk, which has its own corner pills). -->
+<nav class="app-nav" aria-label="Navigation">
+  <button id="nav-back" class="nav-btn" type="button">&larr; Back</button>
+  <a class="nav-btn" href="../">&#8962; Home</a>
+  <span class="nav-spacer"></span>
+  <button id="nav-fs" class="nav-btn" type="button" hidden>&#x26F6; Full screen</button>
+</nav>
+
+<main class="lib">
+  <header class="lib-head">
+    <h1>Drill Library</h1>
+    <p class="muted">Every drill in the kids' plans and its video. Tap a video to play it here.</p>
+  </header>
+
+  <section id="stats" class="stats" aria-label="Video status"></section>
+
+  <section class="filters" aria-label="Filters">
+    <div class="seg" id="f-track" role="group" aria-label="Track"></div>
+    <div class="seg" id="f-kid" role="group" aria-label="Player"></div>
+    <input id="f-q" class="search" type="search" placeholder="Search drills, channels, cues…" autocomplete="off" />
+  </section>
+
+  <nav id="cats" class="cats" aria-label="Categories"></nav>
+
+  <div id="list"><div class="lib-empty"><div class="spinner" aria-hidden="true"></div>Loading the drills…</div></div>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="../hubdata.js"></script>
+<script src="drills.js"></script>
+</body>
+</html>
