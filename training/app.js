@@ -16,10 +16,12 @@ const ach = (n) => `${n} achievement${n === 1 ? "" : "s"}`;
 // else (lifting, agility, explosive, defense...) waits under "More".
 const FOCUS = [
   ["Jump Rope", (it) => /jump rope/i.test(it.name)],
+  ["Two Ball", (it) => it.category === "Two Ball"],
   ["Dribbling", (it) => it.category === "Dribbling"],
   ["Shooting", (it) => /shoot|tests|film|garage|feel|mindset/i.test(it.category)],
 ];
-const FOCUS_ORDER = ["Shooting", "Jump Rope", "Dribbling", "More"];
+const FOCUS_ORDER = ["Shooting", "Jump Rope", "Dribbling", "Two Ball", "More"];
+const FOCUS_ORDER_BY_TRACK = { "Morning": ["Dribbling", "Two Ball", "Jump Rope", "Shooting", "More"] };
 
 const S = {
   demo: false,
@@ -289,7 +291,7 @@ function focusGroups(t) {
     const f = (FOCUS.find(([, test]) => test(it)) || ["More"])[0];
     if (!(g[f] = g[f] || []).some((x) => x.id === it.id)) g[f].push(it);
   }));
-  return FOCUS_ORDER.filter((k) => g[k]?.length).map((k) => ({ category: k, items: g[k] }));
+  return (FOCUS_ORDER_BY_TRACK[t] || FOCUS_ORDER).filter((k) => g[k]?.length).map((k) => ({ category: k, items: g[k] }));
 }
 
 function mustCount(t) {

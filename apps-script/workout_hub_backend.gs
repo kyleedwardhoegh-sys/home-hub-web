@@ -748,3 +748,77 @@ function v2MorningDribbling() {
   var msg = 'Morning is now a dribbling track: added ' + addLib.length + ' drills and ' + addPlan.length + ' plan rows.';
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
+
+// ------------------------------------------------------------
+// Run ONCE (2026-10-13): rebuilds Morning around Billy Clapper's higher-
+// intensity ball handling ("Ball Handling At Its Best"). Jr. NBA videos are
+// retired where Billy covers the same thing, and kept only as options where
+// he has no equivalent. Safe to re-run.
+// ------------------------------------------------------------
+var V2_BILLY_LIB = [
+  // Morning must-do circuit (M3 Pound-Pound/Cross-Cross, also Billy, stays in at #3)
+  ['BC1', 'The Wrap Series', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/HXbfrR1FLLM', 'Fast hands. Match Billy’s speed.', '', '', 'Billy Clapper'],
+  ['BC2', 'Stationary ball handling fundamentals', 'Dribbling', 'Morning,After School,Night', 4, '30 sec', '', 1, 'https://youtu.be/HY_w2gtm6F4', 'Hard and low, eyes up. Follow the video.', '', '', 'Billy Clapper'],
+  ['BC4', 'Chop between the legs', 'Dribbling', 'Morning,After School,Night', 2, '30 sec', 'Right foot forward|Left foot forward', 1, 'https://youtu.be/FvL2tqNrQ7Q', 'Chop it hard and low.', '', '', 'Billy Clapper'],
+  ['BC5', 'Small area ball handling', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/wi1zHlAn8z4', 'Tight space, quick feet, ball stays alive.', '', '', 'Billy Clapper'],
+  ['BC6', 'Pull back dribble', 'Dribbling', 'Morning,After School,Night', 2, '10 reps', 'Right hand ×10|Left hand ×10', 1, 'https://youtu.be/5wkcgMnfycE', 'Attack, then pull back with the ball protected.', '', '', 'Billy Clapper'],
+  ['BC7', 'Stationary two ball', 'Two Ball', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/0_sfQ5WBldA', 'Both hands work just as hard. Eyes up.', '', '', 'Billy Clapper'],
+  ['BC8', 'Stationary one ball: full follow-along', 'Dribbling', 'Morning,After School,Night', 1, 'whole video', 'Did the whole video', 3, 'https://youtu.be/JWi7HBLm1Ys', 'Do the whole video with Billy. Restart a drill if you lose it.', '', '', 'Billy Clapper'],
+  // Options: stationary or limited movement
+  ['BC9', 'Two ball figure 8 series', 'Two Ball', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/EhO9ehSnDik', '', '', '', 'Billy Clapper'],
+  ['BC10', 'Two ball triangle', 'Two Ball', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/fGGr9dR9hqI', '', '', '', 'Billy Clapper'],
+  ['BC11', 'Two ball windmill alternate', 'Two Ball', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/rzu1cVbLO60', '', '', '', 'Billy Clapper'],
+  ['BC12', 'Two ball front-to-back alternate', 'Two Ball', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/55ysHL39z-U', '', '', '', 'Billy Clapper'],
+  ['BC13', 'Two balls in one hand', 'Two Ball', 'Morning,After School,Night', 2, '30 sec', 'Right hand|Left hand', 1, 'https://youtu.be/GmS7dqf96XQ', '', '', '', 'Billy Clapper'],
+  ['BC14', 'Jab dribble attack move', 'Dribbling', 'Morning,After School,Night', 2, '10 reps', 'Going right ×10|Going left ×10', 1, 'https://youtu.be/cA3wJ_-Cues', 'Sell the jab, then go.', '', '', 'Billy Clapper'],
+  ['BC15', 'Pro square ball handling', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/E_Ux900sh5E', '', '', '', 'Billy Clapper'],
+  ['BC16', 'Tennis ball hand-eye drills', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/Nr-IVd-CuHU', 'Needs a tennis ball.', '', '', 'Billy Clapper'],
+  ['BC17', 'Hand-eye coordination', 'Dribbling', 'Morning,After School,Night', 3, '30 sec', '', 1, 'https://youtu.be/WWGnRarOEw4', '', '', '', 'Billy Clapper'],
+  // Options that need more room (after school only)
+  ['BC18', 'Paint the circle: one ball and two ball', 'Dribbling', 'After School', 3, '1 lap', '', 1, 'https://youtu.be/M12myzgOXHc', 'Needs a circle on the court.', '', '', 'Billy Clapper'],
+  ['BC19', 'Paint the circle: cover', 'Dribbling', 'After School', 3, '1 lap', '', 1, 'https://youtu.be/ImL0Wo1OIxo', 'Needs a circle on the court.', '', '', 'Billy Clapper'],
+  ['BC20', 'Paint the circle: two ball cover', 'Two Ball', 'After School', 3, '1 lap', '', 1, 'https://youtu.be/tCfM5zVFI7M', 'Needs a circle on the court.', '', '', 'Billy Clapper'],
+  ['BC21', 'Pro cone ballhandling', 'Dribbling', 'After School', 3, '1 round', '', 1, 'https://youtu.be/7j_3TNIbSiw', 'Needs cones.', '', '', 'Billy Clapper'],
+  ['BC22', 'Pro cone ballhandling with crossovers', 'Dribbling', 'After School', 3, '1 round', '', 1, 'https://youtu.be/-HK--0Bmuro', 'Needs cones.', '', '', 'Billy Clapper']
+];
+var V2_BILLY_MUSTS = [['BC1', 1], ['BC2', 2], ['BC4', 4], ['BC5', 5], ['BC6', 6], ['BC7', 7], ['BC8', 8]];
+// Jr. NBA / youth-level drills that Billy's videos replace.
+var V2_RETIRE = ['M1', 'M2', 'M8', 'M11', 'M12', 'M13', 'M14'];
+
+function v2MorningBillyClapper() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var lib = ss.getSheetByName(V2_LIB), plan = ss.getSheetByName(V2_PLAN);
+  if (!lib || !plan) throw new Error('Run setupV2 first.');
+
+  var libData = lib.getDataRange().getValues(), lh = libData[0];
+  var idCol = lh.indexOf('ID'), activeCol = lh.indexOf('Active');
+  var have = {}, retired = 0;
+  for (var i = 1; i < libData.length; i++) {
+    var id = String(libData[i][idCol]);
+    have[id] = true;
+    if (V2_RETIRE.indexOf(id) > -1 && libData[i][activeCol] !== false) { lib.getRange(i + 1, activeCol + 1).setValue(false); retired++; }
+  }
+  var addLib = V2_BILLY_LIB.filter(function (r) { return !have[r[0]]; }).map(function (r) { return r.concat([true]); });
+  if (addLib.length) lib.getRange(lib.getLastRow() + 1, 1, addLib.length, addLib[0].length).setValues(addLib);
+
+  // Morning must-dos: drop the old Jr. NBA circuit rows (M3 stays), add Billy's.
+  var pData = plan.getDataRange().getValues(), ph = pData[0];
+  var pc = { track: ph.indexOf('Track'), act: ph.indexOf('Activity'), type: ph.indexOf('Type'), active: ph.indexOf('Active') };
+  var planned = {};
+  for (var j = 1; j < pData.length; j++) {
+    if (pData[j][pc.track] !== 'Morning') continue;
+    var a = String(pData[j][pc.act]).trim();
+    planned[a] = true;
+    if (/^M\d+$/.test(a) && a !== 'M3' && pData[j][pc.type] === 'Must-do') plan.getRange(j + 1, pc.active + 1).setValue(false);
+  }
+  var addPlan = [];
+  V2_BILLY_MUSTS.forEach(function (m) { if (!planned[m[0]]) addPlan.push(['All', 'Morning', m[0], 'Must-do', m[1], true]); });
+  ['Morning', 'After School', 'Night'].forEach(function (t) {
+    var has = pData.some(function (r) { return r[pc.track] === t && String(r[pc.act]).trim() === 'Category: Two Ball'; });
+    if (!has) addPlan.push(['All', t, 'Category: Two Ball', 'Option', 19, true]);
+  });
+  if (addPlan.length) plan.getRange(plan.getLastRow() + 1, 1, addPlan.length, addPlan[0].length).setValues(addPlan);
+
+  var msg = 'Billy Clapper morning: added ' + addLib.length + ' drills, retired ' + retired + ' Jr. NBA drills, added ' + addPlan.length + ' plan rows.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
