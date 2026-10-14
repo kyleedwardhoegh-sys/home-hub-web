@@ -93,6 +93,22 @@
   </div>
 </div>
 
+<!-- First-time drill feedback: minutes + difficulty, used to set point values later -->
+<div id="fb-overlay" class="overlay" hidden>
+  <div class="fb-card">
+    <div class="fb-kicker">Nice work! Quick question</div>
+    <h2 id="fb-title" class="fb-title"></h2>
+    <p class="fb-q">How many minutes did it take?</p>
+    <div id="fb-min" class="fb-opts"></div>
+    <p class="fb-q">How hard was it? <span class="muted">1 = easy, 10 = really hard</span></p>
+    <div id="fb-diff" class="fb-opts"></div>
+    <div class="fb-actions">
+      <button id="fb-skip" class="btn-ghost" type="button">Skip</button>
+      <button id="fb-save" class="btn-primary" type="button" disabled>Save</button>
+    </div>
+  </div>
+</div>
+
 <canvas id="confetti" hidden></canvas>
 <div id="toast" class="toast" hidden></div>
 

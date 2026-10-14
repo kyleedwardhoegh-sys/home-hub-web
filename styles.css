@@ -168,6 +168,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cat-pill .n { font-family: var(--mono); opacity: .7; margin-left: 4px; }
 .empty { text-align: center; padding: 36px 12px; color: var(--ink-2); }
 
+/* ---------- drill feedback ---------- */
+.fb-card { background: var(--card); border-radius: 28px; padding: 24px; width: min(720px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 10px; animation: pop .35s cubic-bezier(.2, 1.4, .4, 1); }
+.fb-kicker { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.fb-title { font-family: var(--display); font-weight: 800; font-size: 1.8rem; margin: 0; line-height: 1.1; }
+.fb-q { font-weight: 700; font-size: 1.1rem; margin: 10px 0 0; }
+.fb-opts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.fb-opt { min-height: 64px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); font-family: var(--mono); font-size: 1.4rem; display: grid; place-items: center; align-content: center; line-height: 1.1; }
+.fb-opt small { font-family: var(--body); font-size: .7rem; color: var(--ink-2); }
+.fb-opt[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fb-opt[aria-pressed="true"] small { color: #fff; }
+.fb-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.fb-actions .btn-primary:disabled { opacity: .4; }
+
 /* ---------- overlays ---------- */
 .overlay { position: fixed; inset: 0; background: rgb(10 6 16 / .72); display: grid; place-items: center; z-index: 20; padding: 16px; }
 .video-card { width: min(960px, 100%); display: grid; gap: 12px; }

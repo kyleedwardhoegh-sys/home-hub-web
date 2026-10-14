@@ -34,6 +34,8 @@ const S = {
   pending: 0,
   lastTap: 0,
   skip: {},         // must-dos skipped in "Up next" this visit
+  fbSkipped: {},    // drills whose feedback question was skipped this visit
+  fbQueue: null,    // feedback waiting for the BOOM card to close
 };
 
 const $ = (s) => document.querySelector(s);
@@ -270,6 +272,9 @@ function renderTrack() {
   const t = S.track, data = S.hub.tracks[t];
   if (!data) { $("#track-body").innerHTML = `<div class="empty">Nothing on this track yet.</div>`; return; }
   let h = upNextHTML(t);
+  if (!data.must.length) {
+    h += `<div class="upnext alldone"><h2>No must-dos ${t === "After School" ? "after school" : "here"}</h2><p class="cue">Pick anything below. Every set is an achievement.</p></div>`;
+  }
   if (data.must.length) {
     h += `<h2 class="sec-title">Must-dos <small>Dad's picks for today</small></h2><div class="acts">${data.must.map((it) => actHTML(t, it)).join("")}</div>`;
   }
@@ -406,6 +411,7 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   const act = b.dataset.act, it = b.dataset.id ? findItem(b.dataset.id) : null;
   S.lastTap = Date.now();
+  const wasFull = it ? setsDone(S.track, it) === it.sets : false;
   if (act === "next-done" && it) {
     const before = { ...S.hub.points }, s = Number(b.dataset.set);
     if (!isDone(S.track, it.id, s)) applySet(S.track, it, s, true);
@@ -432,6 +438,47 @@ document.addEventListener("click", (e) => {
   } else if (act === "video") {
     openVideo(b.dataset.url);
   }
+  if (it && ["next-done", "set", "all"].includes(act)) maybeAskFeedback(S.track, it, wasFull);
+});
+
+// ---------- first-time drill feedback ----------
+const FB_MINUTES = [1, 2, 3, 4, 5, 7, 10, 15, 20, 30];
+let fbPick = { minutes: null, difficulty: null, track: null, it: null };
+
+function maybeAskFeedback(track, it, wasFull) {
+  if (S.demo && !new URLSearchParams(location.search).has("fbdemo")) return;
+  if (wasFull || setsDone(track, it) < it.sets) return;          // only when it just got finished
+  if ((S.hub.feedback || {})[it.id] || S.fbSkipped[it.id]) return; // asked already
+  if (!$("#boom-overlay").hidden) { S.fbQueue = { track, it }; return; }
+  openFeedback(track, it);
+}
+
+function openFeedback(track, it) {
+  fbPick = { minutes: null, difficulty: null, track, it };
+  $("#fb-title").textContent = it.name;
+  $("#fb-min").innerHTML = FB_MINUTES.map((m) => `<button class="fb-opt" data-fb="minutes" data-v="${m}">${m === 30 ? "30+" : m}<small>min</small></button>`).join("");
+  $("#fb-diff").innerHTML = Array.from({ length: 10 }, (_, i) => `<button class="fb-opt diff" data-fb="difficulty" data-v="${i + 1}">${i + 1}</button>`).join("");
+  $("#fb-save").disabled = true;
+  $("#fb-overlay").hidden = false;
+}
+
+$("#fb-overlay").addEventListener("click", (e) => {
+  const o = e.target.closest(".fb-opt");
+  if (!o) return;
+  fbPick[o.dataset.fb] = Number(o.dataset.v);
+  o.parentElement.querySelectorAll(".fb-opt").forEach((x) => x.setAttribute("aria-pressed", String(x === o)));
+  $("#fb-save").disabled = !(fbPick.minutes && fbPick.difficulty);
+});
+$("#fb-save").addEventListener("click", () => {
+  const { minutes, difficulty, track, it } = fbPick;
+  (S.hub.feedback = S.hub.feedback || {})[it.id] = true;
+  send({ action: "setFeedback", player: S.hub.player.name, activity: it.id, track, minutes, difficulty, date: S.hub.date });
+  $("#fb-overlay").hidden = true;
+  toast("Thanks! That helps Dad set the points.");
+});
+$("#fb-skip").addEventListener("click", () => {
+  S.fbSkipped[fbPick.it.id] = true;
+  $("#fb-overlay").hidden = true;
 });
 
 // ---------- navigation (Back / Home / Full screen) ----------
@@ -440,6 +487,7 @@ if (new URLSearchParams(location.search).has("kiosk")) document.documentElement.
 function closeOverlays() {
   if (!$("#video-overlay").hidden) { $("#video-slot").innerHTML = ""; $("#video-overlay").hidden = true; return true; }
   if (!$("#boom-overlay").hidden) { $("#boom-overlay").hidden = true; return true; }
+  if (!$("#fb-overlay").hidden) { $("#fb-overlay").hidden = true; return true; }
   return false;
 }
 function goHome() {
@@ -503,7 +551,10 @@ function boom(which) {
   $("#boom-overlay").hidden = false;
   confetti(which === "big" ? 320 : 180);
 }
-$("#boom-close").addEventListener("click", () => { $("#boom-overlay").hidden = true; });
+$("#boom-close").addEventListener("click", () => {
+  $("#boom-overlay").hidden = true;
+  if (S.fbQueue) { const q = S.fbQueue; S.fbQueue = null; openFeedback(q.track, q.it); }
+});
 
 function confetti(n) {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -534,7 +585,7 @@ setInterval(async () => {
   await loadHub(name);
   if (S.hub && S.hub.date !== dateBefore) S.track = null;
   S.track = defaultTrack();
-  if (!$("#boom-overlay").hidden || !$("#video-overlay").hidden) return;
+  if (!$("#boom-overlay").hidden || !$("#video-overlay").hidden || !$("#fb-overlay").hidden) return;
   render();
 }, 60000);
 addEventListener("resize", () => requestAnimationFrame(placeSparks));
@@ -570,8 +621,9 @@ function demoHub(name) {
     tracks: {
       "Morning": { must: [I("G1", "Ball raises (slow, to set point)", "Garage / No Hoop", 2, "5 slow reps", [], 1, "https://youtu.be/0mdidcb1GxU", "Ball starts on your shooting side.", { source: "Dunn (garage version)" }),
                          I("G6", "Finish freeze", "Garage / No Hoop", 1, "3 slow reps", [], 1, "", "Hold a relaxed finish 2 seconds.")], options: [{ category: "Lifting", items: [I("S1", "Push-ups", "Lifting", 3, "10 reps", [], 1, "", "Straight line head to heels.")] }] },
-      "After School": { must: [I("L2", "Isolation drill (one hand)", "Love Shooting", 4, "8 shots", ["Shots 1–8", "9–16", "17–24", "25–32"], 1, "", "Point your index finger at the back of the rim.", { source: "Dave Love" })],
-                        options: [{ category: "Tests", items: [I("L7", "Free-throw test (20)", "Tests", 4, "5 FTs", ["FTs 1–5", "6–10", "11–15", "16–20"], 1, "", "Enter your makes.", { result: "Makes", of: 20 })] },
+      "After School": { must: [],
+                        options: [{ category: "Love Shooting", items: [I("L2", "Isolation drill (one hand)", "Love Shooting", 4, "8 shots", ["Shots 1–8", "9–16", "17–24", "25–32"], 1, "", "Point your index finger at the back of the rim.", { source: "Dave Love" })] },
+                                  { category: "Tests", items: [I("L7", "Free-throw test (20)", "Tests", 4, "5 FTs", ["FTs 1–5", "6–10", "11–15", "16–20"], 1, "", "Enter your makes.", { result: "Makes", of: 20 })] },
                                   { category: "Dribbling", items: [I("B1", "Stationary pound dribbles", "Dribbling", 4, "30 sec", ["Right hand", "Left hand", "Right low", "Left low"], 1, "", "Eyes up.")] }] },
       "Night": { must: [I("D1", "Ball Raises", "Dunn Shooting", 5, "10 reps", ["1–10", "11–20", "21–30", "31–40", "41–50"], 1, "https://youtu.be/0mdidcb1GxU", "Ball moves first.", { source: "Mike Dunn · Ground Up" }),
                         I("D2", "1-2-Thru", "Dunn Shooting", 5, "20 reps", ["1–20", "21–40", "41–60", "61–80", "81–100"], 1, "https://youtu.be/0t2i7OYeWKc", "Pass it to the basket.", { source: "Mike Dunn · Ground Up" })],
@@ -579,7 +631,7 @@ function demoHub(name) {
                            { category: "Dribbling", items: [I("B1", "Stationary pound dribbles", "Dribbling", 4, "30 sec", ["Right hand", "Left hand", "Right low", "Left low"], 1, "", "Eyes up.")] },
                            { category: "Lifting", items: [I("S1", "Push-ups", "Lifting", 3, "10 reps", [], 1, "", "Straight line head to heels.")] }] },
     },
-    done: {}, results: {}, history: {},
+    done: {}, results: {}, history: {}, feedback: {},
     events: [{ day: "Today", time: "7:00 PM", title: "7G1 Practice", location: "MGCG Gym F" }, { day: "Tomorrow", time: "6:30 PM", title: "MBT Training Session", location: "6882 Nottingham Pkwy, Maple Grove, MN" }],
     points: { today: 0, week: 132, big: 410, lifetime: 410, byDay: {} },
     prizes: { weekly: { prize: "Weekly prize — you pick it!", target: 150, start: today() }, big: { prize: "Big prize — you pick it!", target: 1000, start: today() } },

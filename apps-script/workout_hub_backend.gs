@@ -176,6 +176,7 @@ function doPost(e) {
   if (data.action === 'toggleSet') return jsonResponse(v2ToggleSet(data));
   if (data.action === 'setResult') return jsonResponse(v2SetResult(data));
   if (data.action === 'setVisual') return jsonResponse(v2SetVisual(data));
+  if (data.action === 'setFeedback') return jsonResponse(v2SetFeedback(data));
   return jsonResponse({ error: 'unknown action' });
 }
 
@@ -570,6 +571,10 @@ function v2GetHub(player, date) {
         items = byId[act] ? [byId[act]] : [];
       }
       items = items.map(v2Item);
+      var setsOverride = parseInt(r['Sets'], 10);
+      if (act.indexOf('Category:') !== 0 && setsOverride > 0) {
+        items.forEach(function (it) { it.sets = setsOverride; it.labels = it.labels.slice(0, setsOverride); });
+      }
       if (!items.length) return;
       if (type === 'must') must = must.concat(items);
       else {
@@ -624,7 +629,8 @@ function v2GetHub(player, date) {
   return {
     player: { name: p['Player'], tracks: tracks, visual: p['Visual'] || 'Bomb', theme: p['Theme'] || '' },
     date: date, weekStart: ws, tracks: out, done: done, results: results, history: history,
-    points: pts, prizes: { weekly: weekly, big: big }, events: v2EventsFor(p, date)
+    points: pts, prizes: { weekly: weekly, big: big }, events: v2EventsFor(p, date),
+    feedback: v2FeedbackFor(player)
   };
 }
 
@@ -910,4 +916,116 @@ function v2EventsFor(p, date) {
   var own = v2List(p['Calendars']);
   if (!own.length) return []; // friends' players: no family calendar
   try { return v2Events(p['Player'], own, date); } catch (e) { return []; }
+}
+
+
+// ------------------------------------------------------------
+// EASY MUST-DOS + DRILL FEEDBACK (2026-10-14)
+// Kyle: build the habit first. Morning and Night must-dos should take 5–10 minutes;
+// After School has no must-dos, only options. The first time a kid finishes a drill,
+// the app asks how many minutes it took and how hard it was (1–10); answers land in
+// the "Drill Feedback" tab so points can be set from real time + difficulty.
+// Track Plan gets an optional "Sets" column: on a row naming one activity, it
+// overrides how many sets that drill has on that track (e.g. 2 sets of Ball Raises
+// as a must-do, while the library drill still has 5).
+// ------------------------------------------------------------
+var V2_FEEDBACK = 'Drill Feedback';
+var V2_FEEDBACK_HEADERS = ['Key', 'Player', 'Activity ID', 'Activity', 'Track', 'Minutes', 'Difficulty (1-10)', 'Date', 'Updated At'];
+
+function v2FeedbackSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(V2_FEEDBACK);
+  if (!sh) {
+    sh = ss.insertSheet(V2_FEEDBACK);
+    sh.getRange(1, 1, 1, V2_FEEDBACK_HEADERS.length).setValues([V2_FEEDBACK_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+// Which activities this player has already rated (so the app asks only once).
+function v2FeedbackFor(player) {
+  var out = {};
+  try {
+    var rows = v2Rows(V2_FEEDBACK) || [];
+    rows.forEach(function (r) { if (r['Player'] === player) out[String(r['Activity ID'])] = true; });
+  } catch (e) {}
+  return out;
+}
+
+function v2SetFeedback(d) {
+  var minutes = Number(d.minutes), diff = Number(d.difficulty);
+  if (!d.player || !d.activity || !(minutes > 0) || !(diff >= 1 && diff <= 10)) return { error: 'bad request' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sh = v2FeedbackSheet();
+    var lib = v2Rows(V2_LIB) || [];
+    var a = lib.filter(function (x) { return String(x['ID']) === String(d.activity); })[0];
+    var key = d.player + '|' + d.activity;
+    var row = [key, d.player, d.activity, a ? a['Name'] : '', d.track || '', minutes, Math.round(diff), d.date || '', new Date()];
+    var hit = sh.getRange('A:A').createTextFinder(key).matchEntireCell(true).findNext();
+    if (hit) sh.getRange(hit.getRow(), 1, 1, row.length).setValues([row]);
+    else sh.appendRow(row);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+
+// Run ONCE: short must-dos (Morning + Night), none After School, Sets column, feedback tab.
+function v2EasyMustDos() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var plan = ss.getSheetByName(V2_PLAN);
+  if (!plan) throw new Error('Run setupV2 first.');
+
+  var h = plan.getRange(1, 1, 1, plan.getLastColumn()).getValues()[0];
+  if (h.indexOf('Sets') === -1) { plan.getRange(1, h.length + 1).setValue('Sets').setFontWeight('bold'); h.push('Sets'); }
+  var c = { track: h.indexOf('Track'), act: h.indexOf('Activity'), type: h.indexOf('Type'), order: h.indexOf('Order'), active: h.indexOf('Active'), sets: h.indexOf('Sets') };
+
+  // Short must-do lists: [activity, sets (blank = the drill's full sets)]
+  var MUST = {
+    'Morning': [['BC1', ''], ['BC2', 2], ['M3', ''], ['BC4', ''], ['BC7', 2]],
+    'Night': [['D1', 2], ['D2', 2], ['D3', 2]],
+    'After School': []
+  };
+  var data = plan.getDataRange().getValues(), seen = {}, changed = 0;
+  for (var i = 1; i < data.length; i++) {
+    var t = data[i][c.track], a = String(data[i][c.act]).trim();
+    if (!MUST.hasOwnProperty(t) || data[i][c.active] === false) continue;
+    seen[t + '|' + a] = true;
+    var pick = MUST[t].filter(function (m) { return m[0] === a; })[0];
+    if (pick) {
+      plan.getRange(i + 1, c.type + 1).setValue('Must-do');
+      plan.getRange(i + 1, c.order + 1).setValue(MUST[t].indexOf(pick) + 1);
+      plan.getRange(i + 1, c.sets + 1).setValue(pick[1]);
+      changed++;
+    } else if (data[i][c.type] === 'Must-do') {
+      // Everything else stays available, just not required.
+      plan.getRange(i + 1, c.type + 1).setValue('Option');
+      plan.getRange(i + 1, c.sets + 1).setValue('');
+      changed++;
+    }
+  }
+  var add = [];
+  Object.keys(MUST).forEach(function (t) {
+    MUST[t].forEach(function (m, k) {
+      if (!seen[t + '|' + m[0]]) {
+        var row = h.map(function () { return ''; });
+        row[h.indexOf('Player')] = 'All'; row[c.track] = t; row[c.act] = m[0]; row[c.type] = 'Must-do';
+        row[c.order] = k + 1; row[c.active] = true; row[c.sets] = m[1];
+        add.push(row);
+      }
+    });
+  });
+  // Night: the full Dunn drills (and Shoot to Yourself) stay available as options.
+  if (!seen['Night|Category: Dunn Shooting']) {
+    var opt = h.map(function () { return ''; });
+    opt[h.indexOf('Player')] = 'All'; opt[c.track] = 'Night'; opt[c.act] = 'Category: Dunn Shooting';
+    opt[c.type] = 'Option'; opt[c.order] = 9; opt[c.active] = true;
+    add.push(opt);
+  }
+  if (add.length) plan.getRange(plan.getLastRow() + 1, 1, add.length, h.length).setValues(add);
+
+  v2FeedbackSheet();
+  var msg = 'Easy must-dos set: ' + changed + ' plan rows updated, ' + add.length + ' added. Drill Feedback tab ready.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
