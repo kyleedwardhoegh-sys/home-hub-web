@@ -41,6 +41,11 @@
       <div id="hub-date" class="muted"></div>
     </div>
     <div class="today-pill"><b id="today-pts">0</b> achievements today</div>
+    <!-- Big screens only: show a QR code so a kid can take their list along on a phone/tablet. -->
+    <button id="btn-qr" class="qr-btn" type="button" aria-label="Open this list on your phone">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg>
+      <span>On my phone</span>
+    </button>
   </header>
 
   <section id="cal-strip" class="cal-strip" hidden></section>
@@ -106,6 +111,17 @@
       <button id="fb-skip" class="btn-ghost" type="button">Skip</button>
       <button id="fb-save" class="btn-primary" type="button" disabled>Save</button>
     </div>
+  </div>
+</div>
+
+<!-- Scan to open this kid's list on a phone or tablet -->
+<div id="qr-overlay" class="overlay" hidden>
+  <div class="qr-card">
+    <div class="fb-kicker">Take it with you</div>
+    <h2 id="qr-title" class="fb-title"></h2>
+    <div id="qr-code" class="qr-code" aria-hidden="true"></div>
+    <p class="qr-help">Point your phone or tablet camera at the code, then tap the link.<br>Check-offs show up here too.</p>
+    <button id="qr-close" class="btn-primary" type="button">Done</button>
   </div>
 </div>
 

@@ -191,3 +191,7 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - Bomb/thermometer: the database value wins over a hand edit in the Sheet.
 - An inactive player's `plan:` doc stays in `site_data`, but `hub` callers treat a player missing from the `players` doc as unknown.
 - Test harness: `scratchpad/gscheck/e2e.html` + `mock2.js` (fake PostgREST + `hub()` in JS). It checks that database getHub == Sheet getHub after install, taps, mirror, edits, outages and re-install.
+
+### "On my phone" QR code (2026-10-14)
+- The hub header has an **On my phone** button (hidden under 720px wide, since you're already on a phone). It opens `#qr-overlay` with a QR code for `/?p=<Name>&track=<current track>`, so a kid can scan it from the kitchen screen and keep going on a phone or tablet. Both save to the same database.
+- The QR library is vendored at `vendor/qrcode.min.js` (qrcodejs 1.0.0, MIT) and lazy-loaded on first open. The overlay closes itself after 90 s.

@@ -123,7 +123,7 @@ function fetchHub(name) {
 function canApply(name, hub, startedAt) {
   return hub && !hub.error && S.hub && S.hub.player.name === name && !S.pending && S.lastTap < startedAt;
 }
-function overlayOpen() { return !$("#boom-overlay").hidden || !$("#video-overlay").hidden || !$("#fb-overlay").hidden; }
+function overlayOpen() { return !$("#boom-overlay").hidden || !$("#video-overlay").hidden || !$("#fb-overlay").hidden || !$("#qr-overlay").hidden; }
 
 async function boot() {
   const params = new URLSearchParams(location.search), want = params.get("p");
@@ -600,6 +600,7 @@ function closeOverlays() {
   if (!$("#video-overlay").hidden) { $("#video-slot").innerHTML = ""; $("#video-overlay").hidden = true; return true; }
   if (!$("#boom-overlay").hidden) { $("#boom-overlay").hidden = true; return true; }
   if (!$("#fb-overlay").hidden) { $("#fb-overlay").hidden = true; return true; }
+  if (!$("#qr-overlay").hidden) { closeQr(); return true; }
   return false;
 }
 function goHome() {
@@ -627,6 +628,42 @@ if (document.fullscreenEnabled) {
   document.addEventListener("fullscreenchange", label);
   label();
 }
+// ---------- "On my phone": QR code for this kid's list ----------
+// The QR library (vendor/qrcode.min.js, qrcodejs 1.0.0, MIT) only loads the first time.
+const SITE_URL = "https://home-hub-web-hoegh-home.vercel.app/";
+let qrLib = null, qrTimer = null;
+function loadQrLib() {
+  if (!qrLib) qrLib = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = "vendor/qrcode.min.js"; s.onload = ok; s.onerror = () => { qrLib = null; fail(); };
+    document.head.appendChild(s);
+  });
+  return qrLib;
+}
+function phoneLink() {
+  const base = location.protocol.startsWith("http") ? `${location.origin}/` : SITE_URL;
+  const track = (S.track || "").toLowerCase().replace(/\s/g, "");
+  return `${base}?p=${encodeURIComponent(S.hub.player.name)}${track ? `&track=${track}` : ""}`;
+}
+async function openQr() {
+  if (!S.hub) return;
+  $("#qr-title").textContent = `${S.hub.player.name}'s ${S.track || "list"} on your phone`;
+  $("#qr-code").innerHTML = "";
+  $("#qr-overlay").hidden = false;
+  try {
+    await loadQrLib();
+    new QRCode($("#qr-code"), { text: phoneLink(), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) {
+    $("#qr-code").innerHTML = `<p class="qr-help" style="line-height:1.4">${esc(phoneLink())}</p>`;
+  }
+  clearTimeout(qrTimer);
+  qrTimer = setTimeout(closeQr, 90000); // don't leave it up on the kitchen screen
+}
+function closeQr() { clearTimeout(qrTimer); $("#qr-overlay").hidden = true; $("#qr-code").innerHTML = ""; }
+$("#btn-qr").addEventListener("click", openQr);
+$("#qr-close").addEventListener("click", closeQr);
+$("#qr-overlay").addEventListener("click", (e) => { if (e.target.id === "qr-overlay") closeQr(); });
+
 $("#btn-visual").addEventListener("click", () => {
   const v = S.hub.player.visual === "Thermometer" ? "Bomb" : "Thermometer";
   S.hub.player.visual = v;
