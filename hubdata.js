@@ -13,8 +13,8 @@
   const APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec";
   // Public "publishable" key: safe to ship. The database only lets it read the plan and
   // add or change check-offs, ratings and bomb/thermometer, never delete (supabase/setup.sql).
-  const SB_URL = "";
-  const SB_KEY = "";
+  const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
+  const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
   const SB_ON = !!(SB_URL && SB_KEY);
 
   const LIVE_KEY = "training.dbLive", OUT_KEY = "training.outbox";
