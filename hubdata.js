@@ -263,5 +263,18 @@
     return out.sort((a, b) => mins(a.time) - mins(b.time));
   }
 
-  window.HubData = { getHub, getPlayers, getPlans, getEvents, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
+  // Plain table access for the household tools (supabase/household.sql): read rows with a
+  // PostgREST query string, or upsert full rows. null / false when unreachable.
+  async function rows(table, query) {
+    if (!SB_ON) return null;
+    const d = parse(await timed(`${SB_URL}/rest/v1/${table}?${query || "select=*"}`, { headers: sbHeaders() }, 10000));
+    return Array.isArray(d) ? d : null;
+  }
+  async function save(table, list) {
+    if (!SB_ON || !list || !list.length) return !!SB_ON;
+    const r = await timed(`${SB_URL}/rest/v1/${table}`, { method: "POST", headers: sbHeaders({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(list) }, 12000);
+    return !!(r && r.ok);
+  }
+
+  window.HubData = { getHub, getPlayers, getPlans, getEvents, rows, save, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
 })();

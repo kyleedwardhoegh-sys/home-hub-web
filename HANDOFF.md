@@ -247,3 +247,7 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - Published by `v3Sync` every 5 min as `site_data` `events:home` (`{days: {date: [{title, time, location, who}]}}`), with a 10-min cache per date.
 - `HubData.getEvents(date)` returns this doc when present (else the merged kid docs, without `who`). The dashboard uses it for Kyle / Logan / Both tags.
 - Note: calendar titles and locations in site_data are readable by anyone with the site's public key (same as the kids' calendar strips).
+
+### Household tables + `HubData.rows` / `HubData.save` (2026-10-19)
+- `supabase/household.sql` creates `drives`, `household_items` and `countdowns`. Anon can select / insert / update; no deletes (removed = flag). Run it once in the Supabase SQL editor.
+- `HubData.rows(table, query)` and `HubData.save(table, rows)` are plain PostgREST read / upsert (send full rows). They're used by the dashboard's `household.js`.
