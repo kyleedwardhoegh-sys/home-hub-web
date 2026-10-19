@@ -249,6 +249,9 @@
     if (!Array.isArray(d)) return null;
     const docs = d.filter((x) => x.data && x.data.days && Array.isArray(x.data.days[date]));
     if (!docs.length) return null;
+    // 'events:home' has every calendar with who each event is for ({who: ["Kyle", ...]}).
+    const home = docs.find((x) => x.id === "events:home");
+    if (home) return home.data.days[date].slice();
     const seen = new Set(), out = [];
     docs.forEach((doc) => doc.data.days[date].forEach((e) => {
       if (e.day !== "Today") return;

@@ -238,3 +238,12 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 ### `HubData.getEvents(date)` (2026-10-19)
 - Merges today's events from every `events:<Name>` doc in site_data. These cover all family calendars, since `v2Events` reads `V2_NAME_MATCH_CALS` plus every team calendar for each player. Events are de-duplicated by title + time and sorted (all-day first).
 - Returns `null` if no doc has `date` yet (stale or missing), so callers can fall back. Used by the dashboard's home-screen calendar.
+
+### Household calendar with owners: `events:home` (2026-10-19)
+- `v3HomeEvents(date)` reads Kyle's, Logan's, the family calendar, Crossbar and both team calendars, and merges duplicates by title + start. Each event gets `who` tags from:
+  - which calendars it's on (Kyle → Kyle, Logan → Logan, family → both, team → that kid)
+  - the guest list (Kyle/Logan emails)
+  - family names in the title
+- Published by `v3Sync` every 5 min as `site_data` `events:home` (`{days: {date: [{title, time, location, who}]}}`), with a 10-min cache per date.
+- `HubData.getEvents(date)` returns this doc when present (else the merged kid docs, without `who`). The dashboard uses it for Kyle / Logan / Both tags.
+- Note: calendar titles and locations in site_data are readable by anyone with the site's public key (same as the kids' calendar strips).

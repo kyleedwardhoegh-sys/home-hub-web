@@ -1360,6 +1360,69 @@ function v3Tick() {
   try { v3Publish(false); props.setProperty('v3gen', gen); } finally { lock.releaseLock(); }
 }
 
+// ---- Household calendar with owners (2026-10-19) ----
+// Kyle: "clearly indicate which is a Logan, Kyle or both event" on the home screen.
+// One 'events:home' doc: today's and tomorrow's events from every family calendar, each
+// tagged with who it's for, from (1) which calendars it's on (an event on both Kyle's
+// and Logan's calendars, or on the shared family calendar, is for both), (2) the guest
+// list (the other parent invited = both), and (3) family names in the title.
+var V3_KYLE = 'kyleedwardhoegh@gmail.com', V3_LOGAN = 'loganhoegh@gmail.com';
+var V3_HOME_CALS = [
+  { id: V3_KYLE, who: ['Kyle'] },
+  { id: V3_LOGAN, who: ['Logan'] },
+  { id: 'family15716951609174210844@group.calendar.google.com', who: ['Kyle', 'Logan'] },
+  { id: 'rpld6sdps6l5trpdmsl1r56h12phcccv@import.calendar.google.com', who: [] } // Crossbar
+];
+var V3_FAMILY = ['Kyle', 'Logan', 'Nellie', 'Nash'];
+
+function v3HomeEvents(date) {
+  var cache = CacheService.getScriptCache(), ck = 'home|' + date;
+  var hit = cache.get(ck);
+  if (hit) return JSON.parse(hit);
+  var tz = Session.getScriptTimeZone();
+  var p = date.split('-'), start = new Date(+p[0], +p[1] - 1, +p[2]), end = new Date(+p[0], +p[1] - 1, +p[2] + 1);
+  var cals = V3_HOME_CALS.concat(Object.keys(V2_TEAM_CALS).map(function (k) { return { id: V2_TEAM_CALS[k], who: [k] }; }));
+  var byKey = {}, list = [];
+  cals.forEach(function (c) {
+    var cal = null;
+    try { cal = CalendarApp.getCalendarById(c.id); } catch (e) {}
+    if (!cal) return;
+    cal.getEvents(start, end).forEach(function (ev) {
+      var s = ev.getStartTime(), allDay = ev.isAllDayEvent(), title = v2CleanTitle(ev.getTitle());
+      var key = title.toLowerCase() + '|' + (allDay ? 'all' : s.getTime());
+      var e = byKey[key];
+      if (!e) {
+        e = byKey[key] = { title: title, time: allDay ? '' : Utilities.formatDate(s, tz, 'h:mm a'),
+                           location: String(ev.getLocation() || '').trim(), sort: allDay ? 0 : s.getTime(), w: {} };
+        list.push(e);
+      }
+      c.who.forEach(function (w) { e.w[w] = true; });
+      try {
+        ev.getGuestList().forEach(function (g) {
+          var em = String(g.getEmail() || '').toLowerCase();
+          if (em === V3_KYLE) e.w.Kyle = true;
+          if (em === V3_LOGAN) e.w.Logan = true;
+        });
+      } catch (x) {}
+      var words = title.toLowerCase().split(/[^a-z0-9]+/);
+      V3_FAMILY.forEach(function (n) { if (words.indexOf(n.toLowerCase()) > -1) e.w[n] = true; });
+    });
+  });
+  list.sort(function (a, b) { return a.sort - b.sort; });
+  var out = list.slice(0, 30).map(function (e) {
+    return { title: e.title, time: e.time, location: e.location, who: V3_FAMILY.filter(function (n) { return e.w[n]; }) };
+  });
+  try { cache.put(ck, JSON.stringify(out), 600); } catch (e) {}
+  return out;
+}
+
+function v3PublishHomeEvents() {
+  var today = v2Ymd(new Date()), tomorrow = v2AddDays(today, 1), days = {};
+  days[today] = v3HomeEvents(today);
+  days[tomorrow] = v3HomeEvents(tomorrow);
+  return v3PutDocs([{ id: 'events:home', data: { days: days } }], false);
+}
+
 // Every 5 minutes: copy check-offs into the Sheet, refresh calendar events, and once an
 // hour re-upload the whole plan just in case. (These calls also keep the free Supabase
 // project from ever being paused for inactivity.)
@@ -1370,6 +1433,7 @@ function v3Sync() {
   try {
     try { v3Mirror(); } catch (e) { console.error('v3Mirror ' + e); }
     try { v3PublishEvents(); } catch (e) { console.error('v3PublishEvents ' + e); }
+    try { v3PublishHomeEvents(); } catch (e) { console.error('v3PublishHomeEvents ' + e); }
     if (new Date().getMinutes() < 5) { try { v3Publish(true); } catch (e) { console.error('v3Publish ' + e); } }
   } finally { lock.releaseLock(); }
 }
