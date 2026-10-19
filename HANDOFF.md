@@ -234,3 +234,7 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - On the kiosk the web top bar stays hidden: the kiosk helper's native **▶ Nellie / ▶ Nash** pills (home-hub-dashboard/kiosk-nav-helper) cover every page, including other sites.
 - **Switch to <kid>** now uses the *current* page's theme (`--accent` outline), not the other kid's colors.
 - The dashboard launcher has **Nellie's Training** / **Nash's Training** tiles.
+
+### `HubData.getEvents(date)` (2026-10-19)
+- Merges today's events from every `events:<Name>` doc in site_data. These cover all family calendars, since `v2Events` reads `V2_NAME_MATCH_CALS` plus every team calendar for each player. Events are de-duplicated by title + time and sorted (all-day first).
+- Returns `null` if no doc has `date` yet (stale or missing), so callers can fall back. Used by the dashboard's home-screen calendar.

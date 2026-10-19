@@ -240,5 +240,25 @@
     return out;
   }
 
-  window.HubData = { getHub, getPlayers, getPlans, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
+  // Today's events from every family calendar (Kyle's, Logan's, family, Crossbar, both teams).
+  // The Sheet script publishes these per player every 5 minutes; this merges them. Returns
+  // null if they're missing or stale (no entry for `date`), so callers can fall back.
+  async function getEvents(date) {
+    if (!SB_ON) return null;
+    const d = parse(await timed(`${SB_URL}/rest/v1/site_data?id=like.events:*&select=id,data`, { headers: sbHeaders() }, 10000));
+    if (!Array.isArray(d)) return null;
+    const docs = d.filter((x) => x.data && x.data.days && Array.isArray(x.data.days[date]));
+    if (!docs.length) return null;
+    const seen = new Set(), out = [];
+    docs.forEach((doc) => doc.data.days[date].forEach((e) => {
+      if (e.day !== "Today") return;
+      const k = `${e.title}|${e.time}`;
+      if (seen.has(k)) return;
+      seen.add(k); out.push(e);
+    }));
+    const mins = (t) => { const m = /^(\d+):(\d+)\s*([AP]M)$/i.exec(t || ""); return m ? ((+m[1] % 12) + (/p/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : -1; };
+    return out.sort((a, b) => mins(a.time) - mins(b.time));
+  }
+
+  window.HubData = { getHub, getPlayers, getPlans, getEvents, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
 })();
