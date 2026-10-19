@@ -13,10 +13,14 @@
 </head>
 <body>
 
-<!-- Always-there navigation (hidden on the kitchen kiosk, which has its own corner pills). -->
+<!-- Always-there navigation (on the kitchen kiosk only the Nellie / Nash buttons show). -->
 <nav class="app-nav" aria-label="Navigation">
   <button id="nav-back" class="nav-btn" type="button">&larr; Back</button>
-  <a class="nav-btn" href="../">&#8962; Home</a>
+  <a class="nav-btn" id="nav-home" href="../">&#8962; Home</a>
+  <span class="nav-kids">
+    <a class="nav-btn nav-kid" data-kid="Nellie" href="../?open=Nellie">Nellie</a>
+    <a class="nav-btn nav-kid" data-kid="Nash" href="../?open=Nash">Nash</a>
+  </span>
   <span class="nav-spacer"></span>
   <button id="nav-fs" class="nav-btn" type="button" hidden>&#x26F6; Full screen</button>
 </nav>

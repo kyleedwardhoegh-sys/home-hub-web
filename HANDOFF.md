@@ -225,3 +225,12 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 ### Switch between Nellie and Nash (2026-10-19)
 - Under the kid's name: a **Switch to <other kid>** button in the other kid's colors (`renderSwitch`, `switchPlayer`). It keeps the same track and scroll position, and updates `?p=` / `&track=` with `replaceState` when the URL already uses them, so kiosk links, reloads and the QR code follow along.
 - Only between `HOME_KIDS` (Nellie, Nash). A friend's locked link (`?p=titus`) shows no switch. The other kid's list is prefetched so the switch is instant.
+
+### Nellie / Nash buttons on every page (2026-10-19)
+- The top bar has one-tap **Nellie** / **Nash** buttons (`renderNavKids`, `goKid`) on the picker, the hub and `/drills/`. They're neutral white-on-dark, and the current kid is highlighted.
+  - On a kid's page they switch kids on the same track.
+  - From `/drills/` they link to `../?open=Name`, which opens the kid without locking (`?p=` locks); on the kiosk they link to `?p=Name&kiosk=1`.
+  - Hidden for a friend's locked link.
+- On the kiosk, the top bar now shows with **only** those two buttons (Back / Home / Full screen stay hidden; the native corner pills do those) and has 132px right padding so the Back pill doesn't cover it.
+- **Switch to <kid>** now uses the *current* page's theme (`--accent` outline), not the other kid's colors.
+- The dashboard launcher has **Nellie's Training** / **Nash's Training** tiles.

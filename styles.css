@@ -43,11 +43,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .nav-btn { min-height: 48px; padding: 0 18px; border-radius: 999px; border: 0; background: rgb(255 255 255 / .14); color: #fff; font-weight: 700; font-size: 1rem; white-space: nowrap; }
 .nav-btn:active { background: rgb(255 255 255 / .28); }
 .nav-spacer { flex: 1; }
+.nav-kids { display: inline-flex; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 2px solid rgb(255 255 255 / .2); }
+.kiosk .nav-kids { margin-left: 0; padding-left: 0; border-left: 0; }
+.nav-kid { min-width: 96px; }
+.nav-kid[aria-current="page"] { background: #fff; color: var(--ink); }
+@media (max-width: 520px) { .nav-btn { padding: 0 12px; } .nav-kid { min-width: 0; } .nav-kids { margin-left: 2px; padding-left: 6px; } }
 .track-tabs { top: 64px !important; }
 /* Kitchen kiosk: native corner pills handle navigation (Back top-right, Home bottom-left,
    Exit bottom-right), so hide this bar and keep content clear of those corners. */
-.kiosk .app-nav { display: none; }
-.kiosk .track-tabs { top: 0 !important; padding-right: 116px; }
+.kiosk .app-nav { padding-right: 132px; }
+.kiosk #nav-back, .kiosk #nav-home, .kiosk #nav-fs { display: none !important; }
 .kiosk .hub-head { padding-right: 116px; }
 .kiosk .view { padding-bottom: 96px; }
 
@@ -69,7 +74,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hub-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 14px; margin-bottom: 14px; }
 .hub-title { grid-column: 1; min-width: 0; }
 .kid-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.kid-btn { min-height: 52px; padding: 0 20px; border: 0; border-radius: 999px; color: #fff; font-family: var(--display); font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
+/* Uses THIS page's theme, so nothing on Nash's page looks like Nellie's (and vice versa). */
+.kid-btn { min-height: 52px; padding: 0 20px; border: 2px solid var(--accent); border-radius: 999px; background: var(--card); color: var(--accent); font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
 .kid-btn:active { transform: scale(.96); }
 .kid-btn span { margin-left: 4px; }
 .today-pill { grid-column: 2; }

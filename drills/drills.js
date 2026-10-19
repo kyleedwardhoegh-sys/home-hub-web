@@ -16,7 +16,11 @@ const STATUS_TEXT = { good: "Good video", weak: "Worth a look", none: "Needs a v
 const F = { status: "all", track: "All", kid: "All", q: "", scope: "plans" };
 let DRILLS = [], PLAYERS = [], HAS_LIBRARY = false;
 
-if (new URLSearchParams(location.search).has("kiosk")) document.documentElement.classList.add("kiosk");
+if (new URLSearchParams(location.search).has("kiosk")) {
+  document.documentElement.classList.add("kiosk");
+  // Kiosk links match the dashboard's (?p=Name&kiosk=1).
+  document.querySelectorAll(".nav-kid").forEach((a) => { a.href = `../?p=${a.dataset.kid}&kiosk=1`; });
+}
 
 // ---------- video helpers ----------
 function ytId(url) {

@@ -15,11 +15,12 @@
 </head>
 <body>
 
-<!-- Always-there navigation for phones, iPads and browsers. Hidden on the kitchen
-     kiosk (?kiosk=1), which has its own native Back / Home / Exit corner pills. -->
+<!-- Always-there navigation for phones, iPads and browsers. On the kitchen kiosk (?kiosk=1)
+     only the Nellie / Nash buttons show; its native corner pills do Back / Home / Exit. -->
 <nav id="app-nav" class="app-nav" aria-label="Navigation">
   <button id="nav-back" class="nav-btn" type="button">&larr; Back</button>
   <button id="nav-home" class="nav-btn" type="button">&#8962; Home</button>
+  <span id="nav-kids" class="nav-kids"></span>
   <span class="nav-spacer"></span>
   <button id="nav-fs" class="nav-btn" type="button" hidden>&#x26F6; Full screen</button>
 </nav>

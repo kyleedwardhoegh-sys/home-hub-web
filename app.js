@@ -167,6 +167,9 @@ async function boot() {
     const p = players.find((x) => x.name.toLowerCase() === want.toLowerCase());
     if (p) { S.locked = p.name; return openPlayer(p.name); }
   }
+  const openName = new URLSearchParams(location.search).get("open");
+  const op = openName && players.find((x) => x.name.toLowerCase() === openName.toLowerCase());
+  if (op) { renderSelect(); return openPlayer(op.name); }
   renderSelect();
   let last = null;
   try { last = localStorage.getItem("training.player"); } catch (e) {}
@@ -182,6 +185,7 @@ function renderSelect() {
      </button>`).join("");
   document.documentElement.dataset.theme = "";
   showView("view-select");
+  renderNavKids(null);
   // Pre-load each kid's page so tapping a name is instant.
   if (!S.demo) S.players.forEach((p) => { const h = store.get(hubKey(p.name)); if (!h || h.date !== today() || Date.now() - (h._at || 0) > 60000) fetchHub(p.name); });
 }
@@ -645,10 +649,28 @@ const HOME_KIDS = ["Nellie", "Nash"];
 function renderSwitch(name) {
   const others = HOME_KIDS.includes(name) ? S.players.filter((p) => HOME_KIDS.includes(p.name) && p.name !== name) : [];
   $("#kid-switch").innerHTML = others.map((p) =>
-    `<button class="kid-btn t-${esc(p.theme || p.name.toLowerCase())}" type="button" data-switch="${esc(p.name)}">Switch to ${esc(p.name)} <span aria-hidden="true">&rarr;</span></button>`).join("");
+    `<button class="kid-btn" type="button" data-switch="${esc(p.name)}">Switch to ${esc(p.name)} <span aria-hidden="true">&rarr;</span></button>`).join("");
+  renderNavKids(name);
   // Have the other kid's list ready so the switch is instant.
   if (!S.demo) others.forEach((p) => { if (!cachedHub(p.name)) fetchHub(p.name); });
 }
+// One-tap Nellie / Nash buttons in the top bar on every page (neutral colors on purpose).
+function renderNavKids(current) {
+  const friend = S.locked && !HOME_KIDS.includes(S.locked);
+  const kids = friend ? [] : S.players.filter((p) => HOME_KIDS.includes(p.name));
+  $("#nav-kids").innerHTML = kids.map((p) =>
+    `<button class="nav-btn nav-kid" type="button" data-go="${esc(p.name)}"${p.name === current ? ' aria-current="page"' : ""}>${esc(p.name)}</button>`).join("");
+}
+function goKid(name) {
+  if ($("#view-hub").classList.contains("active") && S.hub && HOME_KIDS.includes(S.hub.player.name)) {
+    if (S.hub.player.name !== name) switchPlayer(name);
+    return;
+  }
+  closeOverlays();
+  openPlayer(name);
+  window.scrollTo(0, 0);
+}
+
 function switchPlayer(name) {
   closeOverlays();
   const y = window.scrollY, track = S.track;
@@ -663,7 +685,9 @@ function switchPlayer(name) {
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-switch]");
-  if (b) { S.lastTap = Date.now(); switchPlayer(b.dataset.switch); }
+  if (b) { S.lastTap = Date.now(); switchPlayer(b.dataset.switch); return; }
+  const k = e.target.closest("[data-go]");
+  if (k) { S.lastTap = Date.now(); goKid(k.dataset.go); }
 });
 
 function goHome() {
