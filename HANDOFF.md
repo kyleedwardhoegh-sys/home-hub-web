@@ -221,3 +221,7 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - "Pick any" shows every category as its own section (`optionSections`) with jump chips (`.cat-chip`), instead of one tab at a time:
   - Shooting categories (in `SHOOT_ORDER`), Jump Rope, Dribbling and Two Ball first; Morning puts Dribbling first.
   - Everything else ("More": lifting, agility, …) waits behind a **Show more options** button (`S.showMore[track]`). It opens automatically if any of those drills has sets done today.
+
+### Switch between Nellie and Nash (2026-10-19)
+- Under the kid's name: a **Switch to <other kid>** button in the other kid's colors (`renderSwitch`, `switchPlayer`). It keeps the same track and scroll position, and updates `?p=` / `&track=` with `replaceState` when the URL already uses them, so kiosk links, reloads and the QR code follow along.
+- Only between `HOME_KIDS` (Nellie, Nash). A friend's locked link (`?p=titus`) shows no switch. The other kid's list is prefetched so the switch is instant.

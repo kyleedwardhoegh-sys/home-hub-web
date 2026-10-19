@@ -195,6 +195,7 @@ async function openPlayer(name) {
   const p = S.players.find((x) => x.name === name);
   document.documentElement.dataset.theme = p?.theme || "";
   $("#hub-name").textContent = `${name}'s Training`;
+  renderSwitch(name);
   $("#hub-date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   showView("view-hub");
   const pickTrack = () => {
@@ -638,6 +639,33 @@ function closeOverlays() {
   if (!$("#qr-overlay").hidden) { closeQr(); return true; }
   return false;
 }
+// ---------- switch between Nellie and Nash (same track, same spot) ----------
+// Only between the family's kids, so a friend's link (?p=titus) never shows them.
+const HOME_KIDS = ["Nellie", "Nash"];
+function renderSwitch(name) {
+  const others = HOME_KIDS.includes(name) ? S.players.filter((p) => HOME_KIDS.includes(p.name) && p.name !== name) : [];
+  $("#kid-switch").innerHTML = others.map((p) =>
+    `<button class="kid-btn t-${esc(p.theme || p.name.toLowerCase())}" type="button" data-switch="${esc(p.name)}">Switch to ${esc(p.name)} <span aria-hidden="true">&rarr;</span></button>`).join("");
+  // Have the other kid's list ready so the switch is instant.
+  if (!S.demo) others.forEach((p) => { if (!cachedHub(p.name)) fetchHub(p.name); });
+}
+function switchPlayer(name) {
+  closeOverlays();
+  const y = window.scrollY, track = S.track;
+  if (S.locked) S.locked = name;
+  // Keep the address in step (?p=…&track=…) so reloads, the QR code and Back land here.
+  const u = new URL(location.href);
+  if (u.searchParams.has("p") || S.locked) u.searchParams.set("p", name);
+  if (track && (u.searchParams.has("track") || u.searchParams.has("p"))) u.searchParams.set("track", track.toLowerCase().replace(/\s/g, ""));
+  history.replaceState(null, "", u);
+  openPlayer(name);
+  requestAnimationFrame(() => window.scrollTo(0, y));
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-switch]");
+  if (b) { S.lastTap = Date.now(); switchPlayer(b.dataset.switch); }
+});
+
 function goHome() {
   closeOverlays();
   S.openToken = (S.openToken || 0) + 1; // stop any in-progress load loop
