@@ -231,6 +231,6 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
   - On a kid's page they switch kids on the same track.
   - From `/drills/` they link to `../?open=Name`, which opens the kid without locking (`?p=` locks); on the kiosk they link to `?p=Name&kiosk=1`.
   - Hidden for a friend's locked link.
-- On the kiosk, the top bar now shows with **only** those two buttons (Back / Home / Full screen stay hidden; the native corner pills do those) and has 132px right padding so the Back pill doesn't cover it.
+- On the kiosk the web top bar stays hidden: the kiosk helper's native **▶ Nellie / ▶ Nash** pills (home-hub-dashboard/kiosk-nav-helper) cover every page, including other sites.
 - **Switch to <kid>** now uses the *current* page's theme (`--accent` outline), not the other kid's colors.
 - The dashboard launcher has **Nellie's Training** / **Nash's Training** tiles.

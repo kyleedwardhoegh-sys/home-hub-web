@@ -51,8 +51,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .track-tabs { top: 64px !important; }
 /* Kitchen kiosk: native corner pills handle navigation (Back top-right, Home bottom-left,
    Exit bottom-right), so hide this bar and keep content clear of those corners. */
-.kiosk .app-nav { padding-right: 132px; }
-.kiosk #nav-back, .kiosk #nav-home, .kiosk #nav-fs { display: none !important; }
+.kiosk .app-nav { display: none; }
+.kiosk .track-tabs { top: 0 !important; padding-right: 116px; }
 .kiosk .hub-head { padding-right: 116px; }
 .kiosk .view { padding-bottom: 96px; }
 
