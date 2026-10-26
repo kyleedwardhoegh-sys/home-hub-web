@@ -251,3 +251,14 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 ### Household tables + `HubData.rows` / `HubData.save` (2026-10-19)
 - `supabase/household.sql` creates `drives`, `household_items` and `countdowns`. Anon can select / insert / update; no deletes (removed = flag). Run it once in the Supabase SQL editor.
 - `HubData.rows(table, query)` and `HubData.save(table, rows)` are plain PostgREST read / upsert (send full rows). They're used by the dashboard's `household.js`.
+
+### Nellie's injury plan + "Own Plan Only" (2026-10-26)
+- Nellie broke her right pinkie (left hand only, about 2–4 weeks) and is doing knee PT (Osgood / tendinitis).
+- `v2NellieInjuryPlan()` (run once, idempotent):
+  - adds library rows **NL1–NL34**: Left-Hand Dribbling, Line Drills, Wall Drills, Touch & Feel, Finishing (Left Hand) (floaters, post-up baby hooks, Mikan), and PT (Knee) from her PT sheet (Kaitlin Schultz)
+  - adds Nellie-only plan rows. Must-dos: Morning NL1/4/6/11, Night NL8/9/22. After School has options only.
+  - sets the new Players column **Own Plan Only = TRUE** for her
+- `v2PlanFor` respects Own Plan Only: when it's TRUE, shared `All` plan rows are skipped for that player. Calendar credit (MBT) still applies.
+- `v2NellieInjuryPlanOff()` sets her NL rows inactive and Own Plan Only back to FALSE.
+- Site: new `FOCUS` groups **Left Hand** and **PT** come first (`LEFT_ORDER` sets the section order). Other kids are unaffected because their categories don't match.
+- Printable version for practice: Drive doc "Nellie – Left-Hand Practice List (Injury Weeks)".

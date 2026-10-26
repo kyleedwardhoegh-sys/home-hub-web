@@ -15,13 +15,17 @@ const ach = (n) => `${n} achievement${n === 1 ? "" : "s"}`;
 // "Pick any" groups: shooting, jump rope and dribbling come first; everything
 // else (lifting, agility, explosive, defense...) waits under "More".
 const FOCUS = [
+  // Injury plans (Nellie's left-hand weeks, 2026-10-26): own sections, shown first.
+  ["Left Hand", (it) => /left-hand|line drills|wall drills|touch & feel|finishing \(left hand\)/i.test(it.category)],
+  ["PT", (it) => /^PT\b/i.test(it.category)],
   ["Jump Rope", (it) => /jump rope/i.test(it.name)],
   ["Two Ball", (it) => it.category === "Two Ball"],
   ["Dribbling", (it) => it.category === "Dribbling"],
   ["Shooting", (it) => /shoot|tests|film|garage|feel|mindset/i.test(it.category)],
 ];
-const FOCUS_ORDER = ["Shooting", "Jump Rope", "Dribbling", "Two Ball", "More"];
-const FOCUS_ORDER_BY_TRACK = { "Morning": ["Dribbling", "Two Ball", "Jump Rope", "Shooting", "More"] };
+const FOCUS_ORDER = ["Left Hand", "PT", "Shooting", "Jump Rope", "Dribbling", "Two Ball", "More"];
+const FOCUS_ORDER_BY_TRACK = { "Morning": ["Left Hand", "PT", "Dribbling", "Two Ball", "Jump Rope", "Shooting", "More"] };
+const LEFT_ORDER = ["Left-Hand Dribbling", "Line Drills", "Wall Drills", "Finishing (Left Hand)", "Touch & Feel"];
 
 const S = {
   demo: false,
@@ -436,7 +440,8 @@ function optionSections(t) {
     (secs[title] = secs[title] || { title, focus: f, more: f === "More", items: [] }).items.push(it);
   }));
   const order = FOCUS_ORDER_BY_TRACK[t] || FOCUS_ORDER;
-  const rank = (s) => order.indexOf(s.focus) * 100 + (s.focus === "Shooting" ? (SHOOT_ORDER.indexOf(s.title) + 1 || 50) : 0);
+  const sub = (s) => (s.focus === "Shooting" ? SHOOT_ORDER.indexOf(s.title) + 1 || 50 : s.focus === "Left Hand" ? LEFT_ORDER.indexOf(s.title) + 1 || 50 : 0);
+  const rank = (s) => order.indexOf(s.focus) * 100 + sub(s);
   return Object.values(secs).sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
 }
 

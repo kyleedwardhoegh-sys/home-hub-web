@@ -583,6 +583,10 @@ function v2PlanFor(data, player) {
   var p = players.filter(function (x) { return x['Player'] === player && v2Truthy(x['Active']); })[0];
   if (!p) return null;
   var tracks = v2List(p['Tracks']).filter(function (t) { return V2_TRACKS.indexOf(t) > -1; });
+  // "Own Plan Only" (Players tab, TRUE/blank): use only plan rows that name this player,
+  // skipping the shared "All" rows. Used for injury plans (e.g. Nellie's left-hand weeks);
+  // set it back to blank/FALSE to return to the normal plan.
+  var ownOnly = p['Own Plan Only'] === true || String(p['Own Plan Only']).toUpperCase() === 'TRUE';
 
   var lib = libRows.filter(function (a) { return a['ID'] !== '' && v2Truthy(a['Active']); });
   var byId = {};
@@ -592,7 +596,7 @@ function v2PlanFor(data, player) {
   tracks.forEach(function (t) {
     var rows = plan.filter(function (r) {
       var who = v2List(r['Player']);
-      return r['Track'] === t && v2Truthy(r['Active']) && (who.indexOf('All') > -1 || who.indexOf(player) > -1);
+      return r['Track'] === t && v2Truthy(r['Active']) && ((!ownOnly && who.indexOf('All') > -1) || who.indexOf(player) > -1);
     }).sort(function (a, b) { return (Number(a['Order']) || 0) - (Number(b['Order']) || 0); });
     var listed = {}, must = [], groups = [];
     rows.forEach(function (r) {
@@ -1532,4 +1536,123 @@ function v3Status() {
             '\nTriggers: ' + ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }).join(', ');
   console.log(msg);
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+
+// ============================================================
+// NELLIE'S INJURY PLAN (2026-10-26)
+// Right pinkie broken (out ~2-4 weeks) and knee PT (Osgood / tendinitis). Left hand only;
+// no jumping or sprinting unless PT says OK. Adds left-hand dribbling, line, wall, touch,
+// finishing (floaters, baby hooks) and her PT program to the library, gives Nellie her own
+// plan, and turns on "Own Plan Only" for her so the shared shooting must-dos pause.
+// Run v2NellieInjuryPlan once (safe to re-run). When she's healed, run
+// v2NellieInjuryPlanOff: it turns her NL rows inactive and sets Own Plan Only back to FALSE.
+// ============================================================
+var V2_NL_LIB = [
+  // [ID, Name, Category, Tracks, Sets, Per Set, Set Labels, Points/Set, Video, Cue, Source]
+  ['NL1', 'Pound dribble: high, medium, low', 'Left-Hand Dribbling', 'Morning,After School,Night', 3, '30 sec', 'High (shoulder)|Medium (waist)|Low (knee)', 1, 'https://youtu.be/HY_w2gtm6F4', 'LEFT HAND ONLY. Pound it hard every bounce. Eyes up.', 'Billy Clapper'],
+  ['NL2', 'Changing-height pound (3 high, 3 low)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/HY_w2gtm6F4', '3 high, 3 low, repeat. Same rhythm both heights.', 'Billy Clapper'],
+  ['NL3', 'Ankle-high speed dribbles', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/wi1zHlAn8z4', 'Fingertips, as fast as you can, ball below your ankle.', 'Billy Clapper'],
+  ['NL4', 'Side-to-side V dribble (in front)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/rRw3YNz7UkU', 'Push the ball across your body and pull it back. Same hand.', 'Make Yourself'],
+  ['NL5', 'Front-to-back V dribble (left side)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/rRw3YNz7UkU', 'Ball moves front to back on your left side. Stay low.', 'Make Yourself'],
+  ['NL6', 'In-and-out dribble', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '20 reps', '', 1, 'https://youtu.be/Fy3gNOuxHmw', 'Sell it with your shoulders. Ball stays on your left.', 'Jr. NBA'],
+  ['NL7', 'Rocker dribble (push-pull)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '20 reps', '', 1, 'https://youtu.be/5wkcgMnfycE', 'Push forward, pull back. Snap the pull-back.', 'Billy Clapper'],
+  ['NL8', 'Eyes-up dribble (call out fingers)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, 'https://youtu.be/WWGnRarOEw4', 'Someone holds up fingers; you call the number without looking down.', 'Billy Clapper'],
+  ['NL9', 'Eyes-closed pound dribble', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, '', 'Feel the ball. Keep it in the same spot.', 'Injury plan'],
+  ['NL10', 'Sitting dribble (floor or chair)', 'Left-Hand Dribbling', 'Morning,After School,Night', 2, '30 sec', '', 1, '', 'Sit and dribble low and fast beside you. Easy on the knees.', 'Injury plan'],
+  ['NL11', '100 dribbles in a row, no mistakes', 'Left-Hand Dribbling', 'Morning,After School,Night', 1, '100 in a row', '', 2, 'https://youtu.be/v_jqSQswdbU', 'Lose it? Start over.', 'Jr. NBA'],
+  ['NL12', 'Side-to-side over a line', 'Line Drills', 'After School', 3, '30 sec', '', 1, 'https://youtu.be/rRw3YNz7UkU', 'Stand beside a line. Ball lands left of the line, then right, every bounce. Left hand only.', 'Injury plan'],
+  ['NL13', 'Under-the-legs V, straddling a line', 'Line Drills', 'After School', 2, '20 reps', '', 1, 'https://youtu.be/KIBJzEn_QG8', 'Wide stance over the line. Left hand pushes the ball under your legs across the line and pulls it back.', 'Injury plan'],
+  ['NL14', 'Walk the line, eyes up', 'Line Drills', 'After School', 2, 'down + back', '', 1, '', 'Dribble down a line and back. Walk only.', 'Injury plan'],
+  ['NL15', 'Stop-and-go on the lines', 'Line Drills', 'After School', 2, 'down + back', '', 1, '', 'Freeze on every line, then go.', 'Injury plan'],
+  ['NL16', 'Change of pace (slow to quick walk)', 'Line Drills', 'After School', 2, 'down + back', '', 1, '', 'Slow, then burst into a quick walk. No running.', 'Injury plan'],
+  ['NL17', 'Retreat dribble along a line', 'Line Drills', 'After School', 2, 'down + back', '', 1, 'https://youtu.be/5wkcgMnfycE', '2 steps back, 2 forward. Protect the ball.', 'Billy Clapper'],
+  ['NL18', 'In-and-out at every line', 'Line Drills', 'After School', 2, 'down + back', '', 1, '', 'Do an in-and-out every time you reach a line.', 'Injury plan'],
+  ['NL19', 'Wall dribble: forehead, chest, waist', 'Wall Drills', 'Morning,After School,Night', 3, '30 sec', 'Forehead|Chest|Waist', 1, '', 'Dribble against the wall with your fingertips. Elbow up.', 'Injury plan'],
+  ['NL20', 'Wall push-pass, then dribble', 'Wall Drills', 'Morning,After School,Night', 2, '15 passes', '', 1, '', 'Left-hand push pass from 6 ft, let it bounce back, then dribble.', 'Injury plan'],
+  ['NL21', 'Wall target touch-pass (10 in a row)', 'Wall Drills', 'Morning,After School,Night', 1, '10 hits in a row', '', 1, '', 'Hit a spot or tape mark. Miss? Start over.', 'Injury plan'],
+  ['NL22', 'Fingertip taps', 'Touch & Feel', 'Morning,After School,Night', 2, '25 taps', '', 1, '', 'Tap the ball up off your left fingertips without catching it.', 'Injury plan'],
+  ['NL23', 'Grip squeeze', 'Touch & Feel', 'Morning,After School,Night', 1, '10 x 5-sec squeezes', '', 1, '', 'Squeeze the ball hard with the left hand.', 'Injury plan'],
+  ['NL24', 'Walk-in left-hand layups', 'Finishing (Left Hand)', 'After School', 3, '5 makes', '', 1, '', 'Soft off the glass. No big jumps.', 'Injury plan'],
+  ['NL25', 'Left-hand floaters', 'Finishing (Left Hand)', 'After School', 3, '5 makes', 'Right side|Middle|Left side', 1, '', 'Soft, high arc off 1-2 steps. Small hop only if PT says OK.', 'Injury plan'],
+  ['NL26', 'Post-up baby hook (back to basket)', 'Finishing (Left Hand)', 'After School', 3, '5 makes', 'Right block|Left block|Either block', 1, '', 'Back to the basket, drop step to the middle, left-hand baby hook off the glass. Shoulder to the rim.', 'Injury plan'],
+  ['NL27', 'Left-hand close bank shots', 'Finishing (Left Hand)', 'After School', 2, '5 makes', '', 1, '', '2-3 ft, use the square.', 'Injury plan'],
+  ['NL28', 'Left-hand Mikan (one side)', 'Finishing (Left Hand)', 'After School', 2, '10 makes', '', 1, '', 'Left-hand hooks under the rim, catch with the left hand only. Small steps, no big jumps.', 'Injury plan'],
+  ['NL29', 'PT: Marching bridge', 'PT (Knee)', 'Morning,After School,Night', 3, '10 reps', '', 1, '', 'Lie on your back, knees bent, lift hips, then lift one bent leg at a time. Back straight. PT: 2-3 sets, 3 days a week.', 'PT: Kaitlin Schultz'],
+  ['NL30', 'PT: Clamshell with band', 'PT (Knee)', 'Morning,After School,Night', 3, '10 reps', '', 1, '', 'On your side, knees bent 90, band around legs. Open top knee slowly. Hips stay stacked.', 'PT: Kaitlin Schultz'],
+  ['NL31', 'PT: Forward T', 'PT (Knee)', 'Morning,After School,Night', 2, '10 reps', '', 1, '', 'Balance on one leg, hinge forward as the other leg reaches back. Knee doesn\'t cave in.', 'PT: Kaitlin Schultz'],
+  ['NL32', 'PT: Squat hold with weight', 'PT (Knee)', 'Morning,After School,Night', 3, '30-sec hold', '', 1, '', '10 lb in your LEFT hand, sit back into the squat. Ask PT before using the right hand (broken pinkie).', 'PT: Kaitlin Schultz'],
+  ['NL33', 'PT: Plank on elbows', 'PT (Knee)', 'Morning,After School,Night', 2, '45-60 sec', '', 1, '', 'Elbows under shoulders, back straight, gentle chin tuck.', 'PT: Kaitlin Schultz'],
+  ['NL34', 'PT: Easy cardio (bike or incline walk)', 'PT (Knee)', 'Morning,After School,Night', 1, '15 min', '', 2, '', 'Stationary bike or treadmill walking on an incline.', 'PT: Kaitlin Schultz']
+];
+// [Track, Activity, Type, Order]
+var V2_NL_PLAN = [
+  ['Morning', 'NL1', 'Must-do', 1], ['Morning', 'NL4', 'Must-do', 2], ['Morning', 'NL6', 'Must-do', 3], ['Morning', 'NL11', 'Must-do', 4],
+  ['Night', 'NL8', 'Must-do', 1], ['Night', 'NL9', 'Must-do', 2], ['Night', 'NL22', 'Must-do', 3]
+];
+(function () {
+  var opt = {
+    'Morning': ['NL2', 'NL3', 'NL5', 'NL7', 'NL10', 'NL19', 'NL20', 'NL21', 'NL23', 'NL29', 'NL30', 'NL31', 'NL32', 'NL33', 'NL34'],
+    'After School': ['NL1', 'NL2', 'NL3', 'NL4', 'NL5', 'NL6', 'NL7', 'NL8', 'NL9', 'NL10', 'NL11', 'NL12', 'NL13', 'NL14', 'NL15', 'NL16', 'NL17', 'NL18',
+                     'NL19', 'NL20', 'NL21', 'NL22', 'NL23', 'NL24', 'NL25', 'NL26', 'NL27', 'NL28', 'NL29', 'NL30', 'NL31', 'NL32', 'NL33', 'NL34'],
+    'Night': ['NL1', 'NL2', 'NL3', 'NL4', 'NL5', 'NL6', 'NL7', 'NL10', 'NL11', 'NL19', 'NL20', 'NL21', 'NL23', 'NL29', 'NL30', 'NL31', 'NL32', 'NL33', 'NL34']
+  };
+  Object.keys(opt).forEach(function (t) { opt[t].forEach(function (id, i) { V2_NL_PLAN.push([t, id, 'Option', 100 + i]); }); });
+})();
+
+function v2NellieInjuryPlan() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // 1) Library rows (by header name, so column order doesn't matter)
+  var lib = ss.getSheetByName(V2_LIB);
+  var lh = lib.getRange(1, 1, 1, lib.getLastColumn()).getValues()[0];
+  var have = {};
+  (v2Rows(V2_LIB) || []).forEach(function (r) { have[String(r['ID'])] = true; });
+  var addLib = V2_NL_LIB.filter(function (r) { return !have[r[0]]; }).map(function (r) {
+    var v = { 'ID': r[0], 'Name': r[1], 'Category': r[2], 'Tracks': r[3], 'Sets': r[4], 'Per Set': r[5], 'Set Labels': r[6],
+              'Points Per Set': r[7], 'Video': r[8], 'Cue': r[9], 'Result': '', 'Result Of': '', 'Source': r[10], 'Active': true };
+    return lh.map(function (h) { return h in v ? v[h] : ''; });
+  });
+  if (addLib.length) lib.getRange(lib.getLastRow() + 1, 1, addLib.length, lh.length).setValues(addLib);
+
+  // 2) Nellie's own plan rows
+  var plan = ss.getSheetByName(V2_PLAN);
+  var ph = plan.getRange(1, 1, 1, plan.getLastColumn()).getValues()[0];
+  var exists = {};
+  (v2Rows(V2_PLAN) || []).forEach(function (r) { exists[r['Player'] + '|' + r['Track'] + '|' + r['Activity']] = true; });
+  var addPlan = V2_NL_PLAN.filter(function (r) { return !exists['Nellie|' + r[0] + '|' + r[1]]; }).map(function (r) {
+    var v = { 'Player': 'Nellie', 'Track': r[0], 'Activity': r[1], 'Type': r[2], 'Order': r[3], 'Active': true, 'Sets': '' };
+    return ph.map(function (h) { return h in v ? v[h] : ''; });
+  });
+  if (addPlan.length) plan.getRange(plan.getLastRow() + 1, 1, addPlan.length, ph.length).setValues(addPlan);
+
+  // 3) Own Plan Only = TRUE for Nellie (pauses the shared "All" rows for her)
+  v2SetOwnPlanOnly('Nellie', true);
+  v2BumpCache();
+  try { if (v3On()) v3Publish(true); } catch (e) { console.error(e); }
+  var msg = 'Nellie\'s injury plan is on: added ' + addLib.length + ' activities and ' + addPlan.length + ' plan rows. ' +
+            'Her shared must-dos are paused (Players tab: Own Plan Only = TRUE). Run v2NellieInjuryPlanOff when she is healed.';
+  console.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+
+// When she's healed: back to the shared plan. Her NL rows are set inactive (kept for history).
+function v2NellieInjuryPlanOff() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var plan = ss.getSheetByName(V2_PLAN), vals = plan.getDataRange().getValues(), h = vals[0];
+  var cP = h.indexOf('Player'), cA = h.indexOf('Activity'), cOn = h.indexOf('Active');
+  for (var i = 1; i < vals.length; i++) {
+    if (vals[i][cP] === 'Nellie' && /^NL\d+$/.test(String(vals[i][cA]))) plan.getRange(i + 1, cOn + 1).setValue(false);
+  }
+  v2SetOwnPlanOnly('Nellie', false);
+  v2BumpCache();
+  try { if (v3On()) v3Publish(true); } catch (e) { console.error(e); }
+  try { SpreadsheetApp.getUi().alert('Nellie is back on the regular plan.'); } catch (e) {}
+}
+
+function v2SetOwnPlanOnly(player, on) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V2_PLAYERS);
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var col = head.indexOf('Own Plan Only');
+  if (col === -1) { col = head.length; sh.getRange(1, col + 1).setValue('Own Plan Only').setFontWeight('bold'); }
+  var names = sh.getRange(2, 1, Math.max(1, sh.getLastRow() - 1), 1).getValues();
+  for (var i = 0; i < names.length; i++) if (names[i][0] === player) sh.getRange(i + 2, col + 1).setValue(on ? true : false);
 }
