@@ -317,7 +317,7 @@ function renderPrizes() {
   $("#weekly-visual").innerHTML = visual === "Bomb" ? bombSVG(P.week, W.target) : thermoSVG(P.week, W.target);
   $("#big-visual").innerHTML = visual === "Bomb" ? bombSVG(P.big, B.target) : thermoSVG(P.big, B.target, true);
   const wLeft = Math.max(0, W.target - P.week), bLeft = Math.max(0, B.target - P.big);
-  $("#weekly-label").innerHTML = wLeft ? `<span class="num">${wLeft}</span> more ${wLeft === 1 ? "achievement" : "achievements"} to ${visual === "Bomb" ? "BOOM" : "the top"} · <span class="num">${P.week}</span>/${W.target}` : "Weekly prize won! New fuse on Monday.";
+  $("#weekly-label").innerHTML = wLeft ? `<span class="num">${wLeft}</span> more ${wLeft === 1 ? "achievement" : "achievements"} to ${visual === "Bomb" ? "BOOM" : "the top"} · <span class="num">${P.week}</span>/${W.target}` : `Prize unlocked! <span class="num">${P.week}</span> this week. Every extra achievement makes it nicer.`;
   $("#big-label").innerHTML = bLeft ? `<span class="num">${P.big}</span>/${B.target} achievements` : "Big prize won! Show Dad.";
   $(".prize-weekly").classList.toggle("won", !wLeft);
   $(".prize-big").classList.toggle("won", !bLeft);
