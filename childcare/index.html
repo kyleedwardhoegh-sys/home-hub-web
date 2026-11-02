@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Recovery Childcare Sign-Up</title>
+<meta name="description" content="Sign up to help with Calvary Life Recovery childcare on Sunday evenings." />
+<meta name="theme-color" content="#23495a" />
+<style>
+:root {
+  --bg: #f6f2ea; --card: #ffffff; --ink: #22302f; --soft: #5d6a68; --line: #e2dcd0;
+  --brand: #23495a; --brand-ink: #ffffff; --go: #1f7a53; --go-soft: #e3f3ea; --need: #a8561a; --need-soft: #fbeedd;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14201f; --card: #1f2d2c; --ink: #eef3f1; --soft: #a9b7b4; --line: #34443f;
+    --brand: #2c5c71; --brand-ink: #ffffff; --go: #3fae80; --go-soft: #1b3a2d; --need: #eaa368; --need-soft: #3b2b1c;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { background: var(--brand); color: var(--brand-ink); padding: 22px 16px 20px; }
+header h1 { margin: 0; font-size: 1.55rem; line-height: 1.2; }
+header p { margin: 4px 0 0; opacity: .9; font-size: .95rem; }
+main, header > div { max-width: 640px; margin: 0 auto; }
+main { padding: 14px 16px 48px; }
+.me { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .95rem; color: var(--soft); margin-bottom: 12px; min-height: 28px; }
+.link { background: none; border: 0; padding: 6px 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+h2 { font-size: 1.02rem; color: var(--soft); margin: 26px 0 10px; font-weight: 600; }
+.day { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.day.first { border: 2px solid var(--brand); }
+.date { font-size: 1.22rem; font-weight: 700; margin: 0 0 2px; }
+.first .date { font-size: 1.4rem; }
+.when { font-size: .92rem; color: var(--soft); margin: 0 0 10px; }
+.closed { color: var(--soft); margin: 4px 0 0; }
+.slot { border-top: 1px solid var(--line); padding: 12px 0 2px; }
+.slot-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.slot-name { font-weight: 700; }
+.slot-age { font-weight: 400; color: var(--soft); font-size: .9rem; }
+.status { font-size: .84rem; font-weight: 600; padding: 2px 9px; border-radius: 99px; background: var(--need-soft); color: var(--need); white-space: nowrap; }
+.status.ok { background: var(--go-soft); color: var(--go); }
+.names { list-style: none; margin: 6px 0 10px; padding: 0; }
+.names li { padding: 2px 0; }
+.names .note { color: var(--soft); font-size: .92rem; }
+.names .none { color: var(--soft); }
+.x { background: none; border: 0; color: var(--need); font: inherit; cursor: pointer; padding: 0 6px; }
+.btn { display: block; width: 100%; min-height: 50px; border-radius: 11px; border: 0; background: var(--go); color: #fff; font-family: inherit; font-size: 1.04rem; font-weight: 700; line-height: 1.2; cursor: pointer; padding: 10px; margin-bottom: 8px; }
+.btn:disabled { opacity: .6; }
+.in { background: var(--go-soft); color: var(--ink); border-radius: 11px; padding: 10px 12px; margin-bottom: 8px; }
+.in strong { color: var(--go); }
+.in-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: .92rem; margin-top: 2px; }
+.in-actions a { color: inherit; padding: 6px 0; }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-top: 18px; }
+summary { font-weight: 700; cursor: pointer; min-height: 30px; }
+details ul { padding-left: 20px; margin: 8px 0; }
+details p { margin: 8px 0; }
+a { color: inherit; }
+dialog { border: 0; border-radius: 16px; padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(0, 0, 0, .5); }
+dialog h3 { margin: 0 0 4px; font-size: 1.2rem; }
+dialog p { margin: 0 0 12px; color: var(--soft); font-size: .95rem; }
+dialog input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--soft); background: var(--bg); color: var(--ink); margin-bottom: 12px; }
+.row { display: flex; gap: 10px; }
+.row .btn { margin: 0; }
+.btn.plain { background: var(--line); color: var(--ink); }
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(600px, calc(100vw - 32px)); background: #16302a; color: #fff; padding: 12px 16px; border-radius: 12px; font-size: .98rem; z-index: 5; }
+.msg { padding: 14px; border-radius: 12px; background: var(--need-soft); color: var(--ink); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<header><div>
+  <h1>Recovery Childcare Sign-Up</h1>
+  <p>Sundays, 5:30 to 7:15 PM &middot; Calvary Golden Valley</p>
+</div></header>
+<main>
+  <div class="me" id="me"></div>
+  <div id="list"><p>Loading the schedule&hellip;</p></div>
+  <details>
+    <summary>What to expect</summary>
+    <p>Dinner is served at 5:00 PM and volunteers are welcome to join. Ideally we have at least 2 adults in each room, and the more the merrier.</p>
+    <ul>
+      <li><strong>5:30&ndash;5:40:</strong> Meet at the youth registration (slides) area. Check younger children in to the nursery, then circle up with the older kids and review the rules.</li>
+      <li><strong>5:40&ndash;6:40:</strong> Playground (weather permitting) and/or gym.</li>
+      <li><strong>6:40&ndash;7:00:</strong> Watch a show downstairs.</li>
+      <li><strong>7:00&ndash;7:15:</strong> Play in the foosball room if there's time, otherwise the slides until pick-up.</li>
+    </ul>
+    <p><strong>Questions or new to volunteering?</strong> Contact Kyle Hoegh (<a href="sms:+15073982669">text 507-398-2669</a>, <a href="mailto:kyleedwardhoegh@gmail.com">email</a>) or Emily Reesnes, Calvary Kids Director (<a href="mailto:ereesnes@calvary.org">email</a>).</p>
+  </details>
+</main>
+
+<dialog id="name-dialog">
+  <form method="dialog" id="name-form">
+    <h3>What's your name?</h3>
+    <p>Just once. This phone or computer will remember it.</p>
+    <input id="name-input" autocomplete="name" maxlength="60" placeholder="First and last name" required />
+    <div class="row">
+      <button class="btn plain" type="button" id="name-cancel">Cancel</button>
+      <button class="btn" type="submit">Continue</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="note-dialog">
+  <form method="dialog" id="note-form">
+    <h3>Add a note</h3>
+    <p>For example, "Leaving at 6:45"</p>
+    <input id="note-input" maxlength="80" />
+    <div class="row">
+      <button class="btn plain" type="button" id="note-cancel">Cancel</button>
+      <button class="btn" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" hidden role="status"></div>
+
+<script>
+// Recovery Childcare sign-up (2026-11-02). No accounts on purpose: volunteers tap "I'm in"
+// and their name is remembered on that device. Data: Supabase childcare_signups
+// (supabase/childcare.sql). The weekly email draft reads the same table.
+const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
+const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
+const SLOTS = [
+  { id: "Nursery", age: "Birth to Pre-K" },
+  { id: "Big Kids", age: "K to 5th grade" },
+];
+const GOAL = 2;              // adults wanted per room
+const WEEKS = 10;            // how far ahead to show
+const REGULARS = { "Big Kids": ["Jake Breitbach"] };  // in every week unless they tap "can't make it"
+const NO_CHILDCARE = {};     // "2026-12-27": "No childcare this week"
+const ADMIN = new URLSearchParams(location.search).has("admin");  // Kyle: can remove anyone
+
+const ls = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: asks again next visit */ } },
+};
+let myName = ls.get("childcare.name");
+let rows = {};   // id -> row
+let pending = null;
+
+const el = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const headers = (extra) => ({ apikey: SB_KEY, "Content-Type": "application/json", ...extra });
+const idOf = (day, slot, name) => `${day}|${slot}|${name.trim().toLowerCase()}`;
+const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+// Sundays in Minnesota time, starting with this coming one. Rolls over after pick-up.
+function sundays() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "numeric", day: "numeric", weekday: "short", hour: "numeric", hourCycle: "h23" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday);
+  const add = dow === 0 ? (Number(p.hour) >= 20 ? 7 : 0) : 7 - dow;
+  const out = [];
+  for (let i = 0; i < WEEKS; i++) {
+    const d = new Date(Date.UTC(+p.year, +p.month - 1, +p.day + add + i * 7));
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+const pretty = (day) => new Date(day + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+const shortDay = (day) => new Date(day + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+
+function calendarLink(day, slot) {
+  const d = day.replace(/-/g, "");
+  const q = new URLSearchParams({ action: "TEMPLATE", text: `Recovery Childcare (${slot})`, dates: `${d}T173000/${d}T191500`, ctz: "America/Chicago", location: "Calvary, 7520 Golden Valley Rd, Golden Valley, MN 55427" });
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
+
+function roster(day, slot) {
+  const people = [];
+  (REGULARS[slot] || []).forEach((name) => {
+    const r = rows[idOf(day, slot, name)];
+    if (!r) people.push({ name, note: "" });
+  });
+  Object.values(rows).forEach((r) => {
+    if (r.day === day && r.slot === slot && !r.removed) people.push({ name: r.name, note: r.note || "" });
+  });
+  return people;
+}
+
+function slotHtml(day, s) {
+  const people = roster(day, s.id);
+  const mine = myName && people.find((p) => same(p.name, myName));
+  const left = Math.max(0, GOAL - people.length);
+  const status = left ? `<span class="status">Needs ${left} more</span>` : `<span class="status ok">Covered, more welcome</span>`;
+  const names = people.length
+    ? people.map((p) => `<li>${esc(p.name)}${p.note ? ` <span class="note">(${esc(p.note)})</span>` : ""}${ADMIN ? ` <button class="x" data-act="remove" data-day="${day}" data-slot="${s.id}" data-name="${esc(p.name)}" aria-label="Remove ${esc(p.name)}">&times;</button>` : ""}</li>`).join("")
+    : `<li class="none">Nobody yet</li>`;
+  const action = mine
+    ? `<div class="in"><strong>&#10003; You're in. Thank you!</strong>
+         <div class="in-actions">
+           <a href="${esc(calendarLink(day, s.id))}" target="_blank" rel="noopener">Add to my calendar</a>
+           <button class="link" data-act="note" data-day="${day}" data-slot="${s.id}">${mine.note ? "Change note" : "Add a note"}</button>
+           <button class="link" data-act="out" data-day="${day}" data-slot="${s.id}">I can't make it</button>
+         </div></div>`
+    : `<button class="btn" data-act="in" data-day="${day}" data-slot="${s.id}">I'm in for ${s.id}</button>`;
+  return `<div class="slot">
+    <div class="slot-top"><span class="slot-name">${s.id} <span class="slot-age">${s.age}</span></span>${status}</div>
+    <ul class="names">${names}</ul>
+    ${action}
+  </div>`;
+}
+
+function dayHtml(day, i) {
+  const closed = NO_CHILDCARE[day];
+  return `<section class="day ${i === 0 ? "first" : ""}">
+    <p class="date">${i === 0 ? "This Sunday, " : ""}${esc(pretty(day).replace(/^Sunday, /, ""))}</p>
+    ${closed ? `<p class="closed">${esc(closed)}</p>` : `<p class="when">5:30 to 7:15 PM</p>${SLOTS.map((s) => slotHtml(day, s)).join("")}`}
+  </section>`;
+}
+
+function render() {
+  const days = sundays();
+  el("me").innerHTML = myName
+    ? `<span>Signing up as <strong>${esc(myName)}</strong></span><button class="link" data-act="rename">Not you?</button>`
+    : `<span>Tap "I'm in" on any Sunday. No account needed.</span>`;
+  el("list").innerHTML = dayHtml(days[0], 0) + `<h2>Coming up</h2>` + days.slice(1).map((d) => dayHtml(d, d)).join("");
+}
+
+async function load() {
+  const days = sundays();
+  const r = await fetch(`${SB_URL}/rest/v1/childcare_signups?select=*&day=gte.${days[0]}&day=lte.${days[days.length - 1]}`, { headers: headers() });
+  if (!r.ok) throw new Error("load " + r.status);
+  const next = {};
+  (await r.json()).forEach((row) => { next[row.id] = row; });
+  rows = next;
+}
+
+async function save(row) {
+  const before = rows[row.id];
+  rows[row.id] = row;
+  render();
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/childcare_signups`, { method: "POST", headers: headers({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify([row]) });
+    if (!r.ok) throw new Error("save " + r.status);
+    return true;
+  } catch (e) {
+    if (before) rows[row.id] = before; else delete rows[row.id];
+    render();
+    toast("That didn't save. Please try again, or text Kyle at 507-398-2669.");
+    return false;
+  }
+}
+const rowFor = (day, slot, name, fields) => ({ id: idOf(day, slot, name), day, slot, name: name.trim(), note: (rows[idOf(day, slot, name)] || {}).note || null, removed: false, ...fields });
+
+async function signUp(day, slot) {
+  if (await save(rowFor(day, slot, myName))) toast(`Thanks, ${myName.split(" ")[0]}! You're in for ${slot} on ${shortDay(day)}.`);
+}
+async function drop(day, slot, name) {
+  if (await save(rowFor(day, slot, name, { removed: true, note: null }))) toast(`${name} is off ${slot} for ${shortDay(day)}.`);
+}
+
+let toastTimer;
+function toast(text) {
+  const t = el("toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 4500);
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const { act, day, slot, name } = b.dataset;
+  if (act === "in") {
+    if (myName) signUp(day, slot);
+    else { pending = { day, slot }; el("name-input").value = ""; el("name-dialog").showModal(); }
+  } else if (act === "out") drop(day, slot, myName);
+  else if (act === "remove") drop(day, slot, name);
+  else if (act === "rename") { pending = null; el("name-input").value = myName; el("name-dialog").showModal(); }
+  else if (act === "note") {
+    pending = { day, slot };
+    el("note-input").value = (rows[idOf(day, slot, myName)] || {}).note || "";
+    el("note-dialog").showModal();
+  }
+});
+el("name-cancel").onclick = () => el("name-dialog").close();
+el("note-cancel").onclick = () => el("note-dialog").close();
+el("name-form").addEventListener("submit", () => {
+  const v = el("name-input").value.trim();
+  if (!v) return;
+  myName = v;
+  ls.set("childcare.name", v);
+  render();
+  if (pending) signUp(pending.day, pending.slot);
+  pending = null;
+});
+el("note-form").addEventListener("submit", () => {
+  if (pending) save(rowFor(pending.day, pending.slot, myName, { note: el("note-input").value.trim() || null }));
+  pending = null;
+});
+
+async function refresh(first) {
+  try {
+    await load();
+    render();
+  } catch (e) {
+    if (first) el("list").innerHTML = `<div class="msg">The schedule didn't load. Check your connection and refresh, or text Kyle at <a href="sms:+15073982669">507-398-2669</a>.</div>`;
+  }
+}
+refresh(true);
+// Stay current when someone comes back to the page, without redrawing over an open dialog.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !document.querySelector("dialog[open]")) refresh(false);
+});
+</script>
+</body>
+</html>

@@ -262,3 +262,6 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 - `v2NellieInjuryPlanOff()` sets her NL rows inactive and Own Plan Only back to FALSE.
 - Site: new `FOCUS` groups **Left Hand** and **PT** come first (`LEFT_ORDER` sets the section order). Other kids are unaffected because their categories don't match.
 - Printable version for practice: Drive doc "Nellie – Left-Hand Practice List (Injury Weeks)".
+
+## Recovery Childcare sign-up (2026-11-02)
+Public volunteer page at `/childcare/` replacing SignUpGenius: next 10 Sundays, one tap "I'm in", name remembered per device, no accounts. Table `childcare_signups` (`supabase/childcare.sql`); removing = `removed: true`. In `childcare/index.html`: `REGULARS` are listed weekly unless they back out, `NO_CHILDCARE` closes a Sunday, `?admin` lets Kyle remove anyone. Kyle's Monday email draft reads the same table (Apps Script `G:\My Drive\Claude Tools & Instructions\Recovery Childcare Weekly Draft.gs`).
