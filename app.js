@@ -41,6 +41,7 @@ const S = {
   fbSkipped: {},    // drills whose feedback question was skipped this visit
   fbQueue: null,    // feedback waiting for the BOOM card to close
   showMore: {},     // per track: "Show more options" opened
+  hill: null,       // hill run times per kid, from the Hill Run Log Sheet
 };
 
 const $ = (s) => document.querySelector(s);
@@ -133,6 +134,8 @@ function overlayOpen() { return !$("#boom-overlay").hidden || !$("#video-overlay
 async function boot() {
   const params = new URLSearchParams(location.search), want = params.get("p");
   let players;
+  S.hill = store.get("training.hill");
+  if (!params.has("demo")) loadHill();
   // ?demo forces preview mode (sample data, nothing saved) for testing without touching the Sheet.
   if (params.has("demo")) players = { error: "demo" };
   else {
@@ -247,7 +250,11 @@ function setLoading(on, name, attempt, err) {
 }
 
 async function loadHub(name) {
-  if (S.demo) { S.hub = S.hub && S.hub.player.name === name ? S.hub : demoHub(name); return; }
+  if (S.demo) {
+    S.hub = S.hub && S.hub.player.name === name ? S.hub : demoHub(name);
+    S.hill = { Nellie: [{ date: today(), rep: 1, time: 40.9 }, { date: today(), rep: 2, time: null }, { date: today(), rep: 3, time: 38.5 }], Nash: [{ date: today(), rep: 1, time: null }, { date: today(), rep: 2, time: null }] };
+    return;
+  }
   const hub = await apiGet("getHub", { player: name, date: today() });
   if (hub.error) { toast("Couldn't load the plan."); return; }
   S.hub = hub;
@@ -295,8 +302,45 @@ function render() {
   if (!S.hub) return;
   renderCalendar();
   renderPrizes();
+  renderHill();
   renderTabs();
   renderTrack();
+}
+
+// Hill runs: this kid's time to beat and last session. Lower is better. Hidden until they
+// have a run logged in the Hill Run Log Sheet.
+function renderHill() {
+  const el = $("#hill-card"), runs = (S.hill && S.hub && S.hill[S.hub.player.name]) || [];
+  el.hidden = !runs.length;
+  if (!runs.length) return;
+  const secs = (t) => `<span class="num">${esc(t)}</span>`;
+  const when = (d) => { const p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); };
+  const lastDay = runs.reduce((a, r) => (r.date > a ? r.date : a), "");
+  const last = runs.filter((r) => r.date === lastDay).sort((a, b) => a.rep - b.rep);
+  const timed = runs.filter((r) => r.time !== null), best = timed.length ? Math.min(...timed.map((r) => r.time)) : null;
+  const bestDay = timed.filter((r) => r.time === best).reduce((a, r) => (!a || r.date < a ? r.date : a), "");
+  const isRecord = bestDay === lastDay && timed.some((r) => r.date < lastDay);
+  const lastTimed = last.filter((r) => r.time !== null).length;
+  el.innerHTML = `<div class="hill-best">
+      <div class="eyebrow">Hill runs · time to beat</div>
+      ${best === null
+        ? `<div class="hill-none">No time yet</div><div class="muted">Time one rep next session to set it.</div>`
+        : `<div class="hill-time">${secs(best)}<small>sec</small></div><div class="muted">${isRecord ? "New record! " : ""}Set ${esc(when(bestDay))}</div>`}
+    </div>
+    <div class="hill-last">
+      <div class="eyebrow">Last session · ${esc(when(lastDay))}</div>
+      ${lastTimed
+        ? `<div class="hill-reps">${last.map((r) => `<span class="hill-rep ${r.time === best ? "best" : ""}">${r.time === null ? "No time" : esc(r.time)}</span>`).join("")}</div>`
+        : `<div class="hill-count">${last.length} rep${last.length === 1 ? "" : "s"} done, not timed</div>`}
+    </div>`;
+}
+async function loadHill() {
+  if (S.demo) return;
+  const hill = await HubData.getHillRuns();
+  if (!hill || JSON.stringify(hill) === JSON.stringify(S.hill)) return;
+  S.hill = hill;
+  store.set("training.hill", hill);
+  if (S.hub) renderHill();
 }
 
 // Today/tomorrow from Google Calendar — a heads-up only, not part of the tracks.
@@ -823,6 +867,7 @@ function toast(msg) {
 // Keep the screen fresh: pick up Dad's Sheet edits, and roll over at midnight.
 setInterval(async () => {
   if (!S.hub || S.demo || S.pending || Date.now() - S.lastTap < 8000 || document.hidden) return;
+  loadHill();
   const name = S.hub.player.name, dateBefore = S.hub.date, started = Date.now();
   const hub = await fetchHub(name);
   if (!canApply(name, hub, started)) return; // a tap landed while loading: keep the screen as is

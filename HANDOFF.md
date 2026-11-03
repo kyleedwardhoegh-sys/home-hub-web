@@ -265,3 +265,6 @@ Likely mapping (confirm specifics with Kyle when that project starts, don't assu
 
 ## Recovery Childcare sign-up (2026-11-02)
 Public volunteer page at `/childcare/` replacing SignUpGenius: next 10 Sundays, one tap "I'm in", name remembered per device, no accounts. Table `childcare_signups` (`supabase/childcare.sql`); removing = `removed: true`. In `childcare/index.html`: `REGULARS` are listed weekly unless they back out, `NO_CHILDCARE` closes a Sunday, `?admin` lets Kyle remove anyone. Kyle's Monday email draft reads the same table (Apps Script `G:\My Drive\Claude Tools & Instructions\Recovery Childcare Weekly Draft.gs`).
+
+## Hill runs (2026-11-02)
+Kyle logs reps in his own "Hill Run Log" Google Sheet (Drive, Nellie Nash Training), one row per rep; a blank Time (sec) means not timed. `v3PublishHill` (in `v3Sync`, every 5 minutes) publishes `site_data` `hill_runs`, and `renderHill` shows each kid their own time to beat and last session, hidden until they have a run. The best time is the lowest in the whole log, so it assumes one hill. Setup: paste the script, then run `v3PublishHill` once from the editor to approve access to the second Sheet and publish.

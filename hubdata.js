@@ -276,5 +276,11 @@
     return !!(r && r.ok);
   }
 
-  window.HubData = { getHub, getPlayers, getPlans, getEvents, rows, save, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
+  // Hill run times per kid, published from the "Hill Run Log" Sheet. null when unreachable.
+  async function getHillRuns() {
+    const d = await rows("site_data", "id=eq.hill_runs&select=data");
+    return d ? (d[0] ? d[0].data : {}) : null;
+  }
+
+  window.HubData = { getHub, getPlayers, getPlans, getEvents, getHillRuns, rows, save, post, sheetGet, pending: () => outbox.length, usingDb: sbLive, _assemble: assemble };
 })();

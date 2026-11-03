@@ -119,6 +119,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .shake { animation: shake .5s; }
 @keyframes shake { 20% { transform: translateX(-6px) rotate(-1deg); } 40% { transform: translateX(6px) rotate(1deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
 
+/* ---------- hill runs ---------- */
+.hill-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; align-items: center; background: var(--card); border: 2px solid var(--line); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+.hill-time { font-family: var(--mono); font-size: 3rem; line-height: 1.1; color: var(--accent); }
+.hill-time small { font-family: var(--body); font-weight: 700; font-size: 1rem; color: var(--ink-2); margin-left: 6px; }
+.hill-none { font-family: var(--display); font-weight: 800; font-size: 1.8rem; line-height: 1.2; color: var(--accent); }
+.hill-reps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.hill-rep { font-family: var(--mono); font-size: 1.15rem; padding: 8px 14px; border-radius: 14px; background: var(--paper); border: 2px solid var(--line); }
+.hill-rep.best { background: var(--accent); border-color: var(--accent); color: #fff; }
+.hill-count { font-weight: 700; font-size: 1.2rem; margin-top: 6px; }
+#view-hub.loading .hill-card { display: none; }
+@media (max-width: 720px) { .hill-card { grid-template-columns: minmax(0, 1fr); } }
+
 /* ---------- track tabs ---------- */
 .track-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; position: sticky; top: 0; z-index: 4; background: var(--paper); padding: 8px 0; }
 .track-tab { border: 2px solid var(--line); background: var(--card); border-radius: 20px; min-height: 84px; padding: 10px; display: grid; justify-items: center; align-content: center; gap: 2px; }

@@ -1427,6 +1427,29 @@ function v3PublishHomeEvents() {
   return v3PutDocs([{ id: 'events:home', data: { days: days } }], false);
 }
 
+// Hill runs (2026-11-02): Kyle logs them in his own "Hill Run Log" Sheet, one row per rep.
+// Publishes 'hill_runs' = {Nellie: [{date, rep, time}], ...} for the kids' pages; time is
+// null for a rep that wasn't timed. Run once from the editor to approve and publish now.
+var V3_HILL_LOG = '1AJr0Xv4Av8eC120ihrNgUqJkyvzEhejtvLx6DY2LQBA';
+function v3PublishHill() {
+  var rows = SpreadsheetApp.openById(V3_HILL_LOG).getSheets()[0].getDataRange().getValues();
+  var head = rows.shift().map(function (h) { return String(h).trim(); });
+  var col = function (name) {
+    var i = head.indexOf(name);
+    if (i < 0) throw new Error('Hill Run Log needs a "' + name + '" column.');
+    return i;
+  };
+  var cDate = col('Date'), cPlayer = col('Player'), cRep = col('Rep'), cTime = col('Time (sec)');
+  var out = {};
+  rows.forEach(function (r) {
+    var player = String(r[cPlayer]).trim(), date = v2Ymd(r[cDate]);
+    if (!player || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    var t = r[cTime] === '' ? 0 : Number(r[cTime]);
+    (out[player] = out[player] || []).push({ date: date, rep: Number(r[cRep]) || 0, time: t > 0 ? t : null });
+  });
+  return v3PutDocs([{ id: 'hill_runs', data: out }], false);
+}
+
 // Every 5 minutes: copy check-offs into the Sheet, refresh calendar events, and once an
 // hour re-upload the whole plan just in case. (These calls also keep the free Supabase
 // project from ever being paused for inactivity.)
@@ -1438,6 +1461,7 @@ function v3Sync() {
     try { v3Mirror(); } catch (e) { console.error('v3Mirror ' + e); }
     try { v3PublishEvents(); } catch (e) { console.error('v3PublishEvents ' + e); }
     try { v3PublishHomeEvents(); } catch (e) { console.error('v3PublishHomeEvents ' + e); }
+    try { v3PublishHill(); } catch (e) { console.error('v3PublishHill ' + e); }
     if (new Date().getMinutes() < 5) { try { v3Publish(true); } catch (e) { console.error('v3Publish ' + e); } }
   } finally { lock.releaseLock(); }
 }
