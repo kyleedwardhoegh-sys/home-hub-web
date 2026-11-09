@@ -943,6 +943,27 @@ function v2CleanTitle(t) {
   return t;
 }
 
+// Tap an event on any screen → its page in Google Calendar (2026-11-09). CalendarApp can't
+// give that link for imported calendars (team calendars, Crossbar), so this asks the
+// Calendar API, which needs the "Google Calendar API" service added in the editor
+// (Services +). Without it this returns {} and the screens open that day instead.
+// Keyed like the callers' events: raw title + start time (all-day: 'all:' + date).
+function v2CalLinks(calId, start, end) {
+  var out = {};
+  if (typeof Calendar === 'undefined') return out;
+  try {
+    var res = Calendar.Events.list(calId, { timeMin: start.toISOString(), timeMax: end.toISOString(), singleEvents: true, maxResults: 250 });
+    (res.items || []).forEach(function (it) {
+      if (!it.htmlLink || !it.start) return;
+      out[(it.summary || '') + '|' + (it.start.date ? 'all:' + it.start.date : new Date(it.start.dateTime).getTime())] = it.htmlLink;
+    });
+  } catch (e) { console.error('v2CalLinks ' + calId + ' ' + e); }
+  return out;
+}
+function v2CalLinkKey(ev, tz) {
+  return ev.getTitle() + '|' + (ev.isAllDayEvent() ? 'all:' + Utilities.formatDate(ev.getAllDayStartDate(), tz, 'yyyy-MM-dd') : ev.getStartTime().getTime());
+}
+
 function v2Events(player, ownCals, date, noCache) {
   var cache = CacheService.getScriptCache(), ck = 'ev|' + player + '|' + date;
   if (!noCache) { var hit = cache.get(ck); if (hit) return JSON.parse(hit); }
@@ -953,6 +974,7 @@ function v2Events(player, ownCals, date, noCache) {
     var cal = null;
     try { cal = CalendarApp.getCalendarById(calId); } catch (e) {}
     if (!cal) return;
+    var links = v2CalLinks(calId, start, end);
     cal.getEvents(start, end).forEach(function (ev) {
       var title = ev.getTitle();
       var s = ev.getStartTime(), allDay = ev.isAllDayEvent();
@@ -966,6 +988,7 @@ function v2Events(player, ownCals, date, noCache) {
         time: allDay ? '' : Utilities.formatDate(s, tz, 'h:mm a'),
         title: v2CleanTitle(title),
         location: String(ev.getLocation() || '').trim(),
+        link: links[v2CalLinkKey(ev, tz)] || '',
         sort: (dayStr === date ? 0 : 1) * 1e13 + (allDay ? 0 : s.getTime() % 1e13)
       });
     });
@@ -973,7 +996,7 @@ function v2Events(player, ownCals, date, noCache) {
   var ids = ownCals.concat(V2_NAME_MATCH_CALS, Object.keys(V2_TEAM_CALS).map(function (k) { return V2_TEAM_CALS[k]; }));
   ids.filter(function (id, i) { return ids.indexOf(id) === i; }).forEach(function (id) { add(id); });
   out.sort(function (a, b) { return a.sort - b.sort; });
-  out = out.slice(0, 16).map(function (e) { return { day: e.day, time: e.time, title: e.title, location: e.location }; });
+  out = out.slice(0, 16).map(function (e) { return { day: e.day, time: e.time, title: e.title, location: e.location, link: e.link }; });
   cache.put(ck, JSON.stringify(out), 600);
   return out;
 }
@@ -1391,15 +1414,17 @@ function v3HomeEvents(date) {
     var cal = null;
     try { cal = CalendarApp.getCalendarById(c.id); } catch (e) {}
     if (!cal) return;
+    var links = v2CalLinks(c.id, start, end);
     cal.getEvents(start, end).forEach(function (ev) {
       var s = ev.getStartTime(), allDay = ev.isAllDayEvent(), title = v2CleanTitle(ev.getTitle());
       var key = title.toLowerCase() + '|' + (allDay ? 'all' : s.getTime());
       var e = byKey[key];
       if (!e) {
         e = byKey[key] = { title: title, time: allDay ? '' : Utilities.formatDate(s, tz, 'h:mm a'),
-                           location: String(ev.getLocation() || '').trim(), sort: allDay ? 0 : s.getTime(), w: {} };
+                           location: String(ev.getLocation() || '').trim(), sort: allDay ? 0 : s.getTime(), w: {}, link: '' };
         list.push(e);
       }
+      if (!e.link) e.link = links[v2CalLinkKey(ev, tz)] || '';
       c.who.forEach(function (w) { e.w[w] = true; });
       try {
         ev.getGuestList().forEach(function (g) {
@@ -1414,7 +1439,7 @@ function v3HomeEvents(date) {
   });
   list.sort(function (a, b) { return a.sort - b.sort; });
   var out = list.slice(0, 30).map(function (e) {
-    return { title: e.title, time: e.time, location: e.location, who: V3_FAMILY.filter(function (n) { return e.w[n]; }) };
+    return { title: e.title, time: e.time, location: e.location, link: e.link, who: V3_FAMILY.filter(function (n) { return e.w[n]; }) };
   });
   try { cache.put(ck, JSON.stringify(out), 600); } catch (e) {}
   return out;

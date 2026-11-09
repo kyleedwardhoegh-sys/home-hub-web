@@ -347,10 +347,18 @@ async function loadHill() {
 function renderCalendar() {
   const ev = S.hub.events || [], el = $("#cal-strip");
   el.hidden = !ev.length;
-  el.innerHTML = ev.map((e) => `<div class="cal-item ${e.day === "Today" ? "today" : ""}">
+  // Tap an event → its page in Google Calendar (that day's view if there's no link yet).
+  // The kiosk opens it in place (its Back pill returns); phones and browsers get a new tab.
+  const target = document.documentElement.classList.contains("kiosk") ? "" : ` target="_blank" rel="noopener"`;
+  el.innerHTML = ev.map((e) => `<a class="cal-item ${e.day === "Today" ? "today" : ""}" href="${esc(calHref(e))}"${target}>
       <span class="cal-day">${esc(e.day)}<b>${esc(e.time || "All day")}</b></span>
       <span class="cal-text"><span class="cal-title">${esc(e.title)}</span>${e.location ? `<span class="cal-loc">${esc(e.location)}</span>` : ""}</span>
-    </div>`).join("");
+    </a>`).join("");
+}
+function calHref(e) {
+  if (/^https:\/\/(www|calendar)\.google\.com\//.test(e.link || "")) return e.link;
+  const p = (S.hub.date || today()).split("-").map(Number), d = new Date(p[0], p[1] - 1, p[2] + (e.day === "Tomorrow" ? 1 : 0));
+  return `https://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function renderPrizes() {

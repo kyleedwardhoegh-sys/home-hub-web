@@ -268,3 +268,6 @@ Public volunteer page at `/childcare/` replacing SignUpGenius: next 10 Sundays, 
 
 ## Hill runs (2026-11-02)
 Kyle logs reps in his own "Hill Run Log" Google Sheet (Drive, Nellie Nash Training), one row per rep; a blank Time (sec) means not timed. `v3PublishHill` (in `v3Sync`, every 5 minutes) publishes `site_data` `hill_runs`, and `renderHill` shows each kid their own time to beat and last session, hidden until they have a run. The best time is the lowest in the whole log, so it assumes one hill. Setup: paste the script, then run `v3PublishHill` once from the editor to approve access to the second Sheet and publish.
+
+## Tap an event → Google Calendar (2026-11-09)
+Every calendar event on the Training Hub strip and on the kitchen dashboard (home screen chips, parent boards, Who's driving) is a link to that event in Google Calendar. `v2Events` / `v3HomeEvents` add `link` (the event's `htmlLink`) from `v2CalLinks`, which uses the Apps Script **Google Calendar API** advanced service (Services + → Google Calendar API). CalendarApp alone can't make links for imported calendars (team calendars, Crossbar). Without the service, or for an event with no link, the screens open Google Calendar's day view for that date. The kiosk opens it in place (Back pill returns); phones get a new tab. Links only open for a Google account that can see that calendar.
