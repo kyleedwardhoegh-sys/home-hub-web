@@ -58,6 +58,7 @@ h2 small { font-family: var(--body); font-weight: 600; font-size: .85rem; color:
 .drill h3 { font-family: var(--display); font-weight: 700; font-size: 1.2rem; margin: 0; line-height: 1.15; flex: 1; }
 .src { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--soft); margin-top: 3px; }
 .cue { color: var(--soft); margin: 6px 0 0; }
+.warn { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--card-2); font-weight: 600; font-size: .92rem; }
 .watch { flex: none; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--card-2); color: var(--ink); font-weight: 700; font-size: .9rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .sets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .set { min-height: 54px; min-width: 76px; padding: 6px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--card-2); font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
@@ -146,7 +147,7 @@ const POOL = [
   { id: "prep", name: "Hand Prep Catches", sets: 2, per: "10 catches", src: "Mike Dunn", video: "https://youtu.be/QmohmURpaGo", cue: "Toss it out, step in and catch it. Hands are ready before your feet land. Freeze in your shot pocket." },
   { id: "hops", name: "One-Position Hops", sets: 2, per: "8 hops", src: "Mike Dunn", video: "https://youtu.be/YsOXL_hDHYY", cue: "Hop forward or back and land in your \"1\" spot, balanced. Rise into your shot, no release." },
   { id: "flow", name: "Wide Stance Flow", sets: 2, per: "10 reps", src: "Mike Dunn", video: "https://youtu.be/QHhBWyY-TDg", cue: "Wide stance. Go through your whole shot without the ball ever stopping. No release." },
-  { id: "wall", name: "Wall Target One-Hand", sets: 3, per: "10 shots", src: "Touch drill", video: "", cue: "Tape a spot on the wall above your head. From 3 feet, shooting hand only, hit the spot soft with backspin." },
+  { id: "wall", name: "Wall Target One-Hand", sets: 3, per: "10 shots", src: "Touch drill", video: "https://youtu.be/zpq-Ntqx-pU?t=267", warn: "Only use a wall you're allowed to hit. No good wall? Skip this one.", cue: "Pick a spot on the wall above your head (tape works). From 3 feet, shooting hand only, hit that exact spot every time with perfect form and backspin." },
   { id: "rise", name: "Movement into Set", sets: 2, per: "5 reps", src: "Dave Love", video: "", cue: "Ball at your hip. Rise up smooth into a balanced set point and pause. No jump." },
   { id: "mirror", name: "Mirror Check", sets: 1, per: "10 shadow shots", src: "Form check", video: "", cue: "In front of a mirror: elbow under the ball, guide hand on the side, hold the finish. Fix one thing." },
   { id: "film", name: "Watch: Pass It to the Basket", sets: 1, per: "1 video", src: "Mike Dunn", video: "https://youtu.be/j6q-hDPr5VU", cue: "Watch the whole video. Pick one idea to use tomorrow." },
@@ -325,7 +326,7 @@ function render() {
     return `<div class="drill ${n === d.sets ? "full" : ""}">
       <div class="drill-top"><div style="flex:1"><h3>${esc(d.name)}</h3><div class="src">${esc(d.src)}${badge}</div></div>
         ${d.video ? `<a class="watch" href="${esc(d.video)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}</div>
-      <p class="cue">${esc(d.cue)}</p>
+      <p class="cue">${esc(d.cue)}</p>${d.warn ? `<p class="warn">⚠️ ${esc(d.warn)}</p>` : ""}
       <div class="sets">${chips}</div>${rate}
     </div>`;
   }).join("") : `<button class="me-btn" type="button" data-pick-open style="width:100%;min-height:64px">Tap to pick your name</button>`;
