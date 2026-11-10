@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Night Shooters</title>
+<meta name="description" content="Nash, Titus and Tatum's nightly no-hoop shooting drills." />
+<meta name="theme-color" content="#101826" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Night Shooters" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@500;600;700&family=DM+Mono:wght@500&display=swap" />
+<style>
+/* Night Shooters: one dark page for phones and iPads at night. The race board up top shows
+   all three boys in their own colors; "My drills" below uses the chosen boy's color. */
+:root {
+  --bg: #0d1420; --card: #172131; --card-2: #1e2a3d; --ink: #f2f5fa; --soft: #9aa8bd; --line: #2a3850;
+  --nash: #4f8cff; --titus: #2fc47a; --tatum: #f5a524; --me: #4f8cff; --done: #2fc47a;
+  --display: "Bricolage Grotesque", system-ui, sans-serif; --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif; --mono: "DM Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.4 var(--body); }
+button { font: inherit; color: inherit; cursor: pointer; }
+main { max-width: 760px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 64px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.7rem, 6vw, 2.4rem); line-height: 1; margin: 0; letter-spacing: -.02em; }
+h1 span { color: var(--me); }
+.night { color: var(--soft); font-size: .92rem; margin-top: 4px; }
+.me-btn { min-height: 48px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--me); background: transparent; color: var(--me); font-weight: 700; white-space: nowrap; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 1.25rem; margin: 22px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+h2 small { font-family: var(--body); font-weight: 600; font-size: .85rem; color: var(--soft); }
+
+/* race board */
+.board { display: grid; gap: 10px; }
+.lane { background: var(--card); border-radius: 18px; padding: 14px 16px; border-left: 6px solid var(--c); }
+.lane-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.lane-name { font-family: var(--display); font-weight: 800; font-size: 1.35rem; color: var(--c); }
+.lead { font-size: .78rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--c); color: #0d1420; }
+.lane-stats { margin-left: auto; display: flex; gap: 14px; font-size: .9rem; color: var(--soft); }
+.lane-stats b { font-family: var(--mono); font-weight: 500; color: var(--ink); font-size: 1.05rem; }
+.bar { height: 14px; border-radius: 999px; background: var(--card-2); overflow: hidden; margin: 10px 0 8px; }
+.bar i { display: block; height: 100%; border-radius: 999px; background: var(--c); transition: width .4s; }
+.dots { display: grid; grid-template-columns: repeat(14, 1fr); gap: 5px; }
+.dot { aspect-ratio: 1; border-radius: 6px; background: var(--card-2); }
+.dot.some { background: color-mix(in srgb, var(--c) 45%, var(--card-2)); }
+.dot.all { background: var(--c); }
+.dot.tonight { outline: 2px solid var(--ink); outline-offset: 1px; }
+.dots-key { display: flex; justify-content: space-between; color: var(--soft); font-size: .75rem; margin-top: 4px; }
+
+/* drills */
+.drills { display: grid; gap: 12px; }
+.drill { background: var(--card); border-radius: 18px; padding: 14px 16px; border: 2px solid transparent; }
+.drill.full { border-color: var(--done); background: color-mix(in srgb, var(--done) 12%, var(--card)); }
+.drill-top { display: flex; align-items: flex-start; gap: 10px; }
+.drill h3 { font-family: var(--display); font-weight: 700; font-size: 1.2rem; margin: 0; line-height: 1.15; flex: 1; }
+.src { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--soft); margin-top: 3px; }
+.cue { color: var(--soft); margin: 6px 0 0; }
+.watch { flex: none; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--card-2); color: var(--ink); font-weight: 700; font-size: .9rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.sets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.set { min-height: 54px; min-width: 76px; padding: 6px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--card-2); font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.set small { font-weight: 600; font-size: .75rem; color: var(--soft); }
+.set.on { background: var(--me); border-color: var(--me); color: #0d1420; }
+.set.on small { color: #0d1420; opacity: .8; }
+.set:active { transform: scale(.95); }
+.tally { font-family: var(--mono); color: var(--soft); font-size: .9rem; margin-top: 8px; }
+.note { color: var(--soft); font-size: .9rem; margin: 18px 0 0; }
+
+/* picker */
+dialog { border: 0; border-radius: 22px; padding: 24px; width: min(440px, calc(100vw - 32px)); background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(0, 0, 0, .7); }
+dialog h2 { margin-top: 0; }
+.pick { display: grid; gap: 10px; }
+.pick button { min-height: 72px; border-radius: 18px; border: 0; background: var(--c); color: #0d1420; font-family: var(--display); font-weight: 800; font-size: 1.6rem; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 700; max-width: calc(100% - 32px); }
+@media (max-width: 480px) { .lane-stats { margin-left: 0; width: 100%; } .set { min-width: 64px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <h1>Night <span>Shooters</span></h1>
+      <div class="night" id="night"></div>
+    </div>
+    <button class="me-btn" id="me-btn" type="button" hidden></button>
+  </div>
+
+  <h2>The race <small>sets done this week · Monday to Sunday</small></h2>
+  <div class="board" id="board"></div>
+
+  <h2 id="mine-title">My drills tonight</h2>
+  <div class="drills" id="drills"></div>
+  <p class="note">No hoop needed. Do these anywhere with a ball and a line on the floor (tape works). Tap a set when you finish it. Everyone sees it right away.</p>
+</main>
+
+<dialog id="who">
+  <h2>Who's shooting?</h2>
+  <div class="pick" id="pick"></div>
+</dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// ---------- settings: edit these to change the drills or the players ----------
+const PLAYERS = [
+  { name: "Nash", color: "var(--nash)" },
+  { name: "Titus", color: "var(--titus)" },
+  { name: "Tatum", color: "var(--tatum)" },
+];
+// Indoor, no-hoop drills: mostly Mike Dunn's Ground Up program (videos from the Training Hub library).
+const DRILLS = [
+  { id: "raise", name: "Ball Raises", sets: 3, per: "10 reps", src: "Mike Dunn", video: "https://youtu.be/0mdidcb1GxU", cue: "Find your \"1\" spot. The ball moves first, slow and smooth." },
+  { id: "thru", name: "1-2-Thru", sets: 3, per: "20 reps", src: "Mike Dunn", video: "https://youtu.be/0t2i7OYeWKc", cue: "Choppy is OK at first. Smooth it out: just pass it to the basket." },
+  { id: "line", name: "Shoot the Line", sets: 5, per: "5 shots", src: "Mike Dunn", video: "https://youtu.be/YGyu7HBtk3s", cue: "Stand on a line, shooting hand only. Shoot it up so it comes down on the line. Ball first, legs second." },
+  { id: "back", name: "Lying-Down Shots", sets: 3, per: "10 shots", src: "Classic form drill", video: "", cue: "Lie on your back, elbow under the ball. Shoot straight up with max backspin and catch it. Same spot every time." },
+  { id: "path", name: "One-Hand Path Freeze", sets: 2, per: "6 reps", src: "Mike Dunn", video: "https://youtu.be/_9xbKNbJ4ag", cue: "Shooting hand only. Move through your shot and freeze right before the release." },
+  { id: "guide", name: "Guide-Hand Slide", sets: 2, per: "6 reps", src: "Mike Dunn", video: "https://youtu.be/o1gQlfPGFWE", cue: "The guide hand balances, then slides off. It never pushes." },
+  { id: "spin", name: "Seated Spin Shots", sets: 2, per: "10 shots", src: "Shooting feel", video: "", cue: "Sit down, elbows in. Shoot the ball up to yourself with as much backspin as you can." },
+  { id: "freeze", name: "Finish Freeze", sets: 1, per: "5 holds", src: "Form finish", video: "", cue: "Shoot and hold your finish 2 seconds. Relaxed wrist, finger pointing at the target." },
+];
+const TOTAL = DRILLS.reduce((a, d) => a + d.sets, 0);
+
+const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
+const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg"; // public site key; the table allows no deletes
+const headers = (extra) => ({ apikey: SB_KEY, "Content-Type": "application/json", ...extra });
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: asks again next visit */ } },
+};
+
+// ---------- nights ----------
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const addDays = (s, n) => { const [y, m, d] = s.split("-").map(Number); return ymd(new Date(y, m - 1, d + n)); };
+// A late session (before 3 AM) still counts for the night before.
+const tonight = () => ymd(new Date(Date.now() - 3 * 3600e3));
+const weekStart = (s) => { const [y, m, d] = s.split("-").map(Number); return addDays(s, -((new Date(y, m - 1, d).getDay() + 6) % 7)); };
+const nightLabel = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); };
+
+// ---------- data ----------
+const S = { me: "", rows: {}, pending: {}, loaded: false };
+const rowId = (day, p, drill, set) => `${day}|${p}|${drill}|${set}`;
+const isDone = (id) => (id in S.pending ? S.pending[id] : !!(S.rows[id] && S.rows[id].done));
+
+async function load() {
+  const from = addDays(tonight(), -60);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/shooting_sets?select=id,day,player,drill,set_no,done&day=gte.${from}&limit=20000`, { headers: headers(), cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const rows = {};
+    (await r.json()).forEach((x) => { rows[x.id] = x; });
+    S.rows = rows;
+    S.loaded = true;
+  } catch (e) {
+    if (!S.loaded) toast("Can't reach the scoreboard. Check the Wi-Fi.");
+  }
+  render();
+}
+
+async function save(id, row) {
+  S.pending[id] = row.done;
+  render();
+  for (const wait of [0, 1500, 5000]) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/shooting_sets`, { method: "POST", headers: headers({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify([row]) });
+      if (r.ok) {
+        if (S.pending[id] === row.done) { S.rows[id] = row; delete S.pending[id]; }
+        return;
+      }
+    } catch (e) { /* retry */ }
+  }
+  delete S.pending[id];
+  toast("That didn't save. Tap it again.");
+  render();
+}
+
+// ---------- counting ----------
+function setsOn(player, day) {
+  let n = 0;
+  DRILLS.forEach((d) => { for (let s = 1; s <= d.sets; s++) if (isDone(rowId(day, player, d.id, s))) n++; });
+  return n;
+}
+function stats(player) {
+  const t = tonight(), ws = weekStart(t);
+  let week = 0;
+  for (let day = ws; day <= t; day = addDays(day, 1)) week += setsOn(player, day);
+  // Streak: nights in a row with at least half the sets. Tonight counts once it's reached.
+  const half = Math.ceil(TOTAL / 2);
+  let streak = 0, day = setsOn(player, t) >= half ? t : addDays(t, -1);
+  while (streak < 60 && setsOn(player, day) >= half) { streak++; day = addDays(day, -1); }
+  const dots = [];
+  for (let i = 13; i >= 0; i--) { const d = addDays(t, -i); dots.push({ d, n: setsOn(player, d) }); }
+  return { tonight: setsOn(player, t), week, streak, dots };
+}
+
+// ---------- render ----------
+function render() {
+  const t = tonight();
+  $("#night").textContent = nightLabel(t);
+  const me = PLAYERS.find((p) => p.name === S.me);
+  document.documentElement.style.setProperty("--me", me ? me.color : "var(--nash)");
+  $("#me-btn").hidden = !me;
+  $("#me-btn").textContent = me ? `${me.name} · switch` : "";
+
+  const all = PLAYERS.map((p) => ({ p, s: stats(p.name) }));
+  const best = Math.max(...all.map((x) => x.s.week));
+  $("#board").innerHTML = [...all].sort((a, b) => b.s.week - a.s.week).map(({ p, s }) => `
+    <div class="lane" style="--c:${p.color}">
+      <div class="lane-top">
+        <span class="lane-name">${esc(p.name)}</span>${best > 0 && s.week === best ? `<span class="lead">Leading</span>` : ""}
+        <span class="lane-stats"><span>Tonight <b>${s.tonight}</b>/${TOTAL}</span><span>Week <b>${s.week}</b></span><span>Streak <b>${s.streak}</b></span></span>
+      </div>
+      <div class="bar" aria-label="${esc(p.name)} tonight ${s.tonight} of ${TOTAL} sets"><i style="width:${(100 * s.tonight / TOTAL).toFixed(1)}%"></i></div>
+      <div class="dots">${s.dots.map((x) => `<span class="dot ${x.n >= TOTAL ? "all" : x.n ? "some" : ""} ${x.d === t ? "tonight" : ""}" title="${esc(nightLabel(x.d))}: ${x.n} sets"></span>`).join("")}</div>
+      <div class="dots-key"><span>2 weeks ago</span><span>Tonight</span></div>
+    </div>`).join("");
+
+  $("#mine-title").textContent = me ? `${me.name}'s drills tonight` : "My drills tonight";
+  $("#drills").innerHTML = me ? DRILLS.map((d) => {
+    let n = 0;
+    const chips = Array.from({ length: d.sets }, (_, i) => {
+      const on = isDone(rowId(t, me.name, d.id, i + 1));
+      if (on) n++;
+      return `<button class="set ${on ? "on" : ""}" type="button" data-drill="${d.id}" data-set="${i + 1}" aria-pressed="${on}">${on ? "✓ " : ""}Set ${i + 1}<small>${esc(d.per)}</small></button>`;
+    }).join("");
+    return `<div class="drill ${n === d.sets ? "full" : ""}">
+      <div class="drill-top"><div style="flex:1"><h3>${esc(d.name)}</h3><div class="src">${esc(d.src)}</div></div>
+        ${d.video ? `<a class="watch" href="${esc(d.video)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}</div>
+      <p class="cue">${esc(d.cue)}</p>
+      <div class="sets">${chips}</div>
+    </div>`;
+  }).join("") : `<button class="me-btn" type="button" data-pick-open style="width:100%;min-height:64px">Tap to pick your name</button>`;
+}
+
+// ---------- taps ----------
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-drill]");
+  if (b && S.me) {
+    const t = tonight(), id = rowId(t, S.me, b.dataset.drill, +b.dataset.set);
+    const done = !isDone(id);
+    save(id, { id, day: t, player: S.me, drill: b.dataset.drill, set_no: +b.dataset.set, done });
+    if (done && setsOn(S.me, t) === TOTAL) toast("Every set done tonight. 🔥");
+    return;
+  }
+  if (e.target.closest("#me-btn, [data-pick-open]")) openPicker();
+  const p = e.target.closest("[data-pick]");
+  if (p) { S.me = p.dataset.pick; store.set("shooters.me", S.me); $("#who").close(); render(); window.scrollTo({ top: $("#mine-title").offsetTop - 10, behavior: "smooth" }); }
+});
+function openPicker() {
+  $("#pick").innerHTML = PLAYERS.map((p) => `<button type="button" data-pick="${esc(p.name)}" style="--c:${p.color}">${esc(p.name)}</button>`).join("");
+  $("#who").showModal();
+}
+function toast(text) {
+  const el = $("#toast"); el.textContent = text; el.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 3000);
+}
+
+// ---------- start ----------
+const want = new URLSearchParams(location.search).get("p") || "";
+S.me = (PLAYERS.find((p) => p.name.toLowerCase() === want.toLowerCase()) || PLAYERS.find((p) => p.name === store.get("shooters.me")) || {}).name || "";
+if (want && S.me) store.set("shooters.me", S.me);
+render();
+load().then(() => { if (!S.me) openPicker(); });
+// Everyone's taps show up within 20 seconds; refresh right away when the page comes back.
+setInterval(() => { if (!document.hidden && !Object.keys(S.pending).length) load(); }, 20000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
