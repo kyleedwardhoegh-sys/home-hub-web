@@ -29,4 +29,27 @@ create policy "site changes shooting" on shooting_sets for update to anon, authe
 grant select, insert, update on shooting_sets to anon, authenticated;
 grant all on shooting_sets to service_role;
 
+-- Ratings (2026-11-10): after finishing a drill, each boy rates how much it helped, 1-10.
+-- The page keeps drills the crew rates well and swaps low ones for new drills.
+create table if not exists shooting_ratings (
+  id text primary key,                  -- night|player|drill
+  day date not null,
+  player text not null check (player in ('Nash', 'Titus', 'Tatum')),
+  drill text not null check (char_length(drill) between 1 and 20),
+  score int not null check (score between 1 and 10),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+drop trigger if exists shooting_ratings_touch on shooting_ratings;
+create trigger shooting_ratings_touch before insert or update on shooting_ratings for each row execute function touch_updated_at();
+alter table shooting_ratings enable row level security;
+drop policy if exists "site reads ratings" on shooting_ratings;
+create policy "site reads ratings" on shooting_ratings for select to anon, authenticated using (true);
+drop policy if exists "site adds ratings" on shooting_ratings;
+create policy "site adds ratings" on shooting_ratings for insert to anon, authenticated with check (true);
+drop policy if exists "site changes ratings" on shooting_ratings;
+create policy "site changes ratings" on shooting_ratings for update to anon, authenticated using (true) with check (true);
+grant select, insert, update on shooting_ratings to anon, authenticated;
+grant all on shooting_ratings to service_role;
+
 select 'Night Shooters is ready' as status;

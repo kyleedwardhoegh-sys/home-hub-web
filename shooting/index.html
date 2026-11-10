@@ -67,6 +67,14 @@ h2 small { font-family: var(--body); font-weight: 600; font-size: .85rem; color:
 .set:active { transform: scale(.95); }
 .tally { font-family: var(--mono); color: var(--soft); font-size: .9rem; margin-top: 8px; }
 .note { color: var(--soft); font-size: .9rem; margin: 18px 0 0; }
+.badge { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--card-2); color: var(--ink); letter-spacing: 0; text-transform: none; }
+.badge.new { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink); } /* neutral: gold is Tatum's color */
+.rate { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rate-q { font-weight: 700; margin-bottom: 8px; }
+.rate-q small { font-weight: 600; color: var(--soft); }
+.rate-opts { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+.rate-opts button { min-height: 46px; border-radius: 12px; border: 2px solid var(--line); background: var(--card-2); font-family: var(--mono); font-size: 1.05rem; padding: 0; }
+.rate-opts button.on { background: var(--me); border-color: var(--me); color: #0d1420; }
 
 /* picker */
 dialog { border: 0; border-radius: 22px; padding: 24px; width: min(440px, calc(100vw - 32px)); background: var(--card); color: var(--ink); }
@@ -95,6 +103,7 @@ dialog h2 { margin-top: 0; }
   <h2 id="mine-title">My drills tonight</h2>
   <div class="drills" id="drills"></div>
   <p class="note">No hoop needed. Do these anywhere with a ball and a line on the floor (tape works). Tap a set when you finish it. Everyone sees it right away.</p>
+  <p class="note">After you finish a drill, rate how much it helped. Drills the crew rates high stay. Low ones get swapped for new drills, so the list gets better every week.</p>
 </main>
 
 <dialog id="who">
@@ -111,7 +120,11 @@ const PLAYERS = [
   { name: "Tatum", color: "var(--tatum)" },
 ];
 // Indoor, no-hoop drills: mostly Mike Dunn's Ground Up program (videos from the Training Hub library).
-const DRILLS = [
+// Each night shows NIGHTLY drills from this pool, worked out from the boys' 1-10 ratings
+// (see drillsFor): drills the crew rates KEEP_AT or higher stay, lower ones are benched,
+// and up to NEW_SLOTS untried drills rotate in, in pool order. Add new drills at the end.
+const NIGHTLY = 8, NEW_SLOTS = 2, KEEP_AT = 6, MIN_RATINGS = 3;
+const POOL = [
   { id: "raise", name: "Ball Raises", sets: 3, per: "10 reps", src: "Mike Dunn", video: "https://youtu.be/0mdidcb1GxU", cue: "Find your \"1\" spot. The ball moves first, slow and smooth." },
   { id: "thru", name: "1-2-Thru", sets: 3, per: "20 reps", src: "Mike Dunn", video: "https://youtu.be/0t2i7OYeWKc", cue: "Choppy is OK at first. Smooth it out: just pass it to the basket." },
   { id: "line", name: "Shoot the Line", sets: 5, per: "5 shots", src: "Mike Dunn", video: "https://youtu.be/YGyu7HBtk3s", cue: "Stand on a line, shooting hand only. Shoot it up so it comes down on the line. Ball first, legs second." },
@@ -120,8 +133,16 @@ const DRILLS = [
   { id: "guide", name: "Guide-Hand Slide", sets: 2, per: "6 reps", src: "Mike Dunn", video: "https://youtu.be/o1gQlfPGFWE", cue: "The guide hand balances, then slides off. It never pushes." },
   { id: "spin", name: "Seated Spin Shots", sets: 2, per: "10 shots", src: "Shooting feel", video: "", cue: "Sit down, elbows in. Shoot the ball up to yourself with as much backspin as you can." },
   { id: "freeze", name: "Finish Freeze", sets: 1, per: "5 holds", src: "Form finish", video: "", cue: "Shoot and hold your finish 2 seconds. Relaxed wrist, finger pointing at the target." },
+  // ---- waiting to rotate in ----
+  { id: "stspin", name: "Standing Spin Shots", sets: 2, per: "10 shots", src: "Shooting feel", video: "", cue: "Stand tall, elbow in. Shoot straight up to yourself with max backspin. Catch it without moving your feet." },
+  { id: "prep", name: "Hand Prep Catches", sets: 2, per: "10 catches", src: "Mike Dunn", video: "https://youtu.be/QmohmURpaGo", cue: "Toss it out, step in and catch it. Hands are ready before your feet land. Freeze in your shot pocket." },
+  { id: "hops", name: "One-Position Hops", sets: 2, per: "8 hops", src: "Mike Dunn", video: "https://youtu.be/YsOXL_hDHYY", cue: "Hop forward or back and land in your \"1\" spot, balanced. Rise into your shot, no release." },
+  { id: "flow", name: "Wide Stance Flow", sets: 2, per: "10 reps", src: "Mike Dunn", video: "https://youtu.be/QHhBWyY-TDg", cue: "Wide stance. Go through your whole shot without the ball ever stopping. No release." },
+  { id: "wall", name: "Wall Target One-Hand", sets: 3, per: "10 shots", src: "Touch drill", video: "", cue: "Tape a spot on the wall above your head. From 3 feet, shooting hand only, hit the spot soft with backspin." },
+  { id: "rise", name: "Movement into Set", sets: 2, per: "5 reps", src: "Dave Love", video: "", cue: "Ball at your hip. Rise up smooth into a balanced set point and pause. No jump." },
+  { id: "mirror", name: "Mirror Check", sets: 1, per: "10 shadow shots", src: "Form check", video: "", cue: "In front of a mirror: elbow under the ball, guide hand on the side, hold the finish. Fix one thing." },
+  { id: "film", name: "Watch: Pass It to the Basket", sets: 1, per: "1 video", src: "Mike Dunn", video: "https://youtu.be/j6q-hDPr5VU", cue: "Watch the whole video. Pick one idea to use tomorrow." },
 ];
-const TOTAL = DRILLS.reduce((a, d) => a + d.sets, 0);
 
 const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
 const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg"; // public site key; the table allows no deletes
@@ -143,23 +164,75 @@ const weekStart = (s) => { const [y, m, d] = s.split("-").map(Number); return ad
 const nightLabel = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); };
 
 // ---------- data ----------
-const S = { me: "", rows: {}, pending: {}, loaded: false };
+const S = { me: "", rows: {}, pending: {}, ratings: {}, ratingsOk: false, loaded: false };
 const rowId = (day, p, drill, set) => `${day}|${p}|${drill}|${set}`;
 const isDone = (id) => (id in S.pending ? S.pending[id] : !!(S.rows[id] && S.rows[id].done));
 
 async function load() {
   const from = addDays(tonight(), -60);
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/shooting_sets?select=id,day,player,drill,set_no,done&day=gte.${from}&limit=20000`, { headers: headers(), cache: "no-store" });
+    const [r, rr] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/shooting_sets?select=id,day,player,drill,set_no,done&day=gte.${from}&limit=20000`, { headers: headers(), cache: "no-store" }),
+      fetch(`${SB_URL}/rest/v1/shooting_ratings?select=id,day,player,drill,score&limit=20000`, { headers: headers(), cache: "no-store" }).catch(() => null),
+    ]);
     if (!r.ok) throw new Error(r.status);
     const rows = {};
     (await r.json()).forEach((x) => { rows[x.id] = x; });
     S.rows = rows;
+    // Ratings are optional: before their table exists the page works without them.
+    if (rr && rr.ok) {
+      const ratings = {};
+      (await rr.json()).forEach((x) => { ratings[x.id] = x; });
+      Object.values(S.ratings).forEach((x) => { if (x.local) ratings[x.id] = x; });
+      S.ratings = ratings;
+      S.ratingsOk = true;
+    }
     S.loaded = true;
+    lists.clear();
   } catch (e) {
     if (!S.loaded) toast("Can't reach the scoreboard. Check the Wi-Fi.");
   }
   render();
+}
+
+// ---------- which drills tonight ----------
+// Worked out the same way on every device from ratings given BEFORE that night, so a
+// night's list never changes mid-session and everyone races on the same drills.
+const lists = new Map();
+function crewScore(drillId, before) {
+  const s = Object.values(S.ratings).filter((r) => r.drill === drillId && r.day < before).map((r) => r.score);
+  return { n: s.length, avg: s.length ? s.reduce((a, b) => a + b, 0) / s.length : 0 };
+}
+function drillsFor(day) {
+  if (lists.has(day)) return lists.get(day);
+  const scored = POOL.map((d) => ({ d, ...crewScore(d.id, day) }));
+  const keepers = scored.filter((x) => x.n >= MIN_RATINGS && x.avg >= KEEP_AT).sort((a, b) => b.avg - a.avg);
+  const trying = scored.filter((x) => x.n < MIN_RATINGS);
+  const benched = scored.filter((x) => x.n >= MIN_RATINGS && x.avg < KEEP_AT).sort((a, b) => b.avg - a.avg);
+  const newSlots = Math.min(NEW_SLOTS, trying.length);
+  let pick = keepers.slice(0, NIGHTLY - newSlots);
+  pick = pick.concat(trying.slice(0, NIGHTLY - pick.length));
+  pick = pick.concat(keepers.slice(pick.filter((x) => keepers.includes(x)).length), benched).slice(0, NIGHTLY);
+  // Show them in pool order (warm-up drills first).
+  const list = POOL.filter((d) => pick.some((x) => x.d === d)).map((d) => ({ ...d, ...crewScore(d.id, day) }));
+  lists.set(day, list);
+  return list;
+}
+const totalFor = (day) => drillsFor(day).reduce((a, d) => a + d.sets, 0);
+
+const ratingId = (day, p, drill) => `${day}|${p}|${drill}`;
+async function saveRating(drill, score) {
+  const t = tonight(), id = ratingId(t, S.me, drill), row = { id, day: t, player: S.me, drill, score };
+  S.ratings[id] = { ...row, local: true };
+  render();
+  for (const wait of [0, 1500, 5000]) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/shooting_ratings`, { method: "POST", headers: headers({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify([row]) });
+      if (r.ok) { if (S.ratings[id] && S.ratings[id].score === score) S.ratings[id] = row; return; }
+    } catch (e) { /* retry */ }
+  }
+  toast("Your rating didn't save. Tap it again.");
 }
 
 async function save(id, row) {
@@ -183,19 +256,19 @@ async function save(id, row) {
 // ---------- counting ----------
 function setsOn(player, day) {
   let n = 0;
-  DRILLS.forEach((d) => { for (let s = 1; s <= d.sets; s++) if (isDone(rowId(day, player, d.id, s))) n++; });
+  drillsFor(day).forEach((d) => { for (let s = 1; s <= d.sets; s++) if (isDone(rowId(day, player, d.id, s))) n++; });
   return n;
 }
 function stats(player) {
   const t = tonight(), ws = weekStart(t);
   let week = 0;
   for (let day = ws; day <= t; day = addDays(day, 1)) week += setsOn(player, day);
-  // Streak: nights in a row with at least half the sets. Tonight counts once it's reached.
-  const half = Math.ceil(TOTAL / 2);
-  let streak = 0, day = setsOn(player, t) >= half ? t : addDays(t, -1);
-  while (streak < 60 && setsOn(player, day) >= half) { streak++; day = addDays(day, -1); }
+  // Streak: nights in a row with at least half that night's sets. Tonight counts once it's reached.
+  const half = (day) => Math.ceil(totalFor(day) / 2);
+  let streak = 0, day = setsOn(player, t) >= half(t) ? t : addDays(t, -1);
+  while (streak < 60 && setsOn(player, day) >= half(day)) { streak++; day = addDays(day, -1); }
   const dots = [];
-  for (let i = 13; i >= 0; i--) { const d = addDays(t, -i); dots.push({ d, n: setsOn(player, d) }); }
+  for (let i = 13; i >= 0; i--) { const d = addDays(t, -i); dots.push({ d, n: setsOn(player, d), all: totalFor(d) }); }
   return { tonight: setsOn(player, t), week, streak, dots };
 }
 
@@ -208,6 +281,7 @@ function render() {
   $("#me-btn").hidden = !me;
   $("#me-btn").textContent = me ? `${me.name} · switch` : "";
 
+  const TOTAL = totalFor(t);
   const all = PLAYERS.map((p) => ({ p, s: stats(p.name) }));
   const best = Math.max(...all.map((x) => x.s.week));
   $("#board").innerHTML = [...all].sort((a, b) => b.s.week - a.s.week).map(({ p, s }) => `
@@ -217,23 +291,28 @@ function render() {
         <span class="lane-stats"><span>Tonight <b>${s.tonight}</b>/${TOTAL}</span><span>Week <b>${s.week}</b></span><span>Streak <b>${s.streak}</b></span></span>
       </div>
       <div class="bar" aria-label="${esc(p.name)} tonight ${s.tonight} of ${TOTAL} sets"><i style="width:${(100 * s.tonight / TOTAL).toFixed(1)}%"></i></div>
-      <div class="dots">${s.dots.map((x) => `<span class="dot ${x.n >= TOTAL ? "all" : x.n ? "some" : ""} ${x.d === t ? "tonight" : ""}" title="${esc(nightLabel(x.d))}: ${x.n} sets"></span>`).join("")}</div>
+      <div class="dots">${s.dots.map((x) => `<span class="dot ${x.n >= x.all ? "all" : x.n ? "some" : ""} ${x.d === t ? "tonight" : ""}" title="${esc(nightLabel(x.d))}: ${x.n} sets"></span>`).join("")}</div>
       <div class="dots-key"><span>2 weeks ago</span><span>Tonight</span></div>
     </div>`).join("");
 
   $("#mine-title").textContent = me ? `${me.name}'s drills tonight` : "My drills tonight";
-  $("#drills").innerHTML = me ? DRILLS.map((d) => {
+  $("#drills").innerHTML = me ? drillsFor(t).map((d) => {
     let n = 0;
     const chips = Array.from({ length: d.sets }, (_, i) => {
       const on = isDone(rowId(t, me.name, d.id, i + 1));
       if (on) n++;
       return `<button class="set ${on ? "on" : ""}" type="button" data-drill="${d.id}" data-set="${i + 1}" aria-pressed="${on}">${on ? "✓ " : ""}Set ${i + 1}<small>${esc(d.per)}</small></button>`;
     }).join("");
+    // Brand-new drills say so; proven ones show the crew's average rating.
+    const badge = !S.ratingsOk ? "" : d.n < MIN_RATINGS ? `<span class="badge new">New · rate it</span>` : `<span class="badge">Crew rating ${d.avg.toFixed(1)}</span>`;
+    const mine = S.ratings[ratingId(t, me.name, d.id)];
+    const rate = S.ratingsOk && n === d.sets ? `<div class="rate"><div class="rate-q">How much did this help your shot? <small>1 = not much, 10 = a lot</small></div>
+        <div class="rate-opts">${Array.from({ length: 10 }, (_, i) => `<button type="button" class="${mine && mine.score === i + 1 ? "on" : ""}" data-rate="${d.id}" data-score="${i + 1}" aria-pressed="${!!(mine && mine.score === i + 1)}">${i + 1}</button>`).join("")}</div></div>` : "";
     return `<div class="drill ${n === d.sets ? "full" : ""}">
-      <div class="drill-top"><div style="flex:1"><h3>${esc(d.name)}</h3><div class="src">${esc(d.src)}</div></div>
+      <div class="drill-top"><div style="flex:1"><h3>${esc(d.name)}</h3><div class="src">${esc(d.src)}${badge}</div></div>
         ${d.video ? `<a class="watch" href="${esc(d.video)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}</div>
       <p class="cue">${esc(d.cue)}</p>
-      <div class="sets">${chips}</div>
+      <div class="sets">${chips}</div>${rate}
     </div>`;
   }).join("") : `<button class="me-btn" type="button" data-pick-open style="width:100%;min-height:64px">Tap to pick your name</button>`;
 }
@@ -245,9 +324,11 @@ document.addEventListener("click", (e) => {
     const t = tonight(), id = rowId(t, S.me, b.dataset.drill, +b.dataset.set);
     const done = !isDone(id);
     save(id, { id, day: t, player: S.me, drill: b.dataset.drill, set_no: +b.dataset.set, done });
-    if (done && setsOn(S.me, t) === TOTAL) toast("Every set done tonight. 🔥");
+    if (done && setsOn(S.me, t) === totalFor(t)) toast("Every set done tonight. 🔥");
     return;
   }
+  const rb = e.target.closest("[data-rate]");
+  if (rb && S.me) { saveRating(rb.dataset.rate, +rb.dataset.score); return; }
   if (e.target.closest("#me-btn, [data-pick-open]")) openPicker();
   const p = e.target.closest("[data-pick]");
   if (p) { S.me = p.dataset.pick; store.set("shooters.me", S.me); $("#who").close(); render(); window.scrollTo({ top: $("#mine-title").offsetTop - 10, behavior: "smooth" }); }
