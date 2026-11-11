@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Stopwatch</title>
+<meta name="theme-color" content="#2B1838" />
+<style>
+/* Big stopwatch for the kitchen screen: readable across the room, one-tap controls. */
+:root { --bg: #2B1838; --ink: #fff; --go: #2fc47a; --stop: #F23D66; --soft: rgba(255,255,255,.18); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; user-select: none; }
+body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4vh; padding: 16px; }
+.nav { position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; }
+.nav a { color: #fff; text-decoration: none; background: var(--soft); padding: 12px 18px; border-radius: 999px; font-weight: 700; font-size: 18px; }
+#time { font-variant-numeric: tabular-nums; font-weight: 800; font-size: min(24vw, 42vh); line-height: 1; letter-spacing: -.02em; }
+#time small { font-size: .45em; opacity: .75; }
+.btns { display: flex; gap: 3vw; flex-wrap: wrap; justify-content: center; }
+button { border: 0; border-radius: 999px; color: #fff; font: inherit; font-weight: 800; font-size: clamp(28px, 4.5vw, 64px); min-width: min(40vw, 380px); min-height: min(18vh, 150px); padding: 0 40px; cursor: pointer; }
+button:active { transform: scale(.96); }
+#go { background: var(--go); }
+#go.running { background: var(--stop); }
+#reset { background: var(--soft); }
+#laps { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; font-variant-numeric: tabular-nums; font-size: clamp(18px, 2.4vw, 32px); opacity: .85; max-width: 90vw; }
+#laps span { background: var(--soft); padding: 6px 14px; border-radius: 12px; }
+</style>
+</head>
+<body>
+<nav class="nav"><a href="javascript:history.back()">&larr; Back</a><a href="/?kiosk=1">&#8962; Home</a></nav>
+<div id="time">0:00<small>.0</small></div>
+<div class="btns">
+  <button id="go" type="button">Start</button>
+  <button id="reset" type="button">Reset</button>
+</div>
+<div id="laps"></div>
+<script>
+let start = 0, held = 0, running = false, laps = [];
+const $ = (s) => document.querySelector(s);
+const fmt = (ms) => {
+  const t = Math.floor(ms / 100), d = t % 10, s = Math.floor(t / 10) % 60, m = Math.floor(t / 600) % 60, h = Math.floor(t / 36000);
+  const mm = h ? String(m).padStart(2, "0") : String(m);
+  return `${h ? h + ":" : ""}${mm}:${String(s).padStart(2, "0")}<small>.${d}</small>`;
+};
+const now = () => (running ? held + performance.now() - start : held);
+function tick() { $("#time").innerHTML = fmt(now()); if (running) requestAnimationFrame(tick); }
+$("#go").addEventListener("click", () => {
+  if (running) { held = now(); running = false; laps.push(held); }
+  else { start = performance.now(); running = true; requestAnimationFrame(tick); }
+  $("#go").textContent = running ? "Stop" : "Start";
+  $("#go").classList.toggle("running", running);
+  $("#laps").innerHTML = laps.slice(-8).map((l, i) => `<span>${fmt(l).replace(/<\/?small>/g, "")}</span>`).join("");
+  tick();
+});
+$("#reset").addEventListener("click", () => {
+  running = false; held = 0; laps = [];
+  $("#go").textContent = "Start"; $("#go").classList.remove("running"); $("#laps").innerHTML = ""; tick();
+});
+// Keep the screen awake while it runs, where the browser allows it.
+try { navigator.wakeLock && navigator.wakeLock.request("screen").catch(() => {}); } catch (e) {}
+</script>
+</body>
+</html>
