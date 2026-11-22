@@ -32,7 +32,7 @@ grant all on childcare_signups to service_role;
 -- Future sign-ups carried over from SignUpGenius's emails to Kyle (as of 2026-11-02).
 -- Kyle is out 11/8 (Nash's basketball game).
 insert into childcare_signups (id, day, slot, name, note)
-select d::text || '|Big Kids|kyle hoegh', d::date, 'Big Kids', 'Kyle Hoegh', 'Leaving at 6:45'
+select d::text || '|Big Kids|kyle hoegh', d::date, 'Big Kids', 'Kyle Hoegh', null  -- Kyle dropped "Leaving at 6:45" on 2026-11-22
 from unnest(array['2026-11-15','2026-11-22','2026-11-29','2026-12-06','2026-12-13','2026-12-20','2026-12-27','2027-01-03']) as d
 on conflict (id) do nothing;
 insert into childcare_signups (id, day, slot, name)
