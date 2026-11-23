@@ -275,3 +275,19 @@ Every calendar event on the Training Hub strip and on the kitchen dashboard (hom
 ## Night Shooters (2026-11-10)
 Standalone page at `/shooting/` for Nash, Titus and Tatum: nightly no-hoop shooting drills (mostly Mike Dunn), tap a set when done, and a race board showing everyone's sets tonight, this week (Mon–Sun), streak (nights in a row with at least half the sets) and the last 14 nights. No prizes, no points from the Training Hub. Each device picks its name once (`localStorage shooters.me`, or `?p=titus`). Before 3 AM counts for the night before. Table `shooting_sets` (`supabase/shooting.sql`), id `night|player|drill|set`, unticking = `done:false`, no deletes. Players are the `PLAYERS` list at the top of the page's script.
 - **Ratings + rotation (2026-11-10):** after finishing all sets of a drill, a boy rates it 1–10 (`shooting_ratings`, id `night|player|drill`). Each night's list comes from `drillsFor(day)`, using only ratings from earlier nights, so it's the same on every device and fixed for the night. Drills with 3 or more ratings averaging 6 or higher are keepers; lower ones are benched. Up to 2 slots go to untried drills from `POOL`, in pool order, until the pool runs out; the rest are the top keepers. To add drills, append them to `POOL`. Tune with `NIGHTLY`, `NEW_SLOTS`, `KEEP_AT`, `MIN_RATINGS`.
+
+## Gesture kit `/kit/` (2026-11-23)
+Shared touch layer for every kitchen-screen page, in both repos. Rules it implements: "Touch &
+portrait design standard" in `G:\My Drive\00Home Hub\CLAUDE.md`.
+- `kit/touch.js` + `kit/touch.css`, no build step. Other sites load them by absolute URL:
+  `https://home-hub-web-hoegh-home.vercel.app/kit/touch.js` (and `.css`).
+- `kit/index.html` is the demo page to try on the Elo. It covers swipe cards, swipe rows (right done, left
+  snooze, 5 s undo), long-press ring, pinch calendar (day/week/month), pull to refresh, bottom home
+  handle, and left-edge back with a ‹ chip.
+- API is `window.HubTouch` (documented at the top of `touch.js`). Each gesture also fires a DOM event
+  (`ht:change`, `ht:action`, `ht:undo`, `ht:longpress`, `ht:zoom`, `ht:refresh`).
+- Pointer Events for one-finger gestures. A second finger cancels a swipe. Pull-to-refresh and pinch use touch
+  events, because they have to cancel the browser's own scroll/zoom.
+- One-time hints are stored in `localStorage` (`ht-hint:*`); `HubTouch.resetHints()` replays them.
+- Tested 2026-11-23 with synthetic touch in headless Chrome at 720×1280 @1.5: all gestures pass,
+  no console errors, page zoom stays 1. Still needs a real-finger check on the Elo.

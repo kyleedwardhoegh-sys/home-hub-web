@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gesture Kit · Home Hub</title>
+<meta name="theme-color" content="#1b1440" />
+<link rel="stylesheet" href="touch.css" />
+<style>
+/* Demo of the shared gesture kit. Portrait first: 720x1280 CSS px on the kitchen Elo. */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { min-height: 100vh; color: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: radial-gradient(120% 70% at 20% 0%, #3b2a8a 0%, transparent 60%),
+              radial-gradient(100% 60% at 100% 40%, #0f5c7a 0%, transparent 55%), #15112e; background-attachment: fixed;
+  padding: 0 0 120px; }
+
+/* Glance zone: nothing to tap up here */
+.glance { height: 30vh; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 24px; }
+#clock { font-size: 128px; font-weight: 200; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+#date { font-size: 28px; opacity: .75; margin-top: 8px; }
+#said { margin-top: 18px; font-size: 20px; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,.1); min-height: 44px; transition: background .3s; }
+#said.flash { background: rgba(47,196,122,.45); }
+
+section { margin: 0 20px 28px; }
+h2 { margin: 0 0 12px 6px; font-size: 17px; letter-spacing: .1em; text-transform: uppercase; opacity: .65; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+h2 b { font-weight: 800; opacity: 1; color: #ffd166; letter-spacing: .02em; text-transform: none; font-size: 17px; }
+
+/* Person cards */
+.stack { margin: 0 -20px; }
+.person { height: 230px; border-radius: 30px; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 14px 34px rgba(0,0,0,.35); }
+.person .name { font-size: 46px; font-weight: 800; }
+.person .sub { font-size: 21px; opacity: .9; }
+.person .pill { align-self: flex-start; background: rgba(255,255,255,.22); border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 19px; }
+.kyle { background: linear-gradient(135deg, #f7a400, #e2701b); }
+.logan { background: linear-gradient(135deg, #9b6bd3, #6a3fb5); }
+.nash { background: linear-gradient(135deg, #2f8fdc, #1546a8); }
+.nellie { background: linear-gradient(135deg, #f25b97, #c2185b); }
+
+/* Checklist rows */
+.rows { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.rows li { background: rgba(255,255,255,.96); color: #1d1a33; border-radius: 20px; min-height: 80px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.rows .ht-row-face { display: flex; align-items: center; gap: 18px; padding: 0 22px; min-height: 80px; font-size: 23px; font-weight: 650; }
+.rows .box { width: 38px; height: 38px; border-radius: 12px; border: 3px solid #c9c4de; flex: none; display: grid; place-items: center; font-size: 24px; color: transparent; transition: all .25s var(--ht-spring); }
+.rows .is-done .box { background: var(--ht-done); border-color: var(--ht-done); color: #fff; transform: rotate(-8deg) scale(1.08); }
+.rows .is-done .txt { text-decoration: line-through; text-decoration-thickness: 3px; }
+.rows .who { margin-left: auto; font-size: 15px; font-weight: 800; padding: 6px 12px; border-radius: 999px; color: #fff; }
+.who.nash { background: #2f8fdc; } .who.nellie { background: #e2407f; } .who.kyle { background: #f0a000; } .who.logan { background: #8a5cc8; }
+
+/* Long-press + hints row */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.tile { min-height: 150px; border-radius: 26px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.18); color: #fff; font: inherit; font-size: 22px; font-weight: 750; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 16px; cursor: pointer; transition: transform .3s var(--ht-spring), background .3s; }
+.tile small { font-size: 16px; font-weight: 500; opacity: .75; }
+.tile .big { font-size: 44px; line-height: 1; }
+.tile:active { transform: scale(.96); }
+.tile.edit { background: rgba(255,209,102,.3); border-color: #ffd166; }
+
+/* Calendar */
+.cal { background: rgba(255,255,255,.96); color: #1d1a33; border-radius: 26px; padding: 18px; overflow: hidden; }
+.seg { display: flex; background: #ece9f6; border-radius: 18px; padding: 5px; gap: 5px; margin-bottom: 14px; }
+.seg button { flex: 1; min-height: 64px; border: 0; border-radius: 14px; background: transparent; font: inherit; font-size: 20px; font-weight: 750; color: #5b5675; cursor: pointer; transition: background .25s, color .25s; }
+.seg button.on { background: #fff; color: #1d1a33; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.calbody { min-height: 380px; }
+.calhint { text-align: center; font-size: 15px; color: #7a7594; margin-top: 10px; }
+.month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.month .dow { text-align: center; font-size: 14px; font-weight: 800; color: #8a85a3; padding-bottom: 4px; }
+.month .d { aspect-ratio: 1 / 1; border-radius: 12px; background: #f4f2fa; padding: 6px; font-size: 16px; font-weight: 700; position: relative; }
+.month .d.today { background: #1d1a33; color: #fff; }
+.month .d.out { opacity: .35; }
+.month .dots { position: absolute; left: 6px; bottom: 6px; display: flex; gap: 3px; }
+.month .dots i { width: 8px; height: 8px; border-radius: 50%; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week .col { background: #f4f2fa; border-radius: 14px; min-height: 360px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.week .col.today { background: #e6e1fa; }
+.week .hd { text-align: center; font-size: 14px; font-weight: 800; color: #6d6888; }
+.week .hd b { display: block; font-size: 22px; color: #1d1a33; }
+.week .ev { border-radius: 8px; padding: 5px 5px; font-size: 12px; font-weight: 700; color: #fff; line-height: 1.15; }
+.day .slot { display: flex; gap: 14px; align-items: stretch; min-height: 58px; border-top: 1px solid #ece9f6; }
+.day .hr { width: 70px; font-size: 16px; color: #8a85a3; font-weight: 700; padding-top: 6px; }
+.day .ev { flex: 1; margin: 5px 0; border-radius: 14px; padding: 10px 16px; font-size: 20px; font-weight: 750; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+.c-nash { background: #2f8fdc; } .c-nellie { background: #e2407f; } .c-kyle { background: #f0a000; } .c-logan { background: #8a5cc8; } .c-both { background: linear-gradient(90deg, #f0a000, #8a5cc8); }
+
+.foot { text-align: center; opacity: .6; font-size: 16px; margin: 10px 20px 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="glance">
+  <div id="clock">--:--</div>
+  <div id="date"></div>
+  <div id="said">Try a gesture below 👇</div>
+</div>
+
+<section>
+  <h2>Swipe the cards <b>← →</b></h2>
+  <div class="stack" id="people">
+    <article class="person kyle"><div class="name">Kyle</div><div class="sub">Practice plan · 2 things today</div><span class="pill">Tap to open</span></article>
+    <article class="person logan"><div class="name">Logan</div><div class="sub">Parent conferences 4:00</div><span class="pill">Tap to open</span></article>
+    <article class="person nash"><div class="name">Nash</div><div class="sub">5B1 Practice 5:30 · 6 drills</div><span class="pill">Tap to open</span></article>
+    <article class="person nellie"><div class="name">Nellie</div><div class="sub">7G1 Practice 8:30 · 8 drills</div><span class="pill">Tap to open</span></article>
+  </div>
+</section>
+
+<section>
+  <h2>Swipe a row <b>→ done · ← snooze</b></h2>
+  <ul class="rows" id="todo">
+    <li><span class="box">✓</span><span class="txt">Form shooting, 50 makes</span><span class="who nash">Nash</span></li>
+    <li><span class="box">✓</span><span class="txt">Ball-handling ladder</span><span class="who nellie">Nellie</span></li>
+    <li><span class="box">✓</span><span class="txt">Pack gym bag</span><span class="who nash">Nash</span></li>
+    <li><span class="box">✓</span><span class="txt">Childcare volunteer email</span><span class="who kyle">Kyle</span></li>
+    <li><span class="box">✓</span><span class="txt">Return library books</span><span class="who logan">Logan</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Hold &amp; tap</h2>
+  <div class="duo">
+    <button class="tile" id="hold" type="button"><span class="big">✋</span>Press &amp; hold<small>ring fills, then edit mode</small></button>
+    <button class="tile" id="hints" type="button"><span class="big">✨</span>Replay hints<small>show every gesture cue again</small></button>
+  </div>
+</section>
+
+<section>
+  <h2>Pinch the calendar <b>spread = closer</b></h2>
+  <div class="cal" id="cal">
+    <div class="seg" id="seg"><button data-l="day">Day</button><button data-l="week">Week</button><button data-l="month">Month</button></div>
+    <div id="calzoom"><div class="calbody" id="calbody"></div></div>
+    <div class="calhint">Two fingers: spread for Day, pinch for Month. The buttons work too.</div>
+  </div>
+</section>
+
+<p class="foot">Pull down from the top to refresh · swipe up on the bar at the bottom for Home · swipe in from the left edge (or tap ‹) for Back.</p>
+
+<script src="touch.js"></script>
+<script>
+const HT = window.HubTouch;
+HT.kioskMode();
+HT.nav({ href: 'https://home-hub-dashboard.vercel.app/' });
+
+const said = document.getElementById('said');
+function say(t) { said.textContent = t; said.classList.remove('flash'); void said.offsetWidth; said.classList.add('flash'); setTimeout(() => said.classList.remove('flash'), 600); }
+
+// Clock (glance zone)
+function tick() {
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, '');
+  document.getElementById('date').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+}
+tick(); setInterval(tick, 10000);
+
+// Person cards
+const names = ['Kyle', 'Logan', 'Nash', 'Nellie'];
+HT.swipeStack(document.getElementById('people'), { start: 2, onChange: (i) => say('Swiped to ' + names[i]) });
+document.getElementById('people').addEventListener('click', (e) => { if (e.target.closest('.ht-card.is-active')) say('Tapped ' + e.target.closest('.ht-card').querySelector('.name').textContent + ' → would open their board'); });
+
+// Checklist
+HT.swipeRows(document.getElementById('todo'), {
+  right: { label: 'Done', icon: '✓', mode: 'done' },
+  left: { label: 'Snoozed', icon: '⏰', mode: 'remove' },
+  onAction: (row, side, d) => say((side === 'r' ? (d.done ? 'Done: ' : 'Un-done: ') : 'Snoozed: ') + row.querySelector('.txt').textContent),
+  onUndo: (row) => say('Undo: ' + row.querySelector('.txt').textContent)
+});
+
+// Long-press
+const hold = document.getElementById('hold');
+HT.longPress(hold, () => { hold.classList.toggle('edit'); say(hold.classList.contains('edit') ? 'Long-press → edit mode on' : 'Long-press → edit mode off'); });
+hold.addEventListener('click', () => say('Short tap (hold longer for edit)'));
+document.getElementById('hints').addEventListener('click', () => { HT.resetHints(); say('Hints reset, reloading…'); setTimeout(() => location.reload(), 500); });
+
+// Calendar with pinch zoom
+const today = new Date();
+const evs = [
+  { d: 0, t: '7:00', h: 7, who: 'kyle', txt: 'Childcare email' },
+  { d: 0, t: '4:00', h: 16, who: 'both', txt: 'Parent conferences' },
+  { d: 0, t: '5:30', h: 17, who: 'nash', txt: '5B1 Practice' },
+  { d: 0, t: '8:30', h: 20, who: 'nellie', txt: '7G1 Practice' },
+  { d: 1, t: '4:00', h: 16, who: 'nash', txt: 'MBT training' },
+  { d: 1, t: '5:30', h: 17, who: 'nellie', txt: 'Physical therapy' },
+  { d: 3, t: '6:00', h: 18, who: 'logan', txt: 'Book club' },
+  { d: 4, t: '6:30', h: 18, who: 'nellie', txt: 'Volleyball' },
+  { d: 5, t: '9:00', h: 9, who: 'nash', txt: 'Fishing w/ Titus' }
+];
+const calbody = document.getElementById('calbody');
+function render(level) {
+  document.querySelectorAll('#seg button').forEach((b) => b.classList.toggle('on', b.dataset.l === level));
+  if (level === 'day') {
+    let h = '<div class="day">';
+    for (let hr = 7; hr <= 20; hr++) {
+      const e = evs.filter((x) => x.d === 0 && x.h === hr);
+      if (!e.length && hr % 2) continue;
+      h += '<div class="slot"><div class="hr">' + ((hr + 11) % 12 + 1) + (hr < 12 ? ' am' : ' pm') + '</div>' +
+        e.map((x) => '<div class="ev c-' + x.who + '"><span>' + x.txt + '</span><span>' + x.t + '</span></div>').join('') + '</div>';
+    }
+    calbody.innerHTML = h + '</div>';
+  } else if (level === 'week') {
+    let h = '<div class="week">';
+    for (let k = 0; k < 7; k++) {
+      const d = new Date(today); d.setDate(today.getDate() + k);
+      h += '<div class="col' + (k === 0 ? ' today' : '') + '"><div class="hd">' + d.toLocaleDateString([], { weekday: 'short' }) + '<b>' + d.getDate() + '</b></div>' +
+        evs.filter((x) => x.d === k).map((x) => '<div class="ev c-' + x.who + '">' + x.t + '<br>' + x.txt + '</div>').join('') + '</div>';
+    }
+    calbody.innerHTML = h + '</div>';
+  } else {
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startD = new Date(first); startD.setDate(1 - first.getDay());
+    let h = '<div class="month">' + ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((s) => '<div class="dow">' + s + '</div>').join('');
+    for (let k = 0; k < 35; k++) {
+      const d = new Date(startD); d.setDate(startD.getDate() + k);
+      const off = Math.round((d - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5);
+      const dots = evs.filter((x) => x.d === off).map((x) => '<i class="c-' + x.who + '"></i>').join('');
+      h += '<div class="d' + (off === 0 ? ' today' : '') + (d.getMonth() !== today.getMonth() ? ' out' : '') + '">' + d.getDate() + '<span class="dots">' + dots + '</span></div>';
+    }
+    calbody.innerHTML = h + '</div>';
+  }
+}
+const zoom = HT.pinchZoom(document.getElementById('cal'), {
+  content: document.getElementById('calzoom'), levels: ['day', 'week', 'month'], start: 1,
+  onLevel: (l) => { render(l); say('Calendar → ' + l); }
+});
+document.getElementById('seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) zoom.set(b.dataset.l); });
+render('week');
+
+// Pull to refresh
+HT.pullRefresh(document, () => { say('Refreshing…'); return new Promise((r) => setTimeout(() => { tick(); say('Refreshed ✓'); r(); }, 900)); });
+</script>
+</body>
+</html>
