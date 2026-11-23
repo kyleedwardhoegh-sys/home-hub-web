@@ -20,6 +20,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 .ht-kiosk img { -webkit-user-drag: none; }
+.ht-kiosk { scrollbar-width: none; }                 /* Edge kiosk shows a scrollbar otherwise */
+.ht-kiosk ::-webkit-scrollbar { display: none; }
 
 /* ---------- swipe stack ---------- */
 .ht-stack { position: relative; overflow: hidden; touch-action: pan-y; user-select: none; padding-bottom: 30px; outline: none; }
