@@ -9,6 +9,8 @@
 <style>
 /* Demo of the shared gesture kit. Portrait first: 720x1280 CSS px on the kitchen Elo. */
 * { box-sizing: border-box; }
+/* Until the AHK pills are retired, their Back pill covers the top-right corner: park the Control Center pill left of it. */
+:root { --ht-cc-inset: 170px; }
 html, body { margin: 0; }
 body { min-height: 100vh; color: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: radial-gradient(120% 70% at 20% 0%, #3b2a8a 0%, transparent 60%),
@@ -128,7 +130,7 @@ h2 b { font-weight: 800; opacity: 1; color: #ffd166; letter-spacing: .02em; text
   </div>
 </section>
 
-<p class="foot">Pull down from the top to refresh · swipe up on the bar at the bottom for Home · swipe in from the left edge (or tap ‹) for Back.</p>
+<p class="foot">Pull down from the top-right corner for Control Center · pull down elsewhere at the top to refresh · swipe up on the bar at the bottom for Home · swipe in from the left edge (or tap ‹) for Back.</p>
 
 <script src="touch.js"></script>
 <script>

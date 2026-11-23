@@ -397,7 +397,98 @@
     return chip;
   };
 
-  HT.nav = function (opts) { HT.homeHandle(opts); HT.edgeBack(opts); };
+  // ---- Control Center: pull down from the top-right corner (like iPhone/iPad) ----
+  HT.HUB = 'https://home-hub-web-hoegh-home.vercel.app';
+  HT.defaultControls = function () {
+    return [
+      { label: 'Home', icon: '⌂', href: HT.HOME, color: '#4a4f73' },
+      { label: 'Nellie', icon: '🏀', href: HT.HUB + '/?p=Nellie&kiosk=1', color: '#e2407f' },
+      { label: 'Nash', icon: '🏈', href: HT.HUB + '/?p=Nash&kiosk=1', color: '#2f8fdc' },
+      { label: 'Calendar', icon: '📅', href: 'https://calendar.google.com/calendar/u/0/r/week', color: '#2fa36b' },
+      { label: 'Stopwatch', icon: '⏱️', href: HT.HUB + '/timer/', color: '#6a3fb5' },
+      { label: 'Night Shooters', icon: '🌙', href: HT.HUB + '/shooting/', color: '#26337a' },
+      { label: 'Drills', icon: '🎬', href: HT.HUB + '/drills/', color: '#c0611f' },
+      { label: 'Refresh', icon: '↻', action: () => location.reload(), color: '#4a4f73' },
+      { label: 'Exit kiosk', icon: '✕', href: 'homehubadmin://exit', hold: 1200, note: 'hold', color: '#8c2232' }
+    ];
+  };
+  HT.controlCenter = function (opts) {
+    opts = opts || {};
+    if (document.querySelector('.ht-cc')) return;
+    const items = opts.items || HT.defaultControls();
+    const grab = document.createElement('div');
+    grab.className = 'ht-cc-grab';
+    grab.setAttribute('role', 'button');
+    grab.setAttribute('aria-label', 'Open control center');
+    grab.innerHTML = '<span class="ht-cc-pill"><span class="ht-cc-dots"><i></i><i></i><i></i><i></i></span><span class="ht-cc-chev">⌄</span></span>';
+    const cc = document.createElement('div');
+    cc.className = 'ht-cc';
+    cc.setAttribute('role', 'dialog');
+    cc.setAttribute('aria-label', 'Control center');
+    cc.innerHTML = '<div class="ht-cc-sheet"><div class="ht-cc-top"><div class="ht-cc-time"></div><div class="ht-cc-date"></div></div>' +
+      '<div class="ht-cc-grid"></div><div class="ht-cc-close">Swipe up or tap outside to close</div><span class="ht-cc-bar"></span></div>';
+    const grid = cc.querySelector('.ht-cc-grid');
+    items.forEach((it) => {
+      const t = document.createElement(it.href && !it.hold ? 'a' : 'button');
+      t.className = 'ht-cc-tile';
+      if (t.tagName === 'A') t.href = it.href; else t.type = 'button';
+      t.style.setProperty('--c', it.color || '#4a4f73');
+      t.innerHTML = '<span class="ht-cc-icon"></span><span class="ht-cc-label"></span>' + (it.note ? '<small></small>' : '');
+      t.querySelector('.ht-cc-icon').textContent = it.icon || '';
+      t.querySelector('.ht-cc-label').textContent = it.label;
+      if (it.note) t.querySelector('small').textContent = it.note;
+      const run = () => { if (it.action) it.action(); else if (it.href) location.href = it.href; };
+      if (it.hold) {
+        HT.longPress(t, run, { ms: it.hold });
+        t.addEventListener('click', () => HT.toast('Press and hold to ' + it.label.toLowerCase()));
+      } else if (t.tagName !== 'A') {
+        t.addEventListener('click', run);
+      }
+      grid.appendChild(t);
+    });
+    document.body.append(cc, grab);
+
+    const H = () => cc.offsetHeight || innerHeight;
+    function tick() {
+      const d = new Date();
+      cc.querySelector('.ht-cc-time').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      cc.querySelector('.ht-cc-date').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+    function follow(y) {
+      cc.style.transform = 'translate3d(0,' + y + 'px,0)';
+      cc.style.setProperty('--p', clamp(1 + y / H(), 0, 1));
+    }
+    function show(v) {
+      cc.classList.remove('dragging');
+      cc.style.transform = ''; cc.style.removeProperty('--p');
+      cc.classList.toggle('open', v);
+      grab.classList.toggle('hide', v);
+      if (v) { tick(); emit(cc, 'control', { open: true }); }
+    }
+    drag(grab, 'y', {
+      start() { tick(); cc.classList.add('dragging'); },
+      move(dx, dy) { follow(clamp(dy * 1.3 - H(), -H(), 0)); },
+      end(dx, dy, vx, vy) { show(dy * 1.3 > H() * 0.22 || (vy > FLICK && dy > 20)); },
+      cancel() { show(false); }
+    });
+    grab.addEventListener('click', () => show(true));
+    drag(cc, 'y', {
+      start() { cc.classList.add('dragging'); },
+      move(dx, dy) { follow(clamp(dy, -H(), 0)); },
+      end(dx, dy, vx, vy) { show(!(-dy > H() * 0.18 || (vy < -FLICK && dy < -20))); },
+      cancel() { show(true); }
+    });
+    cc.addEventListener('click', (e) => { if (!e.target.closest('.ht-cc-tile')) show(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') show(false); });
+    hintOnce('cc', () => { grab.classList.add('hint'); setTimeout(() => grab.classList.remove('hint'), 3600); }, 3200);
+    return { open: () => show(true), close: () => show(false) };
+  };
+
+  HT.nav = function (opts) {
+    opts = opts || {};
+    HT.homeHandle(opts); HT.edgeBack(opts);
+    if (opts.controlCenter !== false) HT.controlCenter(opts.controlCenter || {});
+  };
 
   // ---- long-press with a filling ring ----
   HT.longPress = function (el, fn, opts) {
@@ -455,7 +546,8 @@
     let y0 = null, x0 = 0, decided = false, pull = 0, busy = false;
     const set = (p) => { pull = p; ind.style.setProperty('--pull', p); ind.classList.toggle('armed', p >= 64); };
     target.addEventListener('touchstart', (e) => {
-      if (busy || e.touches.length > 1 || top() > 0) { y0 = null; return; }
+      if (busy || e.touches.length > 1 || top() > 0 ||
+          (e.target.closest && e.target.closest('.ht-cc-grab,.ht-cc,.ht-home,.ht-edge,.ht-back-chip'))) { y0 = null; return; }
       y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; decided = false;
       if (!isDoc) ind.style.top = Math.max(0, scroller.getBoundingClientRect().top) + 'px';
       ind.classList.remove('settle');
