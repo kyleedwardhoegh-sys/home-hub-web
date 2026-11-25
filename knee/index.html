@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Nellie's Knee Cup</title>
+<style>
+  :root{
+    --pink:#e64f8f; --pink-d:#b8326c; --pink-l:#fde3ee; --bg:#fff7fa;
+    --ink:#2b1a22; --mute:#7a5c69; --coffee:#7b4a2d; --foam:#f3e2c7; --ok:#2f9e6e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:18px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 20px 120px}
+
+  /* Glance zone */
+  .glance{display:flex;align-items:center;gap:20px;padding:12px 4px 18px}
+  .cup{width:200px;flex:none}
+  .glance h1{margin:0;font-size:34px;line-height:1.1;color:var(--pink-d)}
+  .big{font-size:56px;font-weight:800;color:var(--pink);line-height:1;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+  .sub{color:var(--mute);font-size:19px}
+  .reward{margin:0 0 16px;padding:16px 20px;border-radius:20px;background:linear-gradient(135deg,#00704a,#1e9e6a);
+    color:#fff;font-size:22px;font-weight:700;display:none}
+  .reward.miss{background:var(--pink-l);color:var(--pink-d)}
+
+  /* Week strip */
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:4px 0 22px}
+  .day{text-align:center;padding:8px 0 10px;border-radius:14px;background:#fff;border:2px solid #f2d5e1;font-size:15px;color:var(--mute)}
+  .day b{display:block;font-size:20px;color:var(--ink)}
+  .day.today{border-color:var(--pink);background:var(--pink-l)}
+  .day .bar{height:6px;margin:6px 10px 0;border-radius:3px;background:#f2d5e1;overflow:hidden}
+  .day .bar i{display:block;height:100%;background:var(--coffee);width:0;transition:width .4s}
+  .day.fri b::after{content:" ☕";font-size:14px}
+
+  h2{font-size:22px;margin:22px 4px 10px;color:var(--pink-d);display:flex;justify-content:space-between;align-items:baseline}
+  h2 small{font-size:16px;color:var(--mute);font-weight:500}
+
+  /* Exercise cards */
+  .card{display:flex;align-items:stretch;background:#fff;border-radius:20px;margin:0 0 12px;
+    box-shadow:0 2px 0 #f2d5e1;border:2px solid #f6dbe6;overflow:hidden;transition:transform .15s, background .2s}
+  .card:active{transform:scale(.985)}
+  .info{flex:1;padding:14px 16px;min-height:84px;cursor:pointer}
+  .name{font-size:21px;font-weight:700}
+  .dose{color:var(--mute);font-size:16px;margin-top:2px}
+  .how{display:none;margin-top:10px;font-size:16px;color:var(--ink);line-height:1.45}
+  .card.open .how{display:block}
+  .tag{display:inline-block;margin-top:6px;font-size:14px;font-weight:700;color:var(--pink-d);background:var(--pink-l);padding:2px 10px;border-radius:999px}
+  .checks{display:flex;gap:8px;align-items:center;padding:10px 12px;flex:none}
+  .chk{width:68px;height:68px;border-radius:50%;border:3px solid var(--pink);background:#fff;color:var(--pink);
+    font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;line-height:1.1;
+    transition:transform .15s, background .2s}
+  .chk:active{transform:scale(.9)}
+  .chk.on{background:var(--pink);color:#fff}
+  .chk.on::before{content:"✓";font-size:28px;line-height:1}
+  .chk.on span{display:none}
+  .card.done{background:#fff0f6;border-color:#f3c3d7}
+  .card.done .name{color:var(--pink-d)}
+  .card.rest{opacity:.55}
+
+  .note{color:var(--mute);font-size:15px;margin:22px 6px 0;line-height:1.5}
+  .back{display:flex;align-items:center;justify-content:center;min-height:68px;margin:22px 0 0;border-radius:20px;
+    border:2px solid var(--pink);color:var(--pink-d);font-size:20px;font-weight:700;text-decoration:none;background:#fff}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,140%);background:var(--ink);color:#fff;
+    padding:14px 14px 14px 22px;border-radius:999px;display:flex;gap:14px;align-items:center;font-size:18px;
+    transition:transform .25s;z-index:9}
+  .toast.show{transform:translate(-50%,0)}
+  .toast button{min-height:52px;padding:0 20px;border-radius:999px;border:0;background:var(--pink);color:#fff;font-size:18px;font-weight:700}
+
+  .sip{position:fixed;pointer-events:none;font-size:34px;animation:sip 900ms ease-out forwards;z-index:8}
+  @keyframes sip{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+  #liquid{transition:y .7s cubic-bezier(.3,1.4,.5,1), height .7s cubic-bezier(.3,1.4,.5,1)}
+  #foam{transition:y .7s cubic-bezier(.3,1.4,.5,1)}
+  .full-pop{animation:pop .7s}
+  @keyframes pop{30%{transform:scale(1.08) rotate(-3deg)}60%{transform:scale(.97) rotate(2deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="reward" id="reward"></div>
+
+  <section class="glance">
+    <svg class="cup" id="cup" viewBox="0 0 200 230" aria-label="coffee cup progress">
+      <defs>
+        <clipPath id="cupClip"><path d="M30 60 L170 60 L156 210 Q154 222 142 222 L58 222 Q46 222 44 210 Z"/></clipPath>
+      </defs>
+      <!-- steam (shows when full) -->
+      <g id="steam" opacity="0" stroke="#d9b9c6" stroke-width="5" fill="none" stroke-linecap="round">
+        <path d="M80 44 q-10 -12 0 -24 q10 -12 0 -22"/><path d="M110 44 q-10 -12 0 -24 q10 -12 0 -22"/>
+      </g>
+      <!-- lid -->
+      <rect x="22" y="44" width="156" height="18" rx="8" fill="#fff" stroke="#e8b9cc" stroke-width="3"/>
+      <rect x="40" y="34" width="120" height="14" rx="6" fill="#fff" stroke="#e8b9cc" stroke-width="3"/>
+      <!-- cup body -->
+      <path d="M30 60 L170 60 L156 210 Q154 222 142 222 L58 222 Q46 222 44 210 Z" fill="#fff" stroke="#e8b9cc" stroke-width="3"/>
+      <g clip-path="url(#cupClip)">
+        <rect id="liquid" x="0" y="222" width="200" height="0" fill="var(--coffee)"/>
+        <rect id="foam" x="0" y="216" width="200" height="8" fill="var(--foam)"/>
+      </g>
+      <!-- sleeve -->
+      <path d="M38 110 L162 110 L156 160 L44 160 Z" fill="var(--pink)" opacity=".92"/>
+      <text x="100" y="143" text-anchor="middle" font-size="22" font-weight="800" fill="#fff">NELLIE</text>
+      <path d="M30 60 L170 60 L156 210 Q154 222 142 222 L58 222 Q46 222 44 210 Z" fill="none" stroke="#e8b9cc" stroke-width="3"/>
+    </svg>
+    <div>
+      <h1>Knee Cup</h1>
+      <div class="big" id="pct">0%</div>
+      <div class="sub" id="togo"></div>
+    </div>
+  </section>
+
+  <div class="week" id="week"></div>
+
+  <h2>Today <small id="todayLbl"></small></h2>
+  <div id="daily"></div>
+
+  <h2>3 times this week <small>pick any days</small></h2>
+  <div id="weekly"></div>
+
+  <p class="note">Tap a name to see how to do it. Tap the circle when it's done.<br>
+  If anything hurts, stop and tell Mom or Dad. That never costs you coffee.</p>
+  <a class="back" id="back" href="../?open=Nellie">‹ Back to Nellie's training</a>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="undo">Undo</button></div>
+
+<script>
+/* ---------- Nellie's PT program (from her "Program: Knee", modified 2026-11-24) ---------- */
+const DAILY = [
+  {id:'iso', name:'Seated knee push (strap, 60°)', dose:'5 holds × 45 s · 2 min rest between', slots:['Do it'],
+   how:'Sit tall in a chair with a strap looped around your foot and a chair leg, knee bent to 60°. Push your foot forward into the strap and hold 45 seconds. Rest 2 minutes. 5 times.'},
+  {id:'plank', name:'Plank', dose:'2 × 45–60 s hold', slots:['Do it'],
+   how:'Lie on your front propped on your elbows. Squeeze your belly and lift your hips so you are a straight line, elbows under shoulders. Hold.'},
+  {id:'slider', name:'Sciatic nerve slider', dose:'2 × 10 · three times a day', slots:['AM','Noon','PM'],
+   how:'Sit on the edge of a bed, hands behind your back, slightly slumped. Straighten one knee while you tip your head back, then lower the foot as you bring your head forward. Leg and head move together, same speed.'},
+];
+const WEEKLY = [
+  {id:'squat',  name:'Goblet squat', dose:'2–3 × 8 · 30–40 lb · 3 s down / 3 s up',
+   how:'Hold a kettlebell or dumbbell at your chest. Sit back and down for 3 seconds, stand up for 3 seconds. Knees push out, chest up.'},
+  {id:'clam',   name:'Clamshell with band', dose:'2–3 × 10',
+   how:'Lie on your side, knees bent 90°, hips and shoulders stacked, band around your legs. Lift your top knee, then lower slowly.'},
+  {id:'fwdT',   name:'Forward T', dose:'2 × 10',
+   how:'Stand on one leg, hands on hips. Hinge forward at the hips as the other leg goes straight back, then come back up. Back flat; don\'t let the knee cave in.'},
+  {id:'tuck',   name:'Squat tuck jumps', dose:'2 × 5',
+   how:'Feet shoulder-width. Squat, jump straight up and pull your knees toward your chest. Land softly with bent knees.'},
+  {id:'broad',  name:'Broad jumps', dose:'2 × 10–15',
+   how:'Feet hip-to-shoulder width. Sit hips back, knees pushed out. Swing arms and jump forward as far as you can. Land in a squat, knees soft.'},
+  {id:'bosu',   name:'Single-leg balance on BOSU', dose:'2 × 30 s each leg',
+   how:'Stand on one foot on the BOSU, hands on hips, knee slightly bent. Stay steady. Switch legs.'},
+];
+const WEEKLY_TARGET = 3;
+/* A full cup = this share of the week's PT. 0.9 leaves room for one off day. */
+const FULL_AT = 0.9;
+
+/* ---------- storage: Supabase table knee_log if configured, else this device ---------- */
+const SB_URL = 'https://xfnxjkstiwnrshprnzsz.supabase.co';
+const SB_KEY = 'sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg'; // public site key; table knee_log allows no deletes (supabase/knee.sql)
+const LS_KEY = 'nellieKneeCup.v1';
+const SYNCED_KEY = 'nellieKneeCup.synced'; // set once this device's checks have been pushed to the table
+const sbHeaders = (extra) => Object.assign({apikey:SB_KEY}, /^eyJ/.test(SB_KEY) ? {Authorization:'Bearer '+SB_KEY} : {}, extra||{});
+const mem = {};
+const local = {
+  load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'{}') }catch(e){ return mem } },
+  save(log){ try{ localStorage.setItem(LS_KEY, JSON.stringify(log)) }catch(e){ Object.assign(mem,log) } }
+};
+async function sbLoad(from,to){
+  const r = await fetch(`${SB_URL}/rest/v1/knee_log?select=key,done&day=gte.${from}&day=lte.${to}`,
+    {headers:sbHeaders(),cache:'no-store'});
+  if(!r.ok) throw new Error(r.status);
+  const out={}; (await r.json()).forEach(x=>{ if(x.done) out[x.key]=true }); return out;
+}
+function sbSave(key,done){
+  return fetch(`${SB_URL}/rest/v1/knee_log`,{method:'POST',
+    headers:sbHeaders({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({key,day:key.slice(0,10),done,updated_at:new Date().toISOString()})}).catch(()=>{});
+}
+
+/* ---------- dates: the week runs Friday → Thursday; Friday morning = payday ---------- */
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x };
+function weekStart(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return addDays(x,-((x.getDay()+2)%7)) }
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+/* First day of the program: a part-week before the first Friday gets a smaller cup. */
+const START = '2026-11-25';
+const perDay = DAILY.reduce((s,e)=>s+e.slots.length,0);
+function goalFor(start){
+  let days=0; for(let i=0;i<7;i++){ if(iso(addDays(start,i))>=START) days++ }
+  const wkTarget = Math.min(WEEKLY_TARGET, Math.ceil(days*WEEKLY_TARGET/7));
+  return { g: Math.max(1, Math.ceil((perDay*days + WEEKLY.length*wkTarget)*FULL_AT)), wkTarget };
+}
+let goal = 1, wkTarget = WEEKLY_TARGET;
+
+let log = {}, today, ws, useSB = !!SB_KEY;
+
+function weekPoints(start){
+  let p=0;
+  for(let i=0;i<7;i++){ const day=iso(addDays(start,i));
+    DAILY.forEach(e=>e.slots.forEach((_,s)=>{ if(log[`${day}|${e.id}|${s}`]) p++ })); }
+  const t = goalFor(start).wkTarget;
+  WEEKLY.forEach(e=>{ p+=Math.min(t, weeklyCount(e.id,start)) });
+  return p;
+}
+function weeklyCount(id,start){
+  let n=0; for(let i=0;i<7;i++){ if(log[`${iso(addDays(start,i))}|${id}|0`]) n++ } return n;
+}
+function dayPoints(day){
+  let p=0; DAILY.forEach(e=>e.slots.forEach((_,s)=>{ if(log[`${day}|${e.id}|${s}`]) p++ }));
+  WEEKLY.forEach(e=>{ if(log[`${day}|${e.id}|0`]) p++ }); return p;
+}
+
+function render(){
+  today = new Date(); ws = weekStart(today);
+  ({g:goal, wkTarget} = goalFor(ws));
+  const tKey = iso(today);
+  const pts = weekPoints(ws), frac = Math.min(1, pts/goal);
+
+  // cup
+  const top=62, bottom=222, h=(bottom-top)*frac;
+  document.getElementById('liquid').setAttribute('y', bottom-h);
+  document.getElementById('liquid').setAttribute('height', h);
+  document.getElementById('foam').setAttribute('y', bottom-h-4);
+  document.getElementById('foam').setAttribute('opacity', frac>0?1:0);
+  document.getElementById('steam').setAttribute('opacity', frac>=1?1:0);
+  document.getElementById('pct').textContent = Math.round(frac*100)+'%';
+  // summary for the Knee Cup card on Nellie's Training Hub page (same site, same device)
+  try{ localStorage.setItem('nellieKneeCup.summary', JSON.stringify({day:tKey, today:DAILY.reduce((s,e)=>s+e.slots.filter((_,i)=>log[`${tKey}|${e.id}|${i}`]).length,0), perDay, pct:Math.round(frac*100), at:Date.now()})) }catch(e){}
+  const daysLeft = 6-((today.getDay()+2)%7); // through Thursday
+  document.getElementById('togo').textContent = frac>=1
+    ? 'Cup full! Starbucks is yours Friday morning.'
+    : `${goal-pts} more check${goal-pts===1?'':'s'} to fill it · ${daysLeft===0?'last day!':daysLeft+' day'+(daysLeft===1?'':'s')+' after today'}`;
+
+  // Friday payday banner (last week's result)
+  const rw = document.getElementById('reward');
+  if(today.getDay()===5){
+    const lw = addDays(ws,-7), lp = weekPoints(lw), lg = goalFor(lw).g;
+    rw.style.display = iso(addDays(lw,6))>=START ? 'block' : 'none';
+    if(lp>=lg){ rw.className='reward'; rw.textContent='☕ Starbucks morning! Last week\'s cup was full.' }
+    else { rw.className='reward miss'; rw.textContent=`Last week: ${Math.round(lp/lg*100)}% full. New cup starts today!` }
+  } else rw.style.display='none';
+
+  // week strip
+  const wk = document.getElementById('week'); wk.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=addDays(ws,i), k=iso(d), dp=dayPoints(k);
+    const el=document.createElement('div');
+    el.className='day'+(k===tKey?' today':'')+(i===0?' fri':'');
+    el.innerHTML=`${DOW[d.getDay()]}<b>${d.getDate()}</b><div class="bar"><i style="width:${Math.min(100,dp/(perDay+2)*100)}%"></i></div>`;
+    wk.appendChild(el);
+  }
+  document.getElementById('todayLbl').textContent = today.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+
+  // daily cards
+  const dl=document.getElementById('daily'); dl.innerHTML='';
+  DAILY.forEach(e=>{
+    const all = e.slots.every((_,s)=>log[`${tKey}|${e.id}|${s}`]);
+    dl.appendChild(card(e, all, e.slots.map((lbl,s)=>({key:`${tKey}|${e.id}|${s}`,lbl}))));
+  });
+  // weekly cards
+  const wl=document.getElementById('weekly'); wl.innerHTML='';
+  WEEKLY.forEach(e=>{
+    const n=weeklyCount(e.id,ws), k=`${tKey}|${e.id}|0`, doneToday=!!log[k];
+    const c=card(e, doneToday, (n>=wkTarget && !doneToday)?[]:[{key:k,lbl:'Today'}]);
+    if(n>=wkTarget && !doneToday) c.classList.add('rest');
+    const tag=document.createElement('span'); tag.className='tag';
+    tag.textContent = n>=wkTarget ? `✓ ${n}/${wkTarget} done this week` : `${n}/${wkTarget} this week`;
+    c.querySelector('.info').insertBefore(tag, c.querySelector('.how'));
+    wl.appendChild(c);
+  });
+}
+
+function card(e, done, checks){
+  const c=document.createElement('div'); c.className='card'+(done?' done':'');
+  c.innerHTML=`<div class="info"><div class="name">${e.name}</div><div class="dose">${e.dose}</div><div class="how">${e.how}</div></div><div class="checks"></div>`;
+  c.querySelector('.info').addEventListener('click',()=>c.classList.toggle('open'));
+  const box=c.querySelector('.checks');
+  checks.forEach(({key,lbl})=>{
+    const b=document.createElement('button'); b.className='chk'+(log[key]?' on':'');
+    b.innerHTML=`<span>${lbl}</span>`; b.setAttribute('aria-label',`${e.name} ${lbl}`);
+    b.addEventListener('click',ev=>toggle(key,e.name,ev));
+    box.appendChild(b);
+  });
+  return c;
+}
+
+let lastUndo=null, toastTimer=null;
+function toggle(key,name,ev){
+  const before = weekPoints(weekStart(new Date())) >= goal;
+  const on = !log[key];
+  if(on) log[key]=true; else delete log[key];
+  persist(key,on);
+  if(on) sip(ev);
+  render();
+  const after = weekPoints(ws) >= goal;
+  if(on && after && !before){ const cup=document.getElementById('cup'); cup.classList.remove('full-pop'); void cup.offsetWidth; cup.classList.add('full-pop') }
+  lastUndo={key,on};
+  showToast(on?`${name} ✓`:`${name} unchecked`);
+}
+function persist(key,on){ local.save(log); if(useSB) sbSave(key,on) }
+function sip(ev){
+  const cup=document.getElementById('cup').getBoundingClientRect();
+  const s=document.createElement('div'); s.className='sip'; s.textContent='☕';
+  s.style.left=(ev.clientX-17)+'px'; s.style.top=(ev.clientY-17)+'px';
+  s.style.setProperty('--dx',(cup.left+cup.width/2-ev.clientX)+'px');
+  s.style.setProperty('--dy',(cup.top+cup.height/2-ev.clientY)+'px');
+  document.body.appendChild(s); setTimeout(()=>s.remove(),950);
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),5000);
+}
+document.getElementById('undo').addEventListener('click',()=>{
+  if(!lastUndo) return; const {key,on}=lastUndo;
+  if(on) delete log[key]; else log[key]=true;
+  persist(key,!on); lastUndo=null; render();
+  document.getElementById('toast').classList.remove('show');
+});
+
+// Pull the shared log. Table missing or offline → keep this device's copy and try again later.
+// The first time the table answers, this device's earlier checks are pushed up so none are lost.
+async function sync(){
+  if(!SB_KEY) return;
+  try{
+    const s=weekStart(new Date()), remote=await sbLoad(iso(addDays(s,-7)), iso(addDays(s,6)));
+    let first=false; try{ first=!localStorage.getItem(SYNCED_KEY) }catch(e){}
+    if(first){
+      Object.keys(log).forEach(k=>{ if(log[k] && !remote[k]){ remote[k]=true; sbSave(k,true) } });
+      try{ localStorage.setItem(SYNCED_KEY,'1') }catch(e){}
+    }
+    log=remote; local.save(log); useSB=true;
+  }catch(e){ useSB=false }
+}
+// on the kiosk, go back to the kiosk version of her page
+if(new URLSearchParams(location.search).has('kiosk')) document.getElementById('back').href='../?p=Nellie&kiosk=1';
+(async function init(){
+  log = local.load();
+  render();
+  await sync(); render();
+  // roll over at midnight / refresh shared state every 5 min on the kiosk
+  setInterval(async()=>{ await sync(); render() }, 5*60*1000);
+})();
+</script>
+</body>
+</html>

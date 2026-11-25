@@ -130,6 +130,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hill-rep.best { background: var(--accent); border-color: var(--accent); color: #fff; }
 .hill-count { font-weight: 700; font-size: 1.2rem; margin-top: 6px; }
 #view-hub.loading .hill-card { display: none; }
+/* Nellie's Knee Cup to-do (links to /knee/) */
+.knee-card { display: flex; align-items: center; gap: 16px; min-height: 84px; padding: 12px 18px; margin-bottom: 16px; border-radius: var(--r);
+  background: #fde3ee; border: 2px solid #e64f8f; color: #2b1a22; text-decoration: none; transition: transform .12s; }
+.knee-card[hidden], #view-hub.loading .knee-card { display: none; }
+.knee-card:active { transform: scale(.98); }
+.knee-cup { font-size: 2.4rem; line-height: 1; }
+.knee-text { flex: 1; display: flex; flex-direction: column; }
+.knee-text b { font-size: 1.35rem; color: #b8326c; }
+.knee-text span { font-size: 1.05rem; color: #7a5c69; font-variant-numeric: tabular-nums; }
+.knee-go { min-width: 92px; min-height: 60px; display: grid; place-items: center; border-radius: 999px; background: #e64f8f; color: #fff; font-weight: 800; font-size: 1.2rem; }
+.knee-card.done { background: #fff0f6; }
+.knee-card.done .knee-go { background: #2f9e6e; }
 @media (max-width: 720px) { .hill-card { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- track tabs ---------- */

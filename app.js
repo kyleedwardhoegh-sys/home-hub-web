@@ -303,8 +303,40 @@ function render() {
   renderCalendar();
   renderPrizes();
   renderHill();
+  renderKnee();
   renderTabs();
   renderTrack();
+}
+
+// Nellie's Knee Cup (/knee/): a daily to-do card on her page, every tab. Today's count comes
+// from the knee_log table when it exists (any device), else from the summary /knee/ saves on
+// this device. Cup % is from that summary (accurate on the device she checks off on).
+const KNEE_DAILY = ["iso|0", "plank|0", "slider|0", "slider|1", "slider|2"];
+function kneeSummary() {
+  try { const s = JSON.parse(localStorage.getItem("nellieKneeCup.summary") || "null"); return s && S.hub && s.day === S.hub.date ? s : null; } catch (e) { return null; }
+}
+function renderKnee() {
+  const el = $("#knee-card"), on = !!(S.hub && S.hub.player.name === "Nellie");
+  el.hidden = !on;
+  if (!on) return;
+  if (S.kneeTried !== S.hub.date) { S.kneeTried = S.hub.date; loadKnee(); }
+  const s = kneeSummary(), done = S.knee && S.knee.day === S.hub.date ? S.knee.today : s ? s.today : 0;
+  const total = KNEE_DAILY.length, all = done >= total;
+  const kiosk = document.documentElement.classList.contains("kiosk");
+  el.href = "knee/" + (kiosk ? "?kiosk=1" : "");
+  el.classList.toggle("done", all);
+  el.innerHTML = `<span class="knee-cup">☕</span>
+    <span class="knee-text"><b>Knee Cup</b><span>${all ? "All 5 done today ✓" : `${done}/${total} today`}${s ? ` · cup ${s.pct}%` : ""}</span></span>
+    <span class="knee-go">${all ? "✓" : "Go ›"}</span>`;
+}
+async function loadKnee() {
+  if (S.demo || !S.hub || S.hub.player.name !== "Nellie") return;
+  const day = S.hub.date;
+  const rows = await HubData.rows("knee_log", `select=key,done&day=eq.${day}`);
+  if (!rows) return; // table not created yet: the device summary covers it
+  const keys = new Set(rows.filter((r) => r.done).map((r) => r.key));
+  S.knee = { day, today: KNEE_DAILY.filter((k) => keys.has(`${day}|${k}`)).length };
+  renderKnee();
 }
 
 // Hill runs: this kid's time to beat and last session. Lower is better. Hidden until they
@@ -876,6 +908,7 @@ function toast(msg) {
 setInterval(async () => {
   if (!S.hub || S.demo || S.pending || Date.now() - S.lastTap < 8000 || document.hidden) return;
   loadHill();
+  loadKnee();
   const name = S.hub.player.name, dateBefore = S.hub.date, started = Date.now();
   const hub = await fetchHub(name);
   if (!canApply(name, hub, started)) return; // a tap landed while loading: keep the screen as is

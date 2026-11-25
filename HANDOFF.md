@@ -291,3 +291,8 @@ portrait design standard" in `G:\My Drive\00Home Hub\CLAUDE.md`.
 - One-time hints are stored in `localStorage` (`ht-hint:*`); `HubTouch.resetHints()` replays them.
 - Tested 2026-11-23 with synthetic touch in headless Chrome at 720×1280 @1.5: all gestures pass,
   no console errors, page zoom stays 1. Still needs a real-finger check on the Elo.
+
+## Nellie's Knee Cup `/knee/` (2026-11-25)
+Knee PT tracker from her PT app's "Program: Knee": 5 daily checks (knee push, plank, sciatic slider AM/Noon/PM) + 6 exercises 3×/week. Every check pours coffee into her cup; full cup (90% of the week, Fri→Thu) = Starbucks Friday morning. Source page and rules: `G:\My Drive\00Home Hub\Ideas & Specs\Nellie Knee Cup\README.md` (edit `DAILY`/`WEEKLY` in `knee/index.html` if the PT changes the program).
+- **Storage:** table `knee_log` (`supabase/knee.sql`, key `date|exercise|slot`, uncheck = `done:false`, no deletes). Until that SQL is run, checks save on the device only (localStorage `nellieKneeCup.v1`); the first time the table answers, the device's earlier checks are pushed up.
+- **Nellie's hub card:** `renderKnee` / `loadKnee` in app.js, `#knee-card` under her name (all tabs, Nellie only). Shows today's daily count from `knee_log` (or the device summary `nellieKneeCup.summary` written by `/knee/`) and the cup %. Links to `knee/?kiosk=1` on the kiosk; the page's back button returns to her page.
