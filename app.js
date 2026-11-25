@@ -311,7 +311,7 @@ function render() {
 // Nellie's Knee Cup (/knee/): a daily to-do card on her page, every tab. Today's count comes
 // from the knee_log table when it exists (any device), else from the summary /knee/ saves on
 // this device. Cup % is from that summary (accurate on the device she checks off on).
-const KNEE_DAILY = ["iso|0", "plank|0", "slider|0", "slider|1", "slider|2"];
+const KNEE_DAILY = ["iso|0", "plank|0", "slider|0", "slider|1", "slider|2", "bosu|0"];
 function kneeSummary() {
   try { const s = JSON.parse(localStorage.getItem("nellieKneeCup.summary") || "null"); return s && S.hub && s.day === S.hub.date ? s : null; } catch (e) { return null; }
 }
@@ -326,7 +326,7 @@ function renderKnee() {
   el.href = "knee/" + (kiosk ? "?kiosk=1" : "");
   el.classList.toggle("done", all);
   el.innerHTML = `<span class="knee-cup">☕</span>
-    <span class="knee-text"><b>Knee Cup</b><span>${all ? "All 5 done today ✓" : `${done}/${total} today`}${s ? ` · cup ${s.pct}%` : ""}</span></span>
+    <span class="knee-text"><b>Knee Cup</b><span>${all ? `All ${total} done today ✓` : `${done}/${total} today`}${s ? ` · cup ${s.pct}%` : ""}</span></span>
     <span class="knee-go">${all ? "✓" : "Go ›"}</span>`;
 }
 async function loadKnee() {
