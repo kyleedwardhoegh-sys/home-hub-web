@@ -4,7 +4,7 @@
 // Apps Script into Supabase site_data; falls back to 'events:home' (today + tomorrow) until that's deployed.
 // Adding an event posts to the Apps Script (hubAddEvent) which writes to the shared Family Google Calendar.
 (function () {
-  const APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec";
+  const APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxS-f1ZvxZazJ-_2P2Lakrgb-vSaM3EmyRQbRxuRFf9M_P94LUB5ogudg3UwIS69kYR/exec";
   const LAT = 45.0725, LON = -93.4557; // Maple Grove
   const PEOPLE = ["Nellie", "Nash", "Kyle", "Logan"];
   const INIT = { Nellie: "Ne", Nash: "Na", Kyle: "Ky", Logan: "Lo" };

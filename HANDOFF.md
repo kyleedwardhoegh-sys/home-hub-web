@@ -63,7 +63,7 @@ project-root/
   Deployment Protection is off so it's reachable without a Vercel login.
 - Source repo: https://github.com/kyleedwardhoegh-sys/home-hub-web (public, still auto-deploys to Pages too, but that URL is no longer canonical — nothing points to it anymore)
 - Google Sheet: https://docs.google.com/spreadsheets/d/1MNiMRR4itYS7FSJxK9lhtrreH29eDBCM-cPJMWmSyMk/edit
-- Apps Script web app (API): `https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec`
+- Apps Script web app (API): `https://script.google.com/macros/s/AKfycbxS-f1ZvxZazJ-_2P2Lakrgb-vSaM3EmyRQbRxuRFf9M_P94LUB5ogudg3UwIS69kYR/exec`
 - Local clone: `C:\Users\Owner\source\repos\HomeHub-Web`
 
 **Sheet structure (3 tabs):**
