@@ -296,3 +296,20 @@ portrait design standard" in `G:\My Drive\00Home Hub\CLAUDE.md`.
 Knee PT tracker from her PT app's "Program: Knee": 5 daily checks (knee push, plank, sciatic slider AM/Noon/PM) + 6 exercises 3×/week. Every check pours coffee into her cup; full cup (90% of the week, Fri→Thu) = Starbucks Friday morning. Source page and rules: `G:\My Drive\00Home Hub\Ideas & Specs\Nellie Knee Cup\README.md` (edit `DAILY`/`WEEKLY` in `knee/index.html` if the PT changes the program).
 - **Storage:** table `knee_log` (`supabase/knee.sql`, key `date|exercise|slot`, uncheck = `done:false`, no deletes). Table created 2026-11-25. If it is ever unreachable, checks save on the device only (localStorage `nellieKneeCup.v1`); the first time the table answers, the device's earlier checks are pushed up.
 - **Nellie's hub card:** `renderKnee` / `loadKnee` in app.js, `#knee-card` under her name (all tabs, Nellie only). Shows today's daily count from `knee_log` (or the device summary `nellieKneeCup.summary` written by `/knee/`) and the cup %. Links to `knee/?kiosk=1` on the kiosk; the page's back button returns to her page.
+
+## Home Hub v2, Phase 1: `/hub/` (2026-11-25)
+The family's new kitchen home screen (v1 dashboard/Training Hub are frozen for reference). Plan:
+`G:\My Drive\00Home Hub\Hub v2\Implementation Plan (from family ratings).md`. Look = "Combo": dark iPhone-style
+wallpaper + glass widgets (clock/weather, Up next, Countdown), birthday/holiday banners, person bubbles (tap = filter),
+a bright Skylight-style calendar card (Week = two stacked rows of hour-grid day columns; Day; Month; swipe/‹ › to page;
+phones get a day-by-day list), purple + to add an event (voice: "Nash practice Tuesday at 6" fills who/day/time), iPhone
+dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5 AM), 3-min idle reset, hold-to-close
+(asks the kitchen PC helper `http://localhost:8790/api/exit`, repo `hub-v2`, which allows this origin via CORS + PNA).
+- **Data:** `site_data` `events:week` = {start: Monday, days: {date: [{title, allDay, startMin, durMin, time, who, location, link}]}}
+  for 28 days, published by Apps Script `v3PublishHomeWeek` (in `v3Sync`, every 5 min; `v3HomeRange` reads each calendar
+  once for the range). Falls back to `events:home` (today/tomorrow) until the script is deployed.
+- **Add event:** POST `{action:'hubAddEvent', title, date, start 'H:MM' or '', minutes, who[], by}` → `v3HubAddEvent` creates it on
+  the Family calendar (names prefixed if missing, description "Added on the Home Hub", 40/day cap) and republishes.
+- **Countdowns:** existing `countdowns` table (household.sql). Weather: open-meteo (Maple Grove).
+- **Needs Kyle once:** paste the new Apps Script, run `v3PublishHomeWeek`, deploy a new version
+  (`G:\My Drive\00Home Hub\Hub v2\Kyle - install the calendar update (5 min).md`).
