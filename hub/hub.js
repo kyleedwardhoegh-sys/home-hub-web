@@ -120,42 +120,26 @@
 
   // ---------- calendar ----------
   function setTitle(title, sub) { $("cal-title").textContent = title; $("cal-sub").textContent = sub; }
-  function hourRange(dayList) {
-    let lo = 7 * 60, hi = 21 * 60;
-    dayList.forEach((d) => evs(d).forEach((e) => { if (!e.allDay) { lo = Math.min(lo, Math.floor(e.startMin / 60) * 60); hi = Math.max(hi, Math.ceil((e.startMin + e.durMin) / 60) * 60); } }));
-    return [Math.max(5 * 60, lo), Math.min(24 * 60, hi)];
-  }
-  // side-by-side lanes for overlapping events
-  function lanes(list) {
-    const timed = list.filter((e) => !e.allDay).sort((a, b) => a.startMin - b.startMin), out = [];
-    let cluster = [], end = -1;
-    const flush = () => { const cols = []; cluster.forEach((e) => { let k = cols.findIndex((c) => c <= e.startMin); if (k < 0) { k = cols.length; cols.push(0); } cols[k] = e.startMin + e.durMin; out.push({ e, lane: k }); });
-      out.slice(-cluster.length).forEach((o) => (o.n = cols.length)); cluster = []; };
-    timed.forEach((e) => { if (e.startMin >= end && cluster.length) flush(); cluster.push(e); end = Math.max(end, e.startMin + e.durMin); });
-    if (cluster.length) flush();
-    return out;
-  }
-  function dayCol(d, lo, hi, alldH = 0) {
-    const t = today(), dt = parse(d), span = hi - lo;
-    const all = evs(d).filter((e) => e.allDay);
-    const timed = lanes(evs(d)).map(({ e, lane, n }) => {
-      const top = Math.max(0, (e.startMin - lo) / span * 100), h = Math.max(4.5, Math.min(100 - top, e.durMin / span * 100));
-      return `<div class="ev${isMine(e) ? "" : " faded"}" data-ev="${esc(d)}|${esc(e.title)}|${e.startMin}" style="${evStyle(e)};top:${top}%;height:${h}%;left:calc(${lane / n * 100}% + 3px);right:calc(${(n - lane - 1) / n * 100}% + 3px)">
-        <span><time>${fmtMin(e.startMin)}</time> ${esc(e.title)}</span>${n === 1 && h > 9 ? whoDots(e) : ""}</div>`;
-    }).join("");
+  // Week = Skylight-style: each day is a column of event cards in time order (all-day first), each showing its time.
+  // No hour scale (Kyle, 2026-11-25): a proportional grid this short made back-to-back events overlap or drift
+  // off their real times. Cards that don't fit become "+N more" (tap = that day).
+  function dayCol(d) {
+    const t = today(), dt = parse(d), list = evs(d).slice().sort((a, b) => (a.allDay ? -1 : a.startMin) - (b.allDay ? -1 : b.startMin));
+    const cards = list.map((e) => `<div class="ev card${isMine(e) ? "" : " faded"}" data-ev="${esc(d)}|${esc(e.title)}|${e.allDay ? "all" : e.startMin}" style="${evStyle(e)}">
+        <time>${e.allDay ? "All day" : fmtMin(e.startMin)}</time><span>${esc(e.title)}</span>${whoDots(e)}</div>`).join("");
     return `<div class="col${d === t ? " today" : ""}"><div class="col-head">${DOW[dt.getDay()]} <b>${dt.getDate()}</b>${d === t ? '<i class="dot"></i>' : ""}</div>
-      <div class="alld" style="height:${alldH}px">${all.map((e) => `<div class="ev chip${isMine(e) ? "" : " faded"}" data-ev="${esc(d)}|${esc(e.title)}|all" style="${evStyle(e)}"><span>${esc(e.title)}</span>${whoDots(e)}</div>`).join("")}</div>
-      <div class="hours"><div class="hlines">${Array.from({ length: span / 60 }, (_, k) => `<i style="top:${k * 60 / span * 100}%"></i>`).join("")}</div>${timed}</div></div>`;
+      <div class="cards" data-day="${d}">${cards}</div></div>`;
   }
-  // hour labels sit beside the hour grid only (below the day header + all-day row), so they line up with the events
-  function timesCol(lo, hi, alldH = 0) {
-    const span = hi - lo, marks = [];
-    for (let m = lo + 60; m < hi; m += 120) marks.push(`<span style="top:${(m - lo) / span * 100}%">${fmtMin(m)}</span>`);
-    return `<div class="times"><div class="times-grid" style="top:${26 + alldH}px">${marks.join("")}</div></div>`;
-  }
-  // every column in a row gets the same all-day height (22px chip + 2px gap each) so the hour grids match
-  const alldHeight = (days) => { const n = Math.max(0, ...days.map((d) => evs(d).filter((e) => e.allDay).length)); return n ? n * 24 + 2 : 0; };
-  // phones: the week is a simple day-by-day list (the time grid needs the big screen)
+  // after drawing: hide the cards that don't fit and say how many more there are
+  function fitCards(root) {
+    for (const box of root.querySelectorAll(".cards")) {
+      const cards = [...box.querySelectorAll(".card")];
+      if (box.scrollHeight <= box.clientHeight + 1) continue;
+      const more = document.createElement("div"); more.className = "more-card"; box.appendChild(more);
+      let hidden = 0;
+      while (cards.length && box.scrollHeight > box.clientHeight + 1) { cards.pop().hidden = true; hidden++; more.textContent = `+${hidden} more`; }
+    }
+  }  // phones: the week is a simple day-by-day list (the time grid needs the big screen)
   function renderAgenda(s) {
     const days = Array.from({ length: 7 }, (_, k) => add(s, k)), t = today();
     return `<div class="day-list">${days.map((d) => { const dt = parse(d), list = evs(d).filter(isMine);
@@ -164,12 +148,12 @@
           : `<div class="ag-none">Nothing</div>`); }).join("")}</div>`;
   }
   function renderWeek() {
-    const s = monday(S.anchor), days = Array.from({ length: 7 }, (_, k) => add(s, k)), [lo, hi] = hourRange(days);
+    const s = monday(S.anchor), days = Array.from({ length: 7 }, (_, k) => add(s, k));
     const e = parse(add(s, 6));
     setTitle(s === monday(today()) ? "This week" : s === add(monday(today()), 7) ? "Next week" : s === add(monday(today()), -7) ? "Last week" : "Week of",
       `${MON[parse(s).getMonth()]} ${parse(s).getDate()} – ${MON[e.getMonth()]} ${e.getDate()}` + (S.full ? "" : " · today & tomorrow for now"));
     const nextWk = add(s, 7), peek = Array.from({ length: 7 }, (_, k) => add(nextWk, k)).flatMap((d) => evs(d).map((e) => ({ ...e, d }))).filter(isMine).slice(0, 6);
-    const hoursRow = (list, extra) => { const h = alldHeight(list); return `<div class="wk-row">${timesCol(lo, hi, h)}<div class="cols">${list.map((d) => dayCol(d, lo, hi, h)).join("")}${extra || ""}</div></div>`; };
+    const hoursRow = (list, extra) => `<div class="wk-row"><div class="cols">${list.map((d) => dayCol(d)).join("")}${extra || ""}</div></div>`;
     const next = `<div class="next-col"><h4>Next week ›</h4>${peek.map((e) => `<div class="ev chip" style="${evStyle(e)}"><span>${DOW[parse(e.d).getDay()]} ${esc(e.title)}</span></div>`).join("") || '<span style="font-size:13px;color:#9a9aa6">Nothing yet</span>'}</div>`;
     if (innerWidth < 600) return renderAgenda(s);
     return `<div class="wk">${hoursRow(days.slice(0, 4))}${hoursRow(days.slice(4), next)}</div>`;
@@ -195,23 +179,8 @@
     const body = $("cal-body");
     body.innerHTML = S.view === "week" ? renderWeek() : S.view === "day" ? renderDay() : renderMonth();
     for (const b of document.querySelectorAll("#view-seg button")) b.classList.toggle("on", b.dataset.v === S.view);
-    if (S.view === "week") unstack(body);
+    if (S.view === "week") fitCards(body);
     if (dir) { body.style.transition = "none"; body.style.transform = `translateX(${dir * 60}px)`; body.style.opacity = 0; requestAnimationFrame(() => { body.style.transition = ""; body.style.transform = ""; body.style.opacity = 1; }); }
-  }
-  // Back-to-back events (1:30-2:30, then 2:30) don't overlap in time, but a box has to be taller than a short
-  // event to fit its text, so it would run into the next one. Nudge the later box down just below the earlier one.
-  // (Events that truly overlap are already side by side in lanes, so any collision here is only visual.)
-  function unstack(root) {
-    for (const hours of root.querySelectorAll(".hours")) {
-      const boxes = [...hours.querySelectorAll(".ev")].sort((a, b) => a.offsetTop - b.offsetTop), placed = [];
-      for (const el of boxes) {
-        const l = el.offsetLeft, r = l + el.offsetWidth;
-        let floor = el.offsetTop;
-        for (const p of placed) if (p.l < r - 1 && l < p.r - 1) floor = Math.max(floor, p.bottom + 2);
-        if (floor > el.offsetTop) { el.style.top = floor + "px"; el.style.height = el.offsetHeight + "px"; el.classList.add("nudged"); }
-        placed.push({ l, r, bottom: floor + el.offsetHeight });
-      }
-    }
   }
   function render() { renderWidgets(); renderBanners(); renderPeople(); renderCal(); }
   function step(n) {
@@ -220,6 +189,9 @@
     else { const a = parse(S.anchor); S.anchor = ymd(new Date(a.getFullYear(), a.getMonth() + n, 1)); }
     renderCal(n);
   }
+  // the card fit depends on the calendar's height, which changes when the weather/banners load: redo it then
+  let lastH = 0;
+  new ResizeObserver(() => { const h = $("cal-body").clientHeight; if (h !== lastH) { lastH = h; if (S.view === "week") renderCal(); } }).observe($("cal-body"));
   $("prev").addEventListener("click", () => step(-1));
   $("next").addEventListener("click", () => step(1));
   $("today").addEventListener("click", () => { S.anchor = today(); renderCal(); });
@@ -231,8 +203,8 @@
     if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y, v = Math.abs(dx) / Math.max(1, performance.now() - sw.t); sw = null;
     if (Math.abs(dx) > Math.abs(dy) * 1.5 && (Math.abs(dx) > 80 || v > 0.6)) { step(dx < 0 ? 1 : -1); return; }
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      const ev = e.target.closest("[data-ev]"); if (ev) { showEvent(ev.dataset.ev); return; }
       const md = e.target.closest("[data-day]"); if (md) { S.view = "day"; S.anchor = md.dataset.day; renderCal(); return; }
-      const ev = e.target.closest("[data-ev]"); if (ev) showEvent(ev.dataset.ev);
     }
   });
   function showEvent(key) {

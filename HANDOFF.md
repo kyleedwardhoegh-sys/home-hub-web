@@ -301,7 +301,7 @@ Knee PT tracker from her PT app's "Program: Knee": 5 daily checks (knee push, pl
 The family's new kitchen home screen (v1 dashboard/Training Hub are frozen for reference). Plan:
 `G:\My Drive\00Home Hub\Hub v2\Implementation Plan (from family ratings).md`. Look = "Combo": dark iPhone-style
 wallpaper + glass widgets (clock/weather, Up next, Countdown), birthday/holiday banners, person bubbles (tap = filter),
-a bright Skylight-style calendar card (Week = two stacked rows of hour-grid day columns; Day; Month; swipe/‹ › to page;
+a bright Skylight-style calendar card (Week = two stacked rows of day columns with event cards in time order, no hour scale (Kyle 2026-11-25: the short hour grid overlapped/misplaced events), overflow = "+N more"; Day; Month; swipe/‹ › to page;
 phones get a day-by-day list), purple + to add an event (voice: "Nash practice Tuesday at 6" fills who/day/time), iPhone
 dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5 AM), 3-min idle reset, hold-to-close
 (asks the kitchen PC helper `http://localhost:8790/api/exit`, repo `hub-v2`, which allows this origin via CORS + PNA).
