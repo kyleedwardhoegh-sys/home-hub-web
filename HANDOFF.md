@@ -313,3 +313,25 @@ dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5
 - **Countdowns:** existing `countdowns` table (household.sql). Weather: open-meteo (Maple Grove).
 - **Needs Kyle once:** paste the new Apps Script, run `v3PublishHomeWeek`, deploy a new version
   (`G:\My Drive\00Home Hub\Hub v2\Kyle - install the calendar update (5 min).md`).
+
+## Home Hub v2, Phase 2a: Stars & chores (2026-11-25)
+`hub/kids.js` + `hub/kids.css`, opened from the dock's ⭐ **Stars** icon, the Control Center tile, or `/hub/?app=stars&kid=Nash`
+(phone bookmark). Home bar / 3-min idle closes it (`window.HubApps.stars` = {open, close, isOpen}; hub.js calls every
+`HubApps` entry). Kid bubbles on the home screen show each kid's star balance (`HubApps.badge`).
+- **Kid screen** (pink Nellie / blue Nash wallpaper): balance, 🔥 streak, chores ring, screen-time minutes owed; picture
+  tiles (tap = done + confetti + ding, tap again = undo); a Training tile (Training Hub `set_log` points today → stars,
+  1 per 5 pts, max 6, links to `../?open=Name`); 🎤 "I'm done with the dishes" (`matchChore`, says a kid's name → switches kid);
+  🎁 Reward shop (confirm sheet → spend row status `owed`; "Wish for something" by voice/typing → reward with `stars: null`).
+- **Mom & Dad tab** (no lock; parent lock scored 2.5): To hand out (Given ✓ / Refund), Wishes to price (⭐ chips or No),
+  Trip mode switch (trip row `{from, to}`; trip days pause chores and are skipped by the streak), bonus ±stars, add/remove
+  chores (for Both/one kid, ⭐, every day or school nights Sun–Thu, emoji) and rewards.
+- **Rules:** chore stars as set; +2 when every chore that day is done (an `alldone` row, which is also what the streak counts);
+  starters in `DEFAULTS` (6 chores, 6 rewards incl. 30/60 min screen time) are seeded into `kid_setup` the first time it's empty.
+- **Data:** `supabase/kids.sql` → `stars` (ledger, ids `day|kid|chore|<id>`, `day|kid|training`, `day|kid|alldone`,
+  `spend|kid|ms`, `bonus|kid|ms`; statuses ok/undone/owed/given/cancelled; never deleted), `kid_setup`, view `star_totals`.
+  Every write goes through the device outbox `hub.kids.outbox` (localStorage) and retries every 20 s, so until the SQL is run
+  the kiosk keeps everything locally and uploads it the first time the tables answer.
+- Tested 2026-11-25 in headless Edge at 720×1280 and 390×844 (scratch script, not in repo): totals, all-done bonus, streak,
+  buy, trip mode, home-bar close, voice matcher (5/5 phrases), no JS errors.
+- **Next (Phase 2b):** Training re-skin in the v2 look (plans/sets from the same data), stats charts, workout timer,
+  games & tournaments (from calendar), tests & homework due.

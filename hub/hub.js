@@ -111,7 +111,8 @@
     box.classList.toggle("filtering", !!S.filter);
     for (const p of PEOPLE) {
       const b = document.createElement("button"); b.className = "bubble" + (S.filter === p ? " on" : "");
-      b.innerHTML = `<i style="--c:var(--${p})">${INIT[p]}</i><em>${p}</em>`;
+      const stars = window.HubApps && window.HubApps.badge ? window.HubApps.badge(p) : null;
+      b.innerHTML = `<i style="--c:var(--${p})">${INIT[p]}</i><em>${p}</em>${stars !== null ? `<b class="star-badge">⭐ ${stars}</b>` : ""}`;
       b.addEventListener("click", () => { S.filter = S.filter === p ? null : p; renderPeople(); renderCal(); if (S.filter) toast(`Showing ${p}'s events · tap again for everyone`, 1600); });
       box.appendChild(b);
     }
@@ -325,11 +326,14 @@
     const b = e.target.closest(".app"); if (!b) return;
     if (b.dataset.app === "calendar") { S.view = "week"; S.anchor = today(); S.filter = null; render(); }
     else if (b.dataset.app === "countdowns") { drawCountdowns(); $("cd-day").value = add(today(), 7); openSheet("sheet-count"); }
+    else if (window.HubApps && window.HubApps[b.dataset.app]) window.HubApps[b.dataset.app].open();
     else toast(`${b.dataset.what} come${/s$/.test(b.dataset.what) ? "" : "s"} in the next phase`);
   });
 
   // ---------- iPhone-style gestures: home bar, control center ----------
-  function goHome() { closeSheets(); $("cc").hidden = true; S.view = "week"; S.anchor = today(); S.filter = null; render(); }
+  const appOpen = () => window.HubApps && Object.values(window.HubApps).some((a) => a && a.isOpen && a.isOpen());
+  function closeApps() { if (window.HubApps) Object.values(window.HubApps).forEach((a) => a && a.close && a.close()); }
+  function goHome() { closeSheets(); closeApps(); $("cc").hidden = true; S.view = "week"; S.anchor = today(); S.filter = null; render(); }
   let g = null;
   document.addEventListener("pointerdown", (e) => {
     S.last = Date.now();
@@ -348,7 +352,8 @@
     const b = e.target.closest("[data-cc]"); if (!b) return;
     $("cc").hidden = true;
     if (b.dataset.cc === "home") goHome();
-    if (b.dataset.cc === "add") openAdd();
+    if (b.dataset.cc === "add") { closeApps(); openAdd(); }
+    if (b.dataset.cc === "stars" && window.HubApps && window.HubApps.stars) window.HubApps.stars.open();
     if (b.dataset.cc === "reload") location.reload();
     if (b.dataset.cc === "ideas") location.href = KIOSK ? "http://localhost:8790/" : "https://home-hub-web-hoegh-home.vercel.app/hub/";
   });
@@ -380,7 +385,7 @@
   setInterval(() => {
     sleepCheck(); renderWidgets();
     // kitchen screen: back to this week after 3 minutes untouched; roll over at midnight
-    if (KIOSK && Date.now() - S.last > 180000 && (S.view !== "week" || S.anchor !== today() || S.filter || !$("cc").hidden || document.querySelector(".sheet:not([hidden])"))) goHome();
+    if (KIOSK && Date.now() - S.last > 180000 && (appOpen() || S.view !== "week" || S.anchor !== today() || S.filter || !$("cc").hidden || document.querySelector(".sheet:not([hidden])"))) goHome();
   }, 30000);
-  window.hub = { S, understand, NEW };
+  window.hub = { S, understand, NEW, toast, renderPeople };
 })();

@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#1b1440">
 <title>Hoegh Home Hub</title>
 <link rel="stylesheet" href="hub.css">
+<link rel="stylesheet" href="kids.css">
 </head>
 <body>
 <div class="wall"></div>
@@ -38,7 +39,7 @@
 
   <nav class="dock">
     <button class="app" data-app="calendar"><span style="--c:#ff3b30">📅</span><em>Calendar</em></button>
-    <button class="app" data-app="soon" data-what="Chores & stars"><span style="--c:#34c759">⭐</span><em>Chores</em></button>
+    <button class="app" data-app="stars"><span style="--c:#34c759">⭐</span><em>Stars</em></button>
     <button class="app" data-app="soon" data-what="Lists"><span style="--c:#ff9f0a">📋</span><em>Lists</em></button>
     <button class="app" data-app="countdowns"><span style="--c:#bf5af2">⏳</span><em>Countdowns</em></button>
     <button class="app" data-app="soon" data-what="Training"><span style="--c:#0a84ff">🏀</span><em>Training</em></button>
@@ -90,6 +91,7 @@
   <div class="cc-panel">
     <button class="cc-tile" data-cc="home"><span>🏠</span>Home</button>
     <button class="cc-tile" data-cc="add"><span>➕</span>Add event</button>
+    <button class="cc-tile" data-cc="stars"><span>⭐</span>Stars & chores</button>
     <button class="cc-tile" data-cc="ideas"><span>💡</span>Idea board</button>
     <button class="cc-tile" data-cc="reload"><span>🔄</span>Refresh</button>
     <button class="cc-tile danger kiosk-only" id="cc-exit"><span class="ring">⏻</span>Hold to close</button>
@@ -102,5 +104,6 @@
 
 <script src="../hubdata.js"></script>
 <script src="hub.js"></script>
+<script src="kids.js"></script>
 </body>
 </html>
