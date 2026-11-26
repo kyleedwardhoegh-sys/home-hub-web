@@ -330,7 +330,8 @@ dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5
 - **Data:** `supabase/kids.sql` → `stars` (ledger, ids `day|kid|chore|<id>`, `day|kid|training`, `day|kid|alldone`,
   `spend|kid|ms`, `bonus|kid|ms`; statuses ok/undone/owed/given/cancelled; never deleted), `kid_setup`, view `star_totals`.
   Every write goes through the device outbox `hub.kids.outbox` (localStorage) and retries every 20 s, so until the SQL is run
-  the kiosk keeps everything locally and uploads it the first time the tables answer.
+  the kiosk keeps everything locally and uploads it the first time the tables answer. **Tables created by Kyle 2026-11-25**
+  and verified with the public key (one harmless test row, kid "test", 0 stars).
 - Tested 2026-11-25 in headless Edge at 720×1280 and 390×844 (scratch script, not in repo): totals, all-done bonus, streak,
   buy, trip mode, home-bar close, voice matcher (5/5 phrases), no JS errors.
 - **Next (Phase 2b):** Training re-skin in the v2 look (plans/sets from the same data), stats charts, workout timer,
