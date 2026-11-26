@@ -344,3 +344,19 @@ dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5
   (`context.route("**/*supabase.co/**", ...)` → fulfill non-GET with 201).
 - **Next (Phase 2b):** Training re-skin in the v2 look (plans/sets from the same data), stats charts, workout timer,
   games & tournaments (from calendar), tests & homework due.
+
+## Home Hub v2, Phase 2b: Training `/hub/` (2026-11-26, built on the laptop)
+`hub/train.js` + `hub/train.css` (reuses kids.css `.kx` wallpaper/head/tabs). Opened from the dock's 🏀 **Training**, the Control
+Center tile, the Stars app's Training row (now opens this instead of the old site), or `/hub/?app=training&kid=Nash`.
+`window.HubApps.training` = {open, close, isOpen}, so home bar / idle reset close it.
+- **Same data as the Training Hub:** `HubData.getHub(kid, today)` for plans/done sets/points; check-offs go through
+  `HubData.post({action:"toggleSet"…})` / `setResult`, so the old site, phones and the Stars app's training stars all agree.
+- **Screen:** kid tabs (neutral; the current kid's color only), 🏆 Coming up (next 14 days of `events:week` whose title looks like a
+  game/tournament/vs/@, filtered by `who`), Morning / After School / Night tabs with "N to do" (defaults by time of day), must-do cards
+  (thumbnail → video sheet, big set buttons, result − / + stepper), Pick-any groups by category (collapsed unless a set is done today).
+- **Tools:** ⏱️ workout timer (30 s / 1 / 2 / 5 min, 8×30 s and 5×45 s intervals with rest, beeps, keeps the kiosk from idling home) and
+  📈 last 2 weeks (points per day bars, days trained, streak, weekly prize).
+- Tested 2026-11-26 in headless Edge at 720×1280 with live reads and stubbed writes: tap/untap set (points ±, correct toggleSet body),
+  tracks, groups, kid switch, stats, timer, open from Stars. Not yet tried by real fingers on the Elo.
+- **Still to do in 2b:** tests & homework due (needs a source: Kyle to pick, e.g. a Google Sheet or the school's Schoology/Google
+  Classroom), drill feedback prompt (the old site's first-finish minutes/difficulty ask), training games.

@@ -347,6 +347,7 @@
     if (b.dataset.cc === "home") goHome();
     if (b.dataset.cc === "add") { closeApps(); openAdd(); }
     if (b.dataset.cc === "stars" && window.HubApps && window.HubApps.stars) window.HubApps.stars.open();
+    if (b.dataset.cc === "training" && window.HubApps && window.HubApps.training) { closeApps(); window.HubApps.training.open(); }
     if (b.dataset.cc === "reload") location.reload();
     if (b.dataset.cc === "ideas") location.href = KIOSK ? "http://localhost:8790/" : "https://home-hub-web-hoegh-home.vercel.app/hub/";
     if (b.dataset.cc === "chorequiz") location.href = "http://localhost:8790/?deck=chores";   // kitchen PC only (2026-11-26)

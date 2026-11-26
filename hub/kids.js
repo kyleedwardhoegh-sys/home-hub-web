@@ -401,7 +401,7 @@
       case "shop": sheet(renderShop()); break;
       case "close": case "parents-close": closeSheet(); break;
       case "say": listen(heardDone, b); break;
-      case "training": location.href = `../?open=${d.k || S.kid}`; break;
+      case "training": if (window.HubApps && window.HubApps.training) { close(); window.HubApps.training.open(d.k || S.kid); } else location.href = `../?open=${d.k || S.kid}`; break;
       case "wish": wish($("kx-wish").textContent); closeSheet(); break;
       case "wish-say": listen((t) => { $("kx-wish").textContent = t.replace(/^(i want|i wish for|i'd like|can i (get|have))\s+/i, ""); }, b); break;
       case "item-say": listen((t) => { $("kx-item").textContent = t; }, b); break;
