@@ -3,7 +3,7 @@
    and gestures. Portrait 720x1280 CSS px first (kitchen Elo), also iPhone/iPad. */
 :root {
   --Kyle: #f5a000; --Logan: #8e5cc9; --Nellie: #e64f8f; --Nash: #2f8fdc;
-  --Kyle-bg: #fde4b0; --Logan-bg: #e2d5f6; --Nellie-bg: #f9cfdc; --Nash-bg: #c9e4f7; --none-bg: #e6e7ec;
+  --Family: #2fb37a; --Family-bg: #cdeedd; --Kyle-bg: #fde4b0; --Logan-bg: #e2d5f6; --Nellie-bg: #f9cfdc; --Nash-bg: #c9e4f7; --none-bg: #e6e7ec;
   --glass: rgba(255, 255, 255, .14); --glass-line: rgba(255, 255, 255, .2); --dim: rgba(235, 235, 245, .7);
   --ink: #2d2d36; --ink2: #6b6b78; --line: #ececf2; --purple: #7c5cff;
   --spring: cubic-bezier(.2, 1.25, .35, 1);

@@ -62,10 +62,13 @@
   }
 
   const evs = (d) => (S.days[d] || []);
-  const mainWho = (e) => (e.who || []).find((w) => PEOPLE.includes(w));
+  // color: a kid's event shows in the kid's color even when it's on Mom & Dad's calendars too;
+  // Kyle + Logan together (shared Family calendar) = family green; otherwise the one person
+  const mainWho = (e) => { const w = (e.who || []).filter((x) => PEOPLE.includes(x));
+    return w.find((x) => x === "Nellie" || x === "Nash") || (w.includes("Kyle") && w.includes("Logan") ? "Family" : w[0]); };
   const isMine = (e) => !S.filter || (e.who || []).includes(S.filter);
   function evStyle(e) { const w = mainWho(e); return w ? `--bg:var(--${w}-bg);--c:var(--${w})` : "--bg:var(--none-bg);--c:#9a9aa6"; }
-  const whoDots = (e) => `<span class="who">${(e.who || []).filter((w) => PEOPLE.includes(w)).map((w) => `<i style="--c:var(--${w})">${INIT[w]}</i>`).join("")}</span>`;
+  const whoDots = (e) => `<span class="who">${(e.who || []).filter((w) => PEOPLE.includes(w) && !((e.who.includes("Nellie") || e.who.includes("Nash")) && (w === "Kyle" || w === "Logan"))).map((w) => `<i style="--c:var(--${w})">${INIT[w]}</i>`).join("")}</span>`;
 
   // ---------- widgets, banners, people ----------
   function tick() {
