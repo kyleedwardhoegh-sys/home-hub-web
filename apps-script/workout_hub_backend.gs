@@ -177,6 +177,7 @@ function doPost(e) {
   if (data.action === 'setResult') return jsonResponse(v2SetResult(data));
   if (data.action === 'setVisual') return jsonResponse(v2SetVisual(data));
   if (data.action === 'setFeedback') return jsonResponse(v2SetFeedback(data));
+  if (data.action === 'hubAddEvent') return jsonResponse(v3HubAddEvent(data));
   return jsonResponse({ error: 'unknown action' });
 }
 
@@ -1486,6 +1487,7 @@ function v3Sync() {
     try { v3Mirror(); } catch (e) { console.error('v3Mirror ' + e); }
     try { v3PublishEvents(); } catch (e) { console.error('v3PublishEvents ' + e); }
     try { v3PublishHomeEvents(); } catch (e) { console.error('v3PublishHomeEvents ' + e); }
+    try { v3PublishHomeWeek(); } catch (e) { console.error('v3PublishHomeWeek ' + e); }
     try { v3PublishHill(); } catch (e) { console.error('v3PublishHill ' + e); }
     if (new Date().getMinutes() < 5) { try { v3Publish(true); } catch (e) { console.error('v3Publish ' + e); } }
   } finally { lock.releaseLock(); }
@@ -1704,4 +1706,101 @@ function v2SetOwnPlanOnly(player, on) {
   if (col === -1) { col = head.length; sh.getRange(1, col + 1).setValue('Own Plan Only').setFontWeight('bold'); }
   var names = sh.getRange(2, 1, Math.max(1, sh.getLastRow() - 1), 1).getValues();
   for (var i = 0; i < names.length; i++) if (names[i][0] === player) sh.getRange(i + 2, col + 1).setValue(on ? true : false);
+}
+
+// ---- Home Hub v2 (2026-11-25): 4-week family calendar + add events from the hub ----
+// 'events:week' = { start: Monday of this week, days: { 'YYYY-MM-DD': [event, ...] } } for 28 days,
+// every family calendar, each event tagged with who it's for (same rules as v3HomeEvents) plus
+// startMin / durMin so the hub can draw a Skylight-style time grid. One getEvents call per
+// calendar for the whole range (not per day). Published by v3Sync every 5 minutes.
+function v3HomeRange(startYmd, nDays) {
+  var cache = CacheService.getScriptCache(), ck = 'homerange|' + startYmd + '|' + nDays;
+  var hit = cache.get(ck);
+  if (hit) return JSON.parse(hit);
+  var tz = Session.getScriptTimeZone();
+  var p = startYmd.split('-'), start = new Date(+p[0], +p[1] - 1, +p[2]), end = new Date(+p[0], +p[1] - 1, +p[2] + nDays);
+  var cals = V3_HOME_CALS.concat(Object.keys(V2_TEAM_CALS).map(function (k) { return { id: V2_TEAM_CALS[k], who: [k] }; }));
+  var byKey = {}, days = {};
+  for (var k = 0; k < nDays; k++) days[v2AddDays(startYmd, k)] = [];
+  cals.forEach(function (c) {
+    var cal = null;
+    try { cal = CalendarApp.getCalendarById(c.id); } catch (e) {}
+    if (!cal) return;
+    var links = {};
+    try { links = v2CalLinks(c.id, start, end); } catch (e) {}
+    cal.getEvents(start, end).forEach(function (ev) {
+      var s = ev.getStartTime(), en = ev.getEndTime(), allDay = ev.isAllDayEvent(), title = v2CleanTitle(ev.getTitle());
+      var key = title.toLowerCase() + '|' + (allDay ? 'all' + v2Ymd(s) : s.getTime());
+      var e = byKey[key];
+      if (!e) {
+        e = byKey[key] = { title: title, allDay: allDay, s: s, en: en, location: String(ev.getLocation() || '').trim(), w: {}, link: '' };
+      }
+      if (!e.link) e.link = links[v2CalLinkKey(ev, tz)] || '';
+      c.who.forEach(function (w) { e.w[w] = true; });
+      try {
+        ev.getGuestList().forEach(function (g) {
+          var em = String(g.getEmail() || '').toLowerCase();
+          if (em === V3_KYLE) e.w.Kyle = true;
+          if (em === V3_LOGAN) e.w.Logan = true;
+        });
+      } catch (x) {}
+      var words = title.toLowerCase().split(/[^a-z0-9]+/);
+      V3_FAMILY.forEach(function (n) { if (words.indexOf(n.toLowerCase()) > -1) e.w[n] = true; });
+    });
+  });
+  Object.keys(byKey).forEach(function (key) {
+    var e = byKey[key], who = V3_FAMILY.filter(function (n) { return e.w[n]; });
+    // an all-day event spanning several days shows on each of them; a timed one on its start day
+    var first = v2Ymd(e.s), last = e.allDay ? v2AddDays(v2Ymd(e.en), -1) : first;
+    for (var d = first; d <= last; d = v2AddDays(d, 1)) {
+      if (!days[d]) continue;
+      days[d].push({
+        title: e.title, allDay: e.allDay, location: e.location, link: e.link, who: who,
+        time: e.allDay ? '' : Utilities.formatDate(e.s, tz, 'h:mm a'),
+        startMin: e.allDay ? null : e.s.getHours() * 60 + e.s.getMinutes(),
+        durMin: e.allDay ? null : Math.max(15, Math.round((e.en - e.s) / 60000))
+      });
+    }
+  });
+  Object.keys(days).forEach(function (d) {
+    days[d].sort(function (a, b) { return (a.allDay ? -1 : a.startMin) - (b.allDay ? -1 : b.startMin); });
+    days[d] = days[d].slice(0, 30);
+  });
+  try { cache.put(ck, JSON.stringify(days), 600); } catch (e) {}
+  return days;
+}
+
+function v3PublishHomeWeek() {
+  var today = v2Ymd(new Date()), dow = (new Date().getDay() + 6) % 7, monday = v2AddDays(today, -dow);
+  return v3PutDocs([{ id: 'events:week', data: { start: monday, days: v3HomeRange(monday, 28) } }], false);
+}
+
+// POST {action:'hubAddEvent', title, date:'YYYY-MM-DD', start:'HH:MM' or '' (all day), minutes, who:[names], by}
+// Adds the event to the shared Family calendar (everyone's iPhones see it) and republishes 'events:week'.
+// Names in `who` that aren't already in the title are added in front ("Nash: Practice") so the
+// who-tags work the same as hand-made events. Capped at 40 hub-added events a day.
+var V3_FAMILY_CAL = 'family15716951609174210844@group.calendar.google.com';
+function v3HubAddEvent(b) {
+  var title = String(b.title || '').trim().slice(0, 120), date = String(b.date || '');
+  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'need title and date' };
+  var props = PropertiesService.getScriptProperties(), capKey = 'hubAdd|' + v2Ymd(new Date());
+  var used = Number(props.getProperty(capKey) || 0);
+  if (used >= 40) return { error: 'daily limit' };
+  props.setProperty(capKey, String(used + 1));
+  var who = (b.who || []).filter(function (n) { return V3_FAMILY.indexOf(n) > -1; });
+  var missing = who.filter(function (n) { return title.toLowerCase().split(/[^a-z0-9]+/).indexOf(n.toLowerCase()) < 0; });
+  if (missing.length && missing.length < 4) title = missing.join(' & ') + ': ' + title;
+  var cal = CalendarApp.getCalendarById(V3_FAMILY_CAL), p = date.split('-'), ev;
+  if (/^\d{1,2}:\d{2}$/.test(b.start || '')) {
+    var hm = b.start.split(':'), s = new Date(+p[0], +p[1] - 1, +p[2], +hm[0], +hm[1]);
+    var mins = Math.min(24 * 60, Math.max(15, Number(b.minutes) || 60));
+    ev = cal.createEvent(title, s, new Date(s.getTime() + mins * 60000));
+  } else {
+    ev = cal.createAllDayEvent(title, new Date(+p[0], +p[1] - 1, +p[2]));
+  }
+  ev.setDescription('Added on the Home Hub' + (b.by ? ' by ' + b.by : '') + '.');
+  var cache = CacheService.getScriptCache(), today = v2Ymd(new Date()), dow = (new Date().getDay() + 6) % 7;
+  cache.remove('homerange|' + v2AddDays(today, -dow) + '|28');
+  try { v3PublishHomeWeek(); } catch (e) { console.error('v3PublishHomeWeek ' + e); }
+  return { ok: true, title: title };
 }

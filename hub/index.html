@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hoegh Hub">
+<meta name="theme-color" content="#1b1440">
+<title>Hoegh Home Hub</title>
+<link rel="stylesheet" href="hub.css">
+</head>
+<body>
+<div class="wall"></div>
+
+<main id="home">
+  <!-- glance widgets (nothing to tap up here) -->
+  <section class="widgets">
+    <div class="wid wid-clock"><b id="clock">--:--</b><small id="date"></small><span id="wx" class="wx"></span></div>
+    <div class="wid wid-next"><small>UP NEXT</small><div id="upnext"></div></div>
+    <div class="wid wid-count"><small>COUNTDOWN</small><div id="countdown"></div></div>
+  </section>
+  <div class="banners" id="banners"></div>
+
+  <!-- people: tap to show only their stuff (tap again for everyone) -->
+  <nav class="people" id="people"></nav>
+
+  <!-- the Skylight-style calendar card -->
+  <section class="cal" id="cal">
+    <header class="cal-head">
+      <div class="cal-title"><b id="cal-title">This week</b><small id="cal-sub"></small></div>
+      <div class="seg" id="view-seg"><button data-v="day">Day</button><button data-v="week" class="on">Week</button><button data-v="month">Month</button></div>
+    </header>
+    <div class="cal-nav"><button id="prev">‹</button><button id="today">Today</button><button id="next">›</button></div>
+    <div class="cal-body" id="cal-body"></div>
+    <button class="fab" id="add" aria-label="Add an event">+</button>
+  </section>
+
+  <nav class="dock">
+    <button class="app" data-app="calendar"><span style="--c:#ff3b30">📅</span><em>Calendar</em></button>
+    <button class="app" data-app="soon" data-what="Chores & stars"><span style="--c:#34c759">⭐</span><em>Chores</em></button>
+    <button class="app" data-app="soon" data-what="Lists"><span style="--c:#ff9f0a">📋</span><em>Lists</em></button>
+    <button class="app" data-app="countdowns"><span style="--c:#bf5af2">⏳</span><em>Countdowns</em></button>
+    <button class="app" data-app="soon" data-what="Training"><span style="--c:#0a84ff">🏀</span><em>Training</em></button>
+  </nav>
+</main>
+
+<!-- add an event: voice first -->
+<section class="sheet" id="sheet-add" hidden>
+  <div class="sheet-card">
+    <div class="grab"></div>
+    <h2>New event</h2>
+    <button class="mic" id="mic"><span class="micdot">🎤</span><b id="mic-label">Tap and say it, like "Nash practice Tuesday at 6"</b></button>
+    <div class="typed" id="ev-title" contenteditable="true" spellcheck="false" data-ph="What is it?"></div>
+    <div class="label">Who</div>
+    <div class="chips" id="ev-who"></div>
+    <div class="label">Day</div>
+    <div class="chips scroll" id="ev-day"></div>
+    <div class="label">Time</div>
+    <div class="chips scroll" id="ev-time"></div>
+    <div class="label">How long</div>
+    <div class="chips" id="ev-len"></div>
+    <div class="sheet-row"><button class="btn" id="add-cancel">Cancel</button><button class="btn go" id="add-save">Add to calendar</button></div>
+  </div>
+</section>
+
+<!-- countdowns -->
+<section class="sheet" id="sheet-count" hidden>
+  <div class="sheet-card">
+    <div class="grab"></div>
+    <h2>Countdowns</h2>
+    <div id="count-list" class="count-list"></div>
+    <div class="label">Add one</div>
+    <div class="typed" id="cd-title" contenteditable="true" spellcheck="false" data-ph="Christmas, Florida trip, tournament…"></div>
+    <div class="label">When</div>
+    <input type="date" id="cd-day" class="date-in">
+    <div class="sheet-row"><button class="btn" id="cd-close">Done</button><button class="btn go" id="cd-save">Add countdown</button></div>
+  </div>
+</section>
+
+<!-- event details -->
+<section class="sheet" id="sheet-ev" hidden>
+  <div class="sheet-card"><div class="grab"></div><div id="ev-detail"></div>
+    <div class="sheet-row"><button class="btn" id="ev-close">Close</button></div></div>
+</section>
+
+<!-- iPhone-style chrome -->
+<div class="cc-cue"></div>
+<div class="cc" id="cc" hidden>
+  <div class="cc-panel">
+    <button class="cc-tile" data-cc="home"><span>🏠</span>Home</button>
+    <button class="cc-tile" data-cc="add"><span>➕</span>Add event</button>
+    <button class="cc-tile" data-cc="ideas"><span>💡</span>Idea board</button>
+    <button class="cc-tile" data-cc="reload"><span>🔄</span>Refresh</button>
+    <button class="cc-tile danger kiosk-only" id="cc-exit"><span class="ring">⏻</span>Hold to close</button>
+  </div>
+  <p class="cc-hint">Swipe up or tap outside to close</p>
+</div>
+<div class="sleep" id="sleep" hidden><b id="sleep-clock"></b><small>Good night · tap to wake</small></div>
+<div class="homebar" id="homebar"><span></span></div>
+<div class="toast" id="toast"></div>
+
+<script src="../hubdata.js"></script>
+<script src="hub.js"></script>
+</body>
+</html>
