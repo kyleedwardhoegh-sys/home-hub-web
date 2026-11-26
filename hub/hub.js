@@ -135,7 +135,7 @@
     if (cluster.length) flush();
     return out;
   }
-  function dayCol(d, lo, hi) {
+  function dayCol(d, lo, hi, alldH = 0) {
     const t = today(), dt = parse(d), span = hi - lo;
     const all = evs(d).filter((e) => e.allDay);
     const timed = lanes(evs(d)).map(({ e, lane, n }) => {
@@ -144,14 +144,17 @@
         <span><time>${fmtMin(e.startMin)}</time> ${esc(e.title)}</span>${n === 1 && h > 9 ? whoDots(e) : ""}</div>`;
     }).join("");
     return `<div class="col${d === t ? " today" : ""}"><div class="col-head">${DOW[dt.getDay()]} <b>${dt.getDate()}</b>${d === t ? '<i class="dot"></i>' : ""}</div>
-      <div class="alld">${all.map((e) => `<div class="ev chip${isMine(e) ? "" : " faded"}" data-ev="${esc(d)}|${esc(e.title)}|all" style="${evStyle(e)}"><span>${esc(e.title)}</span>${whoDots(e)}</div>`).join("")}</div>
+      <div class="alld" style="height:${alldH}px">${all.map((e) => `<div class="ev chip${isMine(e) ? "" : " faded"}" data-ev="${esc(d)}|${esc(e.title)}|all" style="${evStyle(e)}"><span>${esc(e.title)}</span>${whoDots(e)}</div>`).join("")}</div>
       <div class="hours"><div class="hlines">${Array.from({ length: span / 60 }, (_, k) => `<i style="top:${k * 60 / span * 100}%"></i>`).join("")}</div>${timed}</div></div>`;
   }
-  function timesCol(lo, hi) {
+  // hour labels sit beside the hour grid only (below the day header + all-day row), so they line up with the events
+  function timesCol(lo, hi, alldH = 0) {
     const span = hi - lo, marks = [];
     for (let m = lo + 60; m < hi; m += 120) marks.push(`<span style="top:${(m - lo) / span * 100}%">${fmtMin(m)}</span>`);
-    return `<div class="times"><div style="height:26px"></div>${marks.join("")}</div>`;
+    return `<div class="times"><div class="times-grid" style="top:${26 + alldH}px">${marks.join("")}</div></div>`;
   }
+  // every column in a row gets the same all-day height (22px chip + 2px gap each) so the hour grids match
+  const alldHeight = (days) => { const n = Math.max(0, ...days.map((d) => evs(d).filter((e) => e.allDay).length)); return n ? n * 24 + 2 : 0; };
   // phones: the week is a simple day-by-day list (the time grid needs the big screen)
   function renderAgenda(s) {
     const days = Array.from({ length: 7 }, (_, k) => add(s, k)), t = today();
@@ -166,7 +169,7 @@
     setTitle(s === monday(today()) ? "This week" : s === add(monday(today()), 7) ? "Next week" : s === add(monday(today()), -7) ? "Last week" : "Week of",
       `${MON[parse(s).getMonth()]} ${parse(s).getDate()} – ${MON[e.getMonth()]} ${e.getDate()}` + (S.full ? "" : " · today & tomorrow for now"));
     const nextWk = add(s, 7), peek = Array.from({ length: 7 }, (_, k) => add(nextWk, k)).flatMap((d) => evs(d).map((e) => ({ ...e, d }))).filter(isMine).slice(0, 6);
-    const hoursRow = (list, extra) => `<div class="wk-row">${timesCol(lo, hi)}<div class="cols">${list.map((d) => dayCol(d, lo, hi)).join("")}${extra || ""}</div></div>`;
+    const hoursRow = (list, extra) => { const h = alldHeight(list); return `<div class="wk-row">${timesCol(lo, hi, h)}<div class="cols">${list.map((d) => dayCol(d, lo, hi, h)).join("")}${extra || ""}</div></div>`; };
     const next = `<div class="next-col"><h4>Next week ›</h4>${peek.map((e) => `<div class="ev chip" style="${evStyle(e)}"><span>${DOW[parse(e.d).getDay()]} ${esc(e.title)}</span></div>`).join("") || '<span style="font-size:13px;color:#9a9aa6">Nothing yet</span>'}</div>`;
     if (innerWidth < 600) return renderAgenda(s);
     return `<div class="wk">${hoursRow(days.slice(0, 4))}${hoursRow(days.slice(4), next)}</div>`;
