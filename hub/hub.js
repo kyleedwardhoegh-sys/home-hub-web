@@ -111,8 +111,10 @@
     box.classList.toggle("filtering", !!S.filter);
     for (const p of PEOPLE) {
       const b = document.createElement("button"); b.className = "bubble" + (S.filter === p ? " on" : "");
-      const stars = window.HubApps && window.HubApps.badge ? window.HubApps.badge(p) : null;
-      b.innerHTML = `<i style="--c:var(--${p})">${INIT[p]}</i><em>${p}</em>${stars !== null ? `<b class="star-badge">⭐ ${stars}</b>` : ""}`;
+      // Skylight-style: each kid's chip shows today's chores done ("2/6"), turning green when finished
+      const bd = window.HubApps && window.HubApps.badge ? window.HubApps.badge(p) : null;
+      const chip = !bd || !bd.total ? "" : bd.trip ? `<b class="chore-badge">✈️ trip</b>` : bd.done === bd.total ? `<b class="chore-badge all">✓ all done</b>` : `<b class="chore-badge">${bd.done}/${bd.total} chores</b>`;
+      b.innerHTML = `<i style="--c:var(--${p})">${INIT[p]}</i><em>${p}</em>${chip}`;
       b.addEventListener("click", () => { S.filter = S.filter === p ? null : p; renderPeople(); renderCal(); if (S.filter) toast(`Showing ${p}'s events · tap again for everyone`, 1600); });
       box.appendChild(b);
     }

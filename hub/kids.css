@@ -97,7 +97,8 @@
 
 /* home screen: star counts under the kids' bubbles */
 .bubble { position: relative; }
-.star-badge { font-size: 13px; font-weight: 800; padding: 2px 8px; border-radius: 10px; background: #ffd60a; color: #3a2a00; margin-top: -2px; }
+.chore-badge { font-size: 13px; font-weight: 800; padding: 2px 9px; border-radius: 10px; background: #ffffff2e; color: #fff; margin-top: -2px; white-space: nowrap; }
+.chore-badge.all { background: #34c759; color: #04320f; }
 
 /* celebrations */
 .kx-float { position: fixed; z-index: 70; transform: translate(-50%, -50%); font-size: 46px; font-weight: 900; color: #ffd60a; text-shadow: 0 4px 14px #000a;
@@ -116,4 +117,45 @@
   .kx-tiles { grid-template-columns: repeat(2, 1fr); gap: 10px; } .kx-tile { min-height: 140px; border-radius: 22px; } .kx-tile span { font-size: 46px; } .kx-tile b { font-size: 16px; }
   .kx-say, .kx-shop { min-height: 76px; font-size: 16px; border-radius: 22px; padding: 0 12px; gap: 10px; } .kx-say span, .kx-shop span { width: 48px; height: 48px; font-size: 24px; }
   .kx-prow b { font-size: 16px; } .kx-pbtn { min-height: 52px; min-width: 52px; padding: 0 10px; font-size: 15px; }
+}
+
+/* chore chart = a column per kid, Skylight style (2026-11-25) */
+.k-board .kx-wall { background: radial-gradient(circle at 15% 8%, #ff6aa255 0, transparent 40%), radial-gradient(circle at 85% 8%, #3a8bff55 0, transparent 40%), linear-gradient(165deg, #241a5c, #10204a 55%, #1c0c38); }
+.k-board .kx-head { min-height: 120px; }
+.kx-tabs.two { grid-template-columns: 1fr 1fr; }
+.kx-board { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.kx-board.paused .kx-list { opacity: .45; }
+.kx-col { min-height: 0; display: flex; flex-direction: column; border-radius: 28px; overflow: hidden; background: #ffffff10; border: 1px solid #ffffff1f; }
+.kx-col.k-Nellie { --a: #e64f8f; --a2: #ff9ccc; } .kx-col.k-Nash { --a: #2f8fdc; --a2: #7fd1ff; }
+.kx-colhead { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(160deg, var(--a), color-mix(in srgb, var(--a) 60%, #000)); }
+.kx-colhead i { width: 56px; height: 56px; flex: none; border-radius: 50%; background: #ffffff33; display: grid; place-items: center; font-style: normal; font-size: 20px; font-weight: 800; box-shadow: 0 0 0 3px #ffffff66; }
+.kx-colhead b { display: block; font-size: 28px; line-height: 1.1; } .kx-colhead small { font-size: 16px; font-weight: 700; color: #ffffffdd; }
+.kx-colhead div { flex: 1; min-width: 0; }
+.kx-count { font-style: normal; font-size: 22px; font-weight: 800; padding: 6px 12px; border-radius: 16px; background: #00000030; white-space: nowrap; }
+.kx-count.all { background: #34c759; color: #04320f; font-size: 17px; }
+.kx-list { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; padding: 4px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+.kx-list h4 { margin: 10px 6px 0; font-size: 15px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--a2); }
+.kx-row { display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 8px 10px 8px 12px; border-radius: 20px; background: #ffffff14; text-align: left; width: 100%; transition: transform .2s var(--spring), background .2s; }
+.kx-row span { font-size: 36px; flex: none; transition: transform .35s var(--spring); }
+.kx-row b { flex: 1; min-width: 0; font-size: 18px; line-height: 1.15; } .kx-row small { display: block; font-size: 14px; font-weight: 700; color: var(--a2); margin-top: 2px; }
+.kx-check { width: 50px; height: 50px; flex: none; border-radius: 50%; border: 3px solid #ffffff66; display: grid; place-items: center; font-style: normal; font-size: 28px; font-weight: 900; transition: all .25s var(--spring); }
+.kx-row.done { background: color-mix(in srgb, var(--a) 40%, transparent); }
+.kx-row.done .kx-check { background: var(--a); border-color: var(--a2); transform: scale(1.08); }
+.kx-row.done b { opacity: .8; } .kx-row.done small { color: #fff; }
+.kx-row.done span { transform: scale(.88) rotate(-6deg); }
+.kx-row:active { transform: scale(.96); }
+.kx-row.train { background: #ffffff0a; border: 2px dashed #ffffff22; }
+.kx-go { font-style: normal; font-size: 34px; color: var(--dim); width: 30px; text-align: center; }
+.kx-colshop { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 76px; margin: 0 10px 10px; border-radius: 22px; font-size: 20px; font-weight: 800;
+  background: linear-gradient(180deg, var(--a), color-mix(in srgb, var(--a) 55%, #000)); box-shadow: 0 6px 18px color-mix(in srgb, var(--a) 40%, transparent); }
+.kx-colshop span { font-size: 30px; } .kx-colshop em { font-style: normal; font-size: 15px; padding: 3px 9px; border-radius: 10px; background: #00000033; }
+.kx-colshop:active { transform: scale(.96); }
+.kx-bar.one { grid-template-columns: 1fr; } .kx-bar.one .kx-say { justify-content: center; min-height: 92px; }
+@media (max-width: 600px) {
+  .kx-board { gap: 8px; } .kx-col { border-radius: 20px; }
+  .kx-colhead { padding: 10px; gap: 8px; } .kx-colhead i { width: 36px; height: 36px; font-size: 13px; } .kx-colhead b { font-size: 18px; } .kx-colhead small { font-size: 12px; }
+  .kx-count { font-size: 14px; padding: 4px 8px; } .kx-count.all { font-size: 12px; }
+  .kx-list { padding: 2px 6px 6px; gap: 6px; } .kx-row { min-height: 62px; gap: 6px; padding: 6px; border-radius: 16px; } .kx-row span { font-size: 24px; }
+  .kx-row b { font-size: 14px; } .kx-row small { font-size: 12px; } .kx-check { width: 34px; height: 34px; font-size: 18px; border-width: 2px; }
+  .kx-colshop { min-height: 56px; font-size: 15px; margin: 0 6px 6px; } .kx-colshop span { font-size: 22px; }
 }

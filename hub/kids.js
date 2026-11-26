@@ -22,12 +22,12 @@
   // Starter setup (Kyle/Logan change it on the Mom & Dad tab; the kids add their own wishes).
   const SCHOOL_NIGHTS = [0, 1, 2, 3, 4];
   const DEFAULTS = [
-    ["chore:bed", "chore", "Both", "Make your bed", "🛏️", 1, null, 1],
-    ["chore:dishes", "chore", "Both", "Dishes to the dishwasher", "🍽️", 1, null, 2],
-    ["chore:room", "chore", "Both", "Tidy your room", "🧹", 2, null, 3],
-    ["chore:laundry", "chore", "Both", "Put laundry away", "👕", 2, null, 4],
-    ["chore:backpack", "chore", "Both", "Backpack ready", "🎒", 1, { days: SCHOOL_NIGHTS }, 5],
-    ["chore:homework", "chore", "Both", "Homework done", "📚", 2, { days: SCHOOL_NIGHTS }, 6],
+    ["chore:bed", "chore", "Both", "Make your bed", "🛏️", 1, { when: "morning" }, 1],
+    ["chore:dishes", "chore", "Both", "Dishes to the dishwasher", "🍽️", 1, { when: "evening" }, 2],
+    ["chore:room", "chore", "Both", "Tidy your room", "🧹", 2, { when: "afternoon" }, 3],
+    ["chore:laundry", "chore", "Both", "Put laundry away", "👕", 2, { when: "afternoon" }, 4],
+    ["chore:backpack", "chore", "Both", "Backpack ready", "🎒", 1, { days: SCHOOL_NIGHTS, when: "evening" }, 5],
+    ["chore:homework", "chore", "Both", "Homework done", "📚", 2, { days: SCHOOL_NIGHTS, when: "afternoon" }, 6],
     ["reward:screen30", "reward", "Both", "30 min screen time", "📱", 3, { minutes: 30 }, 1],
     ["reward:screen60", "reward", "Both", "1 hour screen time", "🎮", 5, { minutes: 60 }, 2],
     ["reward:late", "reward", "Both", "Stay up 30 min late", "🌙", 8, null, 3],
@@ -35,6 +35,9 @@
     ["reward:icecream", "reward", "Both", "Ice cream trip", "🍦", 15, null, 5],
     ["reward:cash10", "reward", "Both", "$10 to spend", "💵", 40, null, 6],
   ].map(([id, kind, kid, title, emoji, stars, data, sort]) => ({ id, kind, kid, title, emoji, stars, data, removed: false, sort }));
+  const WHEN = [["morning", "☀️ Morning"], ["afternoon", "🎒 After school"], ["evening", "🌙 Evening"]];
+  const DEFAULT_WHEN = Object.fromEntries(DEFAULTS.filter((r) => r.data && r.data.when).map((r) => [r.id, r.data.when]));
+  const whenOf = (c) => (c.data && c.data.when) || DEFAULT_WHEN[c.id] || "afternoon";
   const ALLDONE_BONUS = 2;          // extra stars when every chore that day is done
   const TRAIN_PTS_PER_STAR = 5;     // Training Hub achievement points per star
   const TRAIN_MAX = 6;              // most training stars in one day
@@ -67,6 +70,8 @@
     if (flushing || !outbox.length || !window.HubData) return;
     flushing = true;
     try {
+      let rounds = 0;
+      while (outbox.length && rounds++ < 10) { const before = outbox.length;
       for (const table of Object.keys(COLS)) {
         const sent = outbox.filter((e) => e.t === table);
         if (!sent.length) continue;
@@ -79,6 +84,7 @@
         });
         outbox = outbox.filter((e) => !sent.includes(e)); saveOut();
       }
+      if (outbox.length >= before) break; } // no progress (offline): the 20 s timer tries again
     } finally { flushing = false; }
   }
   setInterval(flush, 20000);
@@ -95,7 +101,11 @@
     if (setup) S.server.kid_setup = setup;
     if (log) S.server.stars = log;
     S.totals = totals ? Object.fromEntries(totals.map((t) => [t.kid, t])) : null;
-    if (setup && !setup.length && !outbox.some((e) => e.t === "kid_setup")) DEFAULTS.forEach((r) => put("kid_setup", r));
+    if (setup && !setup.some((r) => r.id === "meta:seeded")) {
+      const have = new Set(setup.map((r) => r.id).concat(outbox.map((e) => e.r.id)));
+      DEFAULTS.filter((r) => !have.has(r.id)).forEach((r) => put("kid_setup", r));
+      put("kid_setup", { id: "meta:seeded", kind: "meta", kid: "Both", title: "Starters added", emoji: null, stars: null, data: { on: today() }, removed: false, sort: 0 });
+    }
     S.loaded = true;
     await loadTraining();
     flush();
@@ -106,7 +116,7 @@
   const eff = (r) => (["ok", "owed", "given"].includes(r.status) ? Number(r.stars) || 0 : 0);
   // until the table has rows (or exists), the starters sit underneath this device's changes
   const setup = () => {
-    const m = new Map((S.server.kid_setup.length ? S.server.kid_setup : DEFAULTS).map((r) => [r.id, r]));
+    const srv = S.server.kid_setup, m = new Map((srv.some((r) => r.id === "meta:seeded") ? srv : DEFAULTS.concat(srv)).map((r) => [r.id, r]));
     outbox.filter((e) => e.t === "kid_setup").forEach((e) => m.set(e.r.id, e.r));
     return [...m.values()];
   };
@@ -158,7 +168,7 @@
 
   // ---------- actions ----------
   function toggleChore(c, kid = S.kid, from) {
-    const t = today(), id = choreId(t, kid, c);
+    const t = today(), id = choreId(t, kid, c); S.kid = kid; // confetti in that kid's colors
     if (onTrip(t)) return toast("✈️ Trip mode: chores are paused");
     if (isDone(t, kid, c)) {
       put("stars", { id, kid, day: t, kind: "chore", item: c.id, title: c.title, stars: c.stars, status: "undone" });
@@ -247,16 +257,17 @@
     rec.onend = () => { rec = null; btn && btn.classList.remove("live"); if (fin) onText(fin); else refresh(); };
     try { rec.start(); } catch (e) { rec = null; }
   }
+  // "Nash is done with the dishes": a name picks the kid; with no name, it's whoever still has that chore open
   function heardDone(text) {
-    const lower = text.toLowerCase();
+    const lower = text.toLowerCase(), t = today();
     const named = KIDS.find((k) => lower.includes(k.toLowerCase()));
-    if (named && named !== S.kid) setKid(named);
-    const c = matchChore(text, S.kid);
-    if (!c) { toast(`Heard “${text}”. Tap the chore you finished`, 3500); refresh(); return; }
-    if (isDone(today(), S.kid, c)) { toast(`${c.emoji} ${c.title} is already checked ✓`); refresh(); return; }
-    toggleChore(c, S.kid, document.querySelector(`[data-chore="${c.id}"]`));
+    const found = (named ? [named] : KIDS).map((k) => ({ k, c: matchChore(text, k) })).filter((x) => x.c);
+    if (!found.length) { toast(`Heard “${text}”. Tap the chore you finished`, 3500); refresh(); return; }
+    const open = found.filter((x) => !isDone(t, x.k, x.c));
+    if (!open.length) { toast(`${found[0].c.emoji || "✅"} ${found[0].c.title} is already checked ✓`); refresh(); return; }
+    if (!named && open.length > 1) { toast(`Who finished ${open[0].c.title.toLowerCase()}? Say your name, like “Nash is done with…”`, 4000); refresh(); return; }
+    toggleChore(open[0].c, open[0].k, document.querySelector(`[data-chore="${open[0].c.id}"][data-k="${open[0].k}"]`));
   }
-
   // ---------- views ----------
   function ensureDom() {
     if ($("kx")) return;
@@ -275,42 +286,35 @@
   function closeSheet() { if ($("kx-sheet")) $("kx-sheet").hidden = true; }
 
   function tabs() {
-    return `<nav class="kx-tabs">${KIDS.map((k) => `<button class="kx-tab k-${k}${!S.parents && S.kid === k ? " on" : ""}" data-kid="${k}"><i>${k === "Nellie" ? "Ne" : "Na"}</i>${k}<em>⭐ ${balance(k)}</em></button>`).join("")}
+    return `<nav class="kx-tabs two"><button class="kx-tab${!S.parents ? " on" : ""}" data-act="board"><i>✅</i>Chores</button>
       <button class="kx-tab k-parents${S.parents ? " on" : ""}" data-act="parents"><i>👪</i>Mom & Dad${pendingCount() ? `<em class="kx-red">${pendingCount()}</em>` : ""}</button></nav>`;
   }
   function render() {
-    const v = $("kx"); v.className = `kx ${S.parents ? "k-parents" : "k-" + S.kid}`;
-    $("kx-in").innerHTML = S.parents ? renderParents() : renderKid();
+    const v = $("kx"); v.className = `kx ${S.parents ? "k-parents" : "k-board"}`;
+    $("kx-in").innerHTML = S.parents ? renderParents() : renderBoard();
   }
-  function renderKid() {
-    const k = S.kid, t = today(), list = chores(k, t), done = list.filter((c) => isDone(t, k, c)).length, trip = onTrip(t);
-    const st = streak(k), mins = owedMinutes(k), tr = S.train[k] || { pts: 0, n: 0 };
-    const pct = list.length ? Math.round(done / list.length * 100) : 0;
-    const motif = k === "Nellie" ? "🏀 💖 🏐" : "🏀 🏈 🎣";
-    return `<header class="kx-head">
-        <div class="kx-hello"><small>${motif}</small><b>${k === "Nellie" ? "Nellie's" : "Nash's"} stars</b><span>${trip ? "✈️ Trip mode: chores paused, streak is safe" : done === list.length && list.length ? "Every chore done today. Legend. 🏆" : `${list.length - done} to go today`}</span></div>
-        <div class="kx-big"><b>⭐ ${balance(k)}</b><small>+${todayStars(k)} today</small></div>
-      </header>
-      <div class="kx-stats">
-        <div class="kx-stat"><b>🔥 ${st}</b><small>day streak</small></div>
-        <div class="kx-stat"><div class="kx-ring" style="--p:${pct}%"><span>${done}/${list.length}</span></div><small>chores</small></div>
-        <div class="kx-stat"><b>📱 ${mins}</b><small>min screen time</small></div>
-      </div>
+  // Skylight-style chore chart: a column per kid (their color on top), Morning / After school / Evening sections,
+  // a check circle per chore. Both kids can check off at the same time; nobody switches screens.
+  function renderBoard() {
+    const t = today(), trip = onTrip(t);
+    return `<header class="kx-head"><div class="kx-hello"><small>✅ ⭐</small><b>Chores</b><span>${trip ? "✈️ Trip mode: chores paused, streaks are safe" : new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}</span></div></header>
       ${tabs()}
-      <div class="kx-scroll">
-        <h3>Today${trip ? " · paused ✈️" : ""}</h3>
-        <div class="kx-tiles${trip ? " paused" : ""}">
-          ${list.map((c) => `<button class="kx-tile${isDone(t, k, c) ? " done" : ""}" data-chore="${esc(c.id)}"><span>${esc(c.emoji || "✅")}</span><b>${esc(c.title)}</b><em>${isDone(t, k, c) ? "✓ done" : `+${c.stars}⭐`}</em></button>`).join("")}
-          <button class="kx-tile train" data-act="training"><span>🏋️</span><b>Training</b><em>${tr.pts ? `${tr.pts} pts → +${tr.n}⭐` : `+1⭐ per ${TRAIN_PTS_PER_STAR} pts`}</em></button>
-        </div>
-        ${list.length ? "" : `<p class="kx-none">No chores today 🎉</p>`}
-      </div>
-      <div class="kx-bar">
-        ${Speech ? `<button class="kx-say" data-act="say"><span>🎤</span><b>Say “I'm done with…”</b></button>` : ""}
-        <button class="kx-shop" data-act="shop"><span>🎁</span><b>Reward shop</b></button>
-      </div>`;
+      <div class="kx-board${trip ? " paused" : ""}">${KIDS.map(kidCol).join("")}</div>
+      ${Speech ? `<div class="kx-bar one"><button class="kx-say" data-act="say"><span>🎤</span><b>Say “Nash is done with the dishes”</b></button></div>` : ""}`;
   }
-  const pendingRows = () => log().filter((r) => r.kind === "spend" && r.status === "owed");
+  function kidCol(k) {
+    const t = today(), list = chores(k, t), done = list.filter((c) => isDone(t, k, c)).length, tr = S.train[k] || { pts: 0, n: 0 }, mins = owedMinutes(k);
+    const rowHtml = (c) => { const on = isDone(t, k, c);
+      return `<button class="kx-row${on ? " done" : ""}" data-chore="${esc(c.id)}" data-k="${k}"><span>${esc(c.emoji || "✅")}</span><b>${esc(c.title)}<small>+${c.stars} ⭐</small></b><i class="kx-check">${on ? "✓" : ""}</i></button>`; };
+    const secs = WHEN.map(([w, label]) => { const cs = list.filter((c) => whenOf(c) === w); return cs.length ? `<h4>${label}</h4>${cs.map(rowHtml).join("")}` : ""; }).join("");
+    return `<section class="kx-col k-${k}">
+      <header class="kx-colhead"><i>${k === "Nellie" ? "Ne" : "Na"}</i><div><b>${k}</b><small>⭐ ${balance(k)} · 🔥 ${streak(k)}</small></div>
+        <em class="kx-count${list.length && done === list.length ? " all" : ""}">${list.length && done === list.length ? "✓ All done" : `${done}/${list.length}`}</em></header>
+      <div class="kx-list">${secs || `<p class="kx-none">No chores today 🎉</p>`}
+        <h4>🏋️ Training</h4><button class="kx-row train" data-act="training" data-k="${k}"><span>🏀</span><b>Training Hub<small>${tr.pts ? `${tr.pts} pts today → +${tr.n} ⭐` : `+1 ⭐ per ${TRAIN_PTS_PER_STAR} pts`}</small></b><i class="kx-go">›</i></button></div>
+      <button class="kx-colshop" data-shop="${k}"><span>🎁</span>${k}'s shop${mins ? `<em>📱 ${mins} min</em>` : ""}</button>
+    </section>`;
+  }  const pendingRows = () => log().filter((r) => r.kind === "spend" && r.status === "owed");
   const wishes = () => setup().filter((r) => r.kind === "reward" && !r.removed && (r.stars === null || r.stars === undefined));
   const pendingCount = () => pendingRows().length + wishes().length;
 
@@ -351,7 +355,7 @@
         <h3>Bonus stars</h3>
         ${KIDS.map((k) => `<div class="kx-prow"><i class="kx-dot k-${k}"></i><b>${k}<small>for something great (or −1 to fix a mistake)</small></b>${[-1, 1, 3, 5].map((n) => `<button class="kx-pbtn${n > 0 ? " go" : ""}" data-bonus="${k}" data-n="${n}">${n > 0 ? "+" : "−"}${Math.abs(n)}</button>`).join("")}</div>`).join("")}
         <h3>Chores</h3>
-        ${kidsRows("chore").map((r) => `<div class="kx-prow"><span>${esc(r.emoji || "✅")}</span><b>${esc(r.title)}<small>${r.kid === "Both" ? "Both kids" : esc(r.kid)} · ⭐ ${r.stars}${r.data && r.data.days ? " · school nights" : " · every day"}</small></b><button class="kx-pbtn" data-rm="${esc(r.id)}">Remove</button></div>`).join("")}
+        ${kidsRows("chore").map((r) => `<div class="kx-prow"><span>${esc(r.emoji || "✅")}</span><b>${esc(r.title)}<small>${r.kid === "Both" ? "Both kids" : esc(r.kid)} · ⭐ ${r.stars}${r.data && r.data.days ? " · school nights" : " · every day"} · ${(WHEN.find(([w]) => w === whenOf(r)) || ["", ""])[1].replace(/^\S+\s/, "")}</small></b><button class="kx-pbtn" data-rm="${esc(r.id)}">Remove</button></div>`).join("")}
         <button class="kx-addrow" data-act="add-chore">＋ Add a chore</button>
         <h3>Rewards</h3>
         ${kidsRows("reward").map((r) => `<div class="kx-prow"><span>${esc(r.emoji || "🎁")}</span><b>${esc(r.title)}<small>${r.kid === "Both" ? "Both kids" : esc(r.kid)} · ⭐ ${r.stars}</small></b><button class="kx-pbtn" data-rm="${esc(r.id)}">Remove</button></div>`).join("")}
@@ -359,7 +363,7 @@
         <p class="kx-fine">Stars: chores as listed, +${ALLDONE_BONUS} when every chore is done, +1 per ${TRAIN_PTS_PER_STAR} Training Hub points (max ${TRAIN_MAX}/day). Streak = days with every chore done; trip days and days with no chores don't break it.</p>
       </div>`;
   }
-  const NEWITEM = { kind: "chore", kid: "Both", emoji: "🧹", stars: 1, school: false };
+  const NEWITEM = { kind: "chore", kid: "Both", emoji: "🧹", stars: 1, school: false, when: "afternoon" };
   function drawAddItem() {
     const n = NEWITEM, isChore = n.kind === "chore";
     sheet(`<h2>${isChore ? "New chore" : "New reward"}</h2>
@@ -367,7 +371,8 @@
       <div class="typed" id="kx-item" contenteditable="true" spellcheck="false" data-ph="${isChore ? "Feed the dog, empty the dishwasher…" : "Movie night, new squishy…"}">${esc(n.title || "")}</div>
       <div class="label">For</div><div class="chips">${["Both", ...KIDS].map((k) => `<button class="chip-btn${n.kid === k ? " on" : ""}" data-nk="${k}">${k === "Both" ? "Both kids" : k}</button>`).join("")}</div>
       <div class="label">Stars</div><div class="chips">${(isChore ? [1, 2, 3, 5] : PRICES).map((p) => `<button class="chip-btn${n.stars === p ? " on" : ""}" data-ns="${p}">⭐ ${p}</button>`).join("")}</div>
-      ${isChore ? `<div class="label">When</div><div class="chips"><button class="chip-btn${!n.school ? " on" : ""}" data-nd="0">Every day</button><button class="chip-btn${n.school ? " on" : ""}" data-nd="1">School nights (Sun–Thu)</button></div>` : ""}
+      ${isChore ? `<div class="label">Part of the day</div><div class="chips">${WHEN.map(([w, l]) => `<button class="chip-btn${n.when === w ? " on" : ""}" data-nw="${w}">${l}</button>`).join("")}</div>` : ""}
+      ${isChore ? `<div class="label">Which days</div><div class="chips"><button class="chip-btn${!n.school ? " on" : ""}" data-nd="0">Every day</button><button class="chip-btn${n.school ? " on" : ""}" data-nd="1">School nights (Sun–Thu)</button></div>` : ""}
       <div class="label">Picture</div><div class="chips kx-emojis">${EMOJIS.map((e) => `<button class="chip-btn${n.emoji === e ? " on" : ""}" data-ne="${e}">${e}</button>`).join("")}</div>
       <div class="sheet-row"><button class="btn" data-act="parents-close">Cancel</button><button class="btn go" data-act="save-item">Add it</button></div>`);
   }
@@ -377,7 +382,8 @@
     const b = e.target.closest("button"); if (!b) return;
     const d = b.dataset;
     if (d.kid) { setKid(d.kid); render(); return; }
-    if (d.chore) { const c = chores(S.kid, today()).find((x) => x.id === d.chore); if (c) toggleChore(c, S.kid, b); return; }
+    if (d.chore) { const k = d.k || S.kid, c = chores(k, today()).find((x) => x.id === d.chore); if (c) toggleChore(c, k, b); return; }
+    if (d.shop) { S.kid = d.shop; sheet(renderShop()); return; }
     if (d.buy) { const r = rewards(S.kid).find((x) => x.id === d.buy); if (r) confirmBuy(r); return; }
     if (d.yes) { const r = rewards(S.kid).find((x) => x.id === d.yes); if (r && balance(S.kid) >= r.stars) buy(r); return; }
     if (d.given || d.refund) { const r = log().find((x) => x.id === (d.given || d.refund)); if (r) { put("stars", { ...r, status: d.given ? "given" : "cancelled" }); toast(d.given ? `Handed out ✓` : `Refunded ⭐ ${-r.stars} to ${r.kid}`); refresh(); } return; }
@@ -387,21 +393,23 @@
     if (d.nk) { NEWITEM.kid = d.nk; NEWITEM.title = $("kx-item").textContent; drawAddItem(); return; }
     if (d.ns) { NEWITEM.stars = +d.ns; NEWITEM.title = $("kx-item").textContent; drawAddItem(); return; }
     if (d.nd) { NEWITEM.school = d.nd === "1"; NEWITEM.title = $("kx-item").textContent; drawAddItem(); return; }
+    if (d.nw) { NEWITEM.when = d.nw; NEWITEM.title = $("kx-item").textContent; drawAddItem(); return; }
     if (d.ne) { NEWITEM.emoji = d.ne; NEWITEM.title = $("kx-item").textContent; drawAddItem(); return; }
     switch (d.act) {
       case "parents": S.parents = true; render(); break;
+      case "board": S.parents = false; render(); break;
       case "shop": sheet(renderShop()); break;
       case "close": case "parents-close": closeSheet(); break;
       case "say": listen(heardDone, b); break;
-      case "training": location.href = `../?open=${S.kid}`; break;
+      case "training": location.href = `../?open=${d.k || S.kid}`; break;
       case "wish": wish($("kx-wish").textContent); closeSheet(); break;
       case "wish-say": listen((t) => { $("kx-wish").textContent = t.replace(/^(i want|i wish for|i'd like|can i (get|have))\s+/i, ""); }, b); break;
       case "item-say": listen((t) => { $("kx-item").textContent = t; }, b); break;
-      case "add-chore": Object.assign(NEWITEM, { kind: "chore", kid: "Both", emoji: "🧹", stars: 1, school: false, title: "" }); drawAddItem(); break;
+      case "add-chore": Object.assign(NEWITEM, { kind: "chore", kid: "Both", emoji: "🧹", stars: 1, school: false, when: "afternoon", title: "" }); drawAddItem(); break;
       case "add-reward": Object.assign(NEWITEM, { kind: "reward", kid: "Both", emoji: "🎁", stars: 10, school: false, title: "" }); drawAddItem(); break;
       case "save-item": {
         const title = $("kx-item").textContent.trim(); if (!title) return toast("Say or type what it is");
-        const n = NEWITEM; put("kid_setup", { id: `${n.kind}:${Date.now()}`, kind: n.kind, kid: n.kid, title: title[0].toUpperCase() + title.slice(1), emoji: n.emoji, stars: n.stars, data: n.kind === "chore" && n.school ? { days: SCHOOL_NIGHTS } : null, removed: false, sort: 50 });
+        const n = NEWITEM; put("kid_setup", { id: `${n.kind}:${Date.now()}`, kind: n.kind, kid: n.kid, title: title[0].toUpperCase() + title.slice(1), emoji: n.emoji, stars: n.stars, data: n.kind === "chore" ? (n.school ? { days: SCHOOL_NIGHTS, when: n.when } : { when: n.when }) : null, removed: false, sort: 50 });
         closeSheet(); toast(`Added ${title} ✓`); refresh(); break;
       }
       case "trip": {
@@ -422,9 +430,10 @@
   function close() { S.open = false; if ($("kx")) $("kx").hidden = true; closeSheet(); if (rec) { try { rec.stop(); } catch (e) {} } }
   window.HubApps = Object.assign(window.HubApps || {}, {
     stars: { open, close, isOpen: () => S.open },
-    badge: (p) => (KIDS.includes(p) && S.loaded ? balance(p) : null),
+    // home-screen person chips: chores done today (Skylight-style "2/6") + stars
+    badge: (p) => { if (!KIDS.includes(p) || !S.loaded) return null; const l = chores(p, today()); return { done: l.filter((c) => isDone(today(), p, c)).length, total: l.length, stars: balance(p), trip: onTrip(today()) }; },
   });
-  window.hubKids = { S, list, balance, streak, chores, matchChore, put, load, outbox: () => outbox };
+  window.hubKids = { S, list, balance, streak, chores, matchChore, heard: heardDone, put, load, outbox: () => outbox };
 
   load(); setInterval(() => { if (!S.open || Date.now() - ((window.hub && window.hub.S.last) || 0) > 60000) load(); }, 5 * 60 * 1000);
   if (P.get("app") === "stars") setTimeout(() => open(P.get("kid")), 0);

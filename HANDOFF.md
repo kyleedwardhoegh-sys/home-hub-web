@@ -334,5 +334,13 @@ dock, home bar, pull-down Control Center. `?kiosk=1` adds night sleep (11 PM–5
   and verified with the public key (one harmless test row, kid "test", 0 stars).
 - Tested 2026-11-25 in headless Edge at 720×1280 and 390×844 (scratch script, not in repo): totals, all-done bonus, streak,
   buy, trip mode, home-bar close, voice matcher (5/5 phrases), no JS errors.
+- **Chore chart, Skylight style (2026-11-25, Kyle: "trust Skylight defaults"):** the app opens on a board with a column per kid
+  (colored header: stars, streak, done/total), sections Morning / After school / Evening (`data.when`, defaults in `DEFAULT_WHEN`),
+  check circles, a Training row and a shop button per kid. Tabs are just Chores | Mom & Dad. Voice: a name picks the kid; no name =
+  whoever still has that chore open (asks if both do). Home-screen kid chips show "2/6 chores" / "✓ all done" (`HubApps.badge`).
+- **Starters:** seeded once per database, tracked by the `meta:seeded` row (missing starters are added; removed ones stay removed).
+  `flush()` now loops until everything queued is sent. **Testing gotcha:** headless test pages talk to the real Supabase; a test
+  on 2026-11-25 half-seeded `kid_setup` because the page closed mid-save. Always block writes in tests
+  (`context.route("**/*supabase.co/**", ...)` → fulfill non-GET with 201).
 - **Next (Phase 2b):** Training re-skin in the v2 look (plans/sets from the same data), stats charts, workout timer,
   games & tournaments (from calendar), tests & homework due.
