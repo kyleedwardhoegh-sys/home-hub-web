@@ -10,7 +10,7 @@
 // it can't be reached, everything goes to the Sheet's Apps Script exactly like before.
 // Check-offs that can't be saved right away wait in this device's outbox and retry.
 (function () {
-  const APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxS-f1ZvxZazJ-_2P2Lakrgb-vSaM3EmyRQbRxuRFf9M_P94LUB5ogudg3UwIS69kYR/exec";
+  const APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyyOY00079KTcqhRtuoE_W_OhRTZGlsHgfSTgryrTl3ZzsVFHwiA54bJ55hu7qChYyxGQ/exec";
   // Public "publishable" key: safe to ship. The database only lets it read the plan and
   // add or change check-offs, ratings and bomb/thermometer, never delete (supabase/setup.sql).
   const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
