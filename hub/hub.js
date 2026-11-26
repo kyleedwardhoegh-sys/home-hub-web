@@ -195,7 +195,23 @@
     const body = $("cal-body");
     body.innerHTML = S.view === "week" ? renderWeek() : S.view === "day" ? renderDay() : renderMonth();
     for (const b of document.querySelectorAll("#view-seg button")) b.classList.toggle("on", b.dataset.v === S.view);
+    if (S.view === "week") unstack(body);
     if (dir) { body.style.transition = "none"; body.style.transform = `translateX(${dir * 60}px)`; body.style.opacity = 0; requestAnimationFrame(() => { body.style.transition = ""; body.style.transform = ""; body.style.opacity = 1; }); }
+  }
+  // Back-to-back events (1:30-2:30, then 2:30) don't overlap in time, but a box has to be taller than a short
+  // event to fit its text, so it would run into the next one. Nudge the later box down just below the earlier one.
+  // (Events that truly overlap are already side by side in lanes, so any collision here is only visual.)
+  function unstack(root) {
+    for (const hours of root.querySelectorAll(".hours")) {
+      const boxes = [...hours.querySelectorAll(".ev")].sort((a, b) => a.offsetTop - b.offsetTop), placed = [];
+      for (const el of boxes) {
+        const l = el.offsetLeft, r = l + el.offsetWidth;
+        let floor = el.offsetTop;
+        for (const p of placed) if (p.l < r - 1 && l < p.r - 1) floor = Math.max(floor, p.bottom + 2);
+        if (floor > el.offsetTop) { el.style.top = floor + "px"; el.style.height = el.offsetHeight + "px"; el.classList.add("nudged"); }
+        placed.push({ l, r, bottom: floor + el.offsetHeight });
+      }
+    }
   }
   function render() { renderWidgets(); renderBanners(); renderPeople(); renderCal(); }
   function step(n) {
