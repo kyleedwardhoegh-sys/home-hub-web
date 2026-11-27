@@ -361,8 +361,23 @@
   // hold to close the kiosk (asks the small helper on the kitchen PC)
   let holdT = null; const ring = document.querySelector("#cc-exit .ring");
   $("cc-exit").addEventListener("pointerdown", () => { const t0 = performance.now(); holdT = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / 2000); ring.style.setProperty("--p", p * 100 + "%");
-    if (p >= 1) { clearInterval(holdT); toast("Closing…"); fetch("http://localhost:8790/api/exit", { method: "POST" }).catch(() => toast("Couldn't reach the kitchen PC helper")); } }, 30); });
+    if (p >= 1) { clearInterval(holdT); exitKiosk(); } }, 30); });
   for (const ev of ["pointerup", "pointerleave", "pointercancel"]) $("cc-exit").addEventListener(ev, () => { clearInterval(holdT); ring.style.setProperty("--p", "0%"); });
+  function exitKiosk() { toast("Closing…"); fetch("http://localhost:8790/api/exit", { method: "POST" }).catch(() => toast("Couldn't reach the kitchen PC helper")); }
+  // Swipe in from the right edge to leave the Home Hub (kitchen kiosk only, 2026-11-27).
+  // The tab follows the finger; pull it about a third of the way across and let go. A short brush does nothing.
+  // On the desktop, the "swipe back in" strip (hub-v2\swipe-in.pyw) does the reverse.
+  if (KIOSK) {
+    const strip = document.createElement("div"); strip.className = "exit-edge";
+    const tab = document.createElement("div"); tab.className = "exit-tab"; tab.innerHTML = "<b>⏻</b><span>Pull to leave</span>";
+    document.body.append(strip, tab);
+    const label = tab.querySelector("span"), need = () => Math.min(380, innerWidth * 0.33);
+    let id = null, x0 = 0, armed = false;
+    strip.addEventListener("pointerdown", (e) => { if (!e.isPrimary || id !== null) return; id = e.pointerId; x0 = e.clientX; try { strip.setPointerCapture(id); } catch (_) {} tab.style.top = Math.max(120, Math.min(innerHeight - 160, e.clientY)) + "px"; tab.classList.add("drag"); });
+    strip.addEventListener("pointermove", (e) => { if (e.pointerId !== id) return; const p = Math.max(0, x0 - e.clientX); tab.style.setProperty("--pull", p + "px"); armed = p >= need(); tab.classList.toggle("armed", armed); label.textContent = armed ? "Let go to leave" : "Pull to leave"; });
+    const end = (e) => { if (e.pointerId !== id) return; id = null; tab.classList.remove("drag", "armed"); tab.style.setProperty("--pull", "0px"); label.textContent = "Pull to leave"; if (armed && e.type === "pointerup") exitKiosk(); armed = false; };
+    strip.addEventListener("pointerup", end); strip.addEventListener("pointercancel", end);
+  }
 
   // ---------- night sleep (kitchen screen only): dark 11 PM – 5 AM, tap to wake for 2 minutes ----------
   let wokeAt = 0;

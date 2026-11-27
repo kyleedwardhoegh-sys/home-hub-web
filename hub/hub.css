@@ -197,3 +197,12 @@ body:not(.kiosk) .kiosk-only { display: none; }
   .fab { width: 62px; height: 62px; font-size: 36px; }
   .cc-cue { display: none; }
 }
+
+/* Swipe in from the right edge to leave the hub (kiosk only). Strip stays below the top-right Control Center corner. */
+.exit-edge { position: fixed; right: 0; top: 16%; bottom: 140px; width: 26px; z-index: 25; touch-action: none; }
+.exit-tab { position: fixed; right: 0; top: 50%; z-index: 26; display: flex; align-items: center; gap: 14px; margin-top: -42px; height: 84px; padding: 0 30px 0 24px;
+  border-radius: 42px 0 0 42px; background: rgba(40, 32, 80, .94); color: #fff; font-size: 28px; font-weight: 700; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 8px 24px #0006; transform: translateX(max(0px, calc(100% - var(--pull, 0px)))); transition: transform .35s var(--spring), background .2s; }
+.exit-tab b { font-size: 36px; }
+.exit-tab.drag { transition: background .2s; }
+.exit-tab.armed { background: #d9443c; }
