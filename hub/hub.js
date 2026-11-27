@@ -352,12 +352,13 @@
     if (b.dataset.cc === "ideas") location.href = KIOSK ? "http://localhost:8790/" : "https://home-hub-web-hoegh-home.vercel.app/hub/";
     if (b.dataset.cc === "chorequiz") location.href = "http://localhost:8790/?deck=chores";   // kitchen PC only (2026-11-26)
     if (b.dataset.cc === "starsquiz") location.href = "http://localhost:8790/?deck=stars";
+    if (b.dataset.cc === "checkinquiz") location.href = "http://localhost:8790/?deck=checkin";   // 2026-11-27
   });
   let ccy = null;
   $("cc").addEventListener("pointerdown", (e) => { ccy = e.clientY; });
   $("cc").addEventListener("pointerup", (e) => { if (ccy !== null && ccy - e.clientY > 60) $("cc").hidden = true; ccy = null; });
   if (!KIOSK) document.querySelector('[data-cc="ideas"]').hidden = true;
-  if (!KIOSK) for (const q of ["chorequiz", "starsquiz"]) document.querySelector(`[data-cc="${q}"]`).hidden = true;
+  if (!KIOSK) for (const q of ["chorequiz", "starsquiz", "checkinquiz"]) document.querySelector(`[data-cc="${q}"]`).hidden = true;
   // hold to close the kiosk (asks the small helper on the kitchen PC)
   let holdT = null; const ring = document.querySelector("#cc-exit .ring");
   $("cc-exit").addEventListener("pointerdown", () => { const t0 = performance.now(); holdT = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / 2000); ring.style.setProperty("--p", p * 100 + "%");
