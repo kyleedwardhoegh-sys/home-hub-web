@@ -41,6 +41,9 @@ textarea { width:100%; min-height:48px; border-radius:14px; background:var(--gla
 .sum h3 { margin:20px 0 8px; font-size:17px; } .sum li { margin:6px 0; color:#e6e6f2; } .sum .who { font-weight:700; }
 .big { display:block; width:100%; height:54px; border-radius:16px; background:var(--Kyle); color:#1a1200; font-weight:700; font-size:17px; margin-top:14px; }
 .big.ghost { background:var(--glass); color:#fff; }
+/* their turn (?who=Logan|Nellie|Nash): only the cards Dad flagged for them, with Dad's answer shown */
+.dad { margin-top:12px; font-size:15px; padding:10px 12px; border-radius:12px; background:#f5a00022; color:#ffd88a; }
+.big.same { background:var(--me); color:#fff; }
 </style>
 </head>
 <body>
@@ -63,11 +66,15 @@ textarea { width:100%; min-height:48px; border-radius:14px; background:var(--gla
     <h2 id="c-title"></h2>
     <p id="c-desc"></p>
     <div class="guess" id="c-guess" hidden></div>
+    <div class="dad" id="c-dad" hidden></div>
   </article>
+  <button class="big same" id="same" hidden>👍 Same as Dad</button>
 
+  <div id="ask-box">
   <div class="label"><span>Ask someone else too? (optional)</span></div>
   <div class="asks" id="asks"></div>
   <div class="hintline" id="hint" hidden></div>
+  </div>
 
   <div class="label"><span>1 = no way</span><span>10 = gotta have it</span></div>
   <div class="scale" id="scale"></div>
@@ -94,7 +101,11 @@ textarea { width:100%; min-height:48px; border-radius:14px; background:var(--gla
 <script>
 const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
 const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
-const ME = "Kyle", OTHERS = ["Logan", "Nellie", "Nash"];
+const WHO = new URLSearchParams(location.search).get("who");
+const ME = ["Logan", "Nellie", "Nash"].includes(WHO) ? WHO : "Kyle", OTHERS = ["Logan", "Nellie", "Nash"];
+const THEIRS = ME !== "Kyle";   // their turn: only cards Dad flagged for them
+let dad = {};                    // Dad's first pass (decks/kyle.json): "deck|card" -> {r, skip, ask, note}
+document.documentElement.style.setProperty("--me", `var(--${ME})`);
 // shortest first: the new research decks, then the two long ones nobody has started
 const DECKS = [["checkin", "🎡", "Check-in"], ["training", "🏅", "Training"], ["kitchen", "🛒", "Kitchen"], ["chores", "🧹", "Chores"], ["stars", "🎟️", "Stars & prizes"]];
 const $ = (id) => document.getElementById(id);
@@ -124,6 +135,10 @@ function guessText(c) {
 
 async function loadDecks() {
   await Promise.all(DECKS.map(async ([id]) => { decks[id] = await fetch(`decks/${id}.json`, { cache: "no-store" }).then((r) => r.json()); }));
+  if (THEIRS) {
+    dad = await fetch("decks/kyle.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
+    for (const [id] of DECKS) decks[id].ideas = decks[id].ideas.filter((c) => dad[`${id}|${c.id}`]?.ask?.includes(ME));
+  }
 }
 async function pull() {
   try {
@@ -152,9 +167,16 @@ function status() {
 // ---------- home ----------
 function drawHome() {
   show("home");
+  if (THEIRS) {
+    const n = DECKS.reduce((s, [id]) => s + decks[id].ideas.length, 0);
+    document.querySelector("#v-home h1").textContent = `${ME}'s turn`;
+    document.querySelector("#v-home h1").style.color = `var(--${ME})`;
+    document.querySelector("#v-home .sub").textContent = `Dad already answered everything. These ${n} are the ones he wanted your opinion on. Tap 👍 if you agree with Dad, or pick your own number.`;
+  }
   const box = $("decks"); box.innerHTML = "";
   for (const [id, emoji, name] of DECKS) {
     const list = decks[id].ideas, done = list.filter((c) => answers[key(id, c.id)]).length;
+    if (!list.length) continue;   // their turn: skip quizzes with nothing flagged for them
     const b = document.createElement("button"); b.className = "deck";
     b.innerHTML = `<span class="e">${emoji}</span><span style="flex:1"><b>${name}</b><small>${done} of ${list.length} answered</small><div class="bar"><i style="width:${(done / list.length) * 100}%"></i></div></span><span class="go">›</span>`;
     b.onclick = () => openDeck(id);
@@ -184,7 +206,12 @@ function drawCard() {
   $("c-aud").textContent = `${aud.emoji} For ${aud.name.replace("Just ", "")}`;
   $("c-src").textContent = d.sources[c.src] || ""; $("c-src").hidden = !d.sources[c.src];
   $("c-emoji").textContent = c.emoji || "💡"; $("c-title").textContent = c.title; $("c-desc").textContent = c.desc || "";
-  const g = guessText(c); $("c-guess").hidden = !g; $("c-guess").textContent = g;
+  const g = THEIRS ? "" : guessText(c); $("c-guess").hidden = !g; $("c-guess").textContent = g;
+  $("ask-box").hidden = THEIRS;
+  const dd = dad[`${deckId}|${c.id}`];
+  $("c-dad").hidden = !THEIRS || !dd;
+  $("same").hidden = !THEIRS || !dd?.r;
+  if (THEIRS && dd) $("c-dad").textContent = (dd.r ? `Dad said ${dd.r}` : "Dad didn't rate this one") + (dd.note ? ` · "${dd.note}"` : "");
   const a = ans() || { ask: [] }, hint = suggest(deckId, c);
   const asks = $("asks"); asks.innerHTML = "";
   for (const p of OTHERS) {
@@ -223,6 +250,7 @@ function toggleAsk(p) {
   }
 })();
 $("skip").onclick = () => save({ rating: null, skipped: true }, true);
+$("same").onclick = () => { const dd = dad[`${deckId}|${cur().id}`]; if (dd?.r) save({ rating: dd.r, skipped: false, same: true }, true); };
 $("note").addEventListener("change", () => { if (ans() || $("note").value.trim()) save({}, false); });
 $("prev").onclick = () => { if (pos > 0) { pos--; drawCard(); } };
 $("next").onclick = () => { if (pos < cards.length - 1) { pos++; drawCard(); } else drawSummary(); };
@@ -238,6 +266,15 @@ function drawSummary() {
   const byWho = Object.fromEntries(OTHERS.map((p) => [p, rows.filter((r) => r.a?.ask?.includes(p))]));
   const esc = (s) => s.replace(/[&<>]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[x]));
   let h = `<p class="sub">${rated.length} rated · ${skipped.length} skipped${open1.length ? ` · ${open1.length} not answered yet` : ""}</p>`;
+  if (THEIRS) {
+    const diff = rated.filter((r) => { const dd = dad[`${deckId}|${r.c.id}`]; return dd?.r && Math.abs(dd.r - r.a.rating) >= 3; });
+    h += diff.length ? `<h3>Where you and Dad differ</h3><ul>${diff.map((r) => `<li>${esc(r.c.title)}: you ${r.a.rating}, Dad ${dad[`${deckId}|${r.c.id}`].r}</li>`).join("")}</ul>` : `<h3>Thanks, ${ME}!</h3>`;
+    $("sum").innerHTML = h;
+    const idx2 = DECKS.findIndex((d) => d[0] === deckId), nxt2 = DECKS.slice(idx2 + 1).find((d) => decks[d[0]].ideas.length);
+    $("sum-next").hidden = !nxt2; if (nxt2) { $("sum-next").textContent = `Next: ${nxt2[2]} ›`; $("sum-next").onclick = () => openDeck(nxt2[0]); }
+    $("sum-review").onclick = () => openDeck(deckId, 0);
+    return;
+  }
   const top = rated.slice().sort((x, y) => y.a.rating - x.a.rating).slice(0, 5);
   if (top.length) h += `<h3>Your top picks</h3><ul>${top.map((r) => `<li>${r.c.emoji || ""} ${esc(r.c.title)} <b>${r.a.rating}</b></li>`).join("")}</ul>`;
   const asked = OTHERS.filter((p) => byWho[p].length);
