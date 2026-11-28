@@ -34,7 +34,7 @@
     {"id": "tr-tap", "for": "kids", "src": "families", "tier": 1, "emoji": "👆", "title": "Big +1 / +5 buttons", "desc": "During a workout, tap big buttons to count your makes. No camera guessing wrong."},
     {"id": "tr-ring", "for": "kids", "src": "big", "tier": 1, "emoji": "⭕", "title": "Week ring", "desc": "Like Apple Watch rings: 3 workouts a week fills your ring."},
     {"id": "tr-rotate", "for": "kids", "src": "families", "tier": 2, "emoji": "🔄", "title": "Drill of the week", "desc": "A new featured drill every week, so training never gets repetitive."},
-    {"id": "tr-friends", "for": "kids", "src": "big", "tier": 2, "emoji": "🤝", "title": "Challenge a friend", "desc": "Opt in to a challenge with friends (like Titus and Tatum). Never brother vs. sister."},
+    {"id": "tr-friends", "for": "kids", "src": "big", "tier": 2, "emoji": "🤝", "title": "Challenge a friend", "desc": "Opt in to a challenge with a friend who comes over. Never brother vs. sister."},
     {"id": "tr-growth", "for": "everyone", "src": "families", "tier": 2, "emoji": "🌱", "title": "After-game check-in", "desc": "After a game, one tap: what went better? (Nerves, serve, defense…) Growth isn't only numbers."},
     {"id": "tr-clip", "for": "everyone", "src": "big", "tier": 3, "emoji": "🎥", "title": "Form clip", "desc": "Record 5 seconds of your shot or serve and see it next to a model, side by side."},
     {"id": "tr-volleyball", "for": "Nellie", "src": "ours", "tier": 0, "emoji": "🏐", "title": "A real volleyball plan", "desc": "Serving, passing and jump-training levels just for you, the same way basketball works."},

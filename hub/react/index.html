@@ -117,8 +117,8 @@ h1 em { font-style:normal; color:var(--gold); }
 const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co", SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
 const P = new URLSearchParams(location.search), KIOSK = P.has("kiosk"), HUB = KIOSK ? "../?kiosk=1" : "../";
 const KIDS = ["Nellie", "Nash"];
-const PLAYERS = [["Nellie", "🏐"], ["Nash", "🏈"], ["Kyle", "🧢", "Dad"], ["Logan", "📚", "Mom"], ["Titus", "⚡"], ["Tatum", "⚡"]];
-const COLOR = { Nellie: "#e64f8f", Nash: "#2f8fdc", Kyle: "#f5a000", Logan: "#8e5cc9", Titus: "#34c759", Tatum: "#30d0c0" };
+const PLAYERS = [["Nellie", "🏐"], ["Nash", "🏈"], ["Kyle", "🧢", "Dad"], ["Logan", "📚", "Mom"], ["Guest", "🙋"]];   // household + one Guest slot for visiting friends (Kyle 2026-11-27: only our household gets named tiles)
+const COLOR = { Nellie: "#e64f8f", Nash: "#2f8fdc", Kyle: "#f5a000", Logan: "#8e5cc9", Guest: "#34c759" };
 const label = (p) => (PLAYERS.find((x) => x[0] === p) || [])[2] || p;
 // Pro marks: Batak Pro 60-second test (about 60 is a typical first try; 152 strong; an F1 driver reportedly hit 217)
 const MODES = [
