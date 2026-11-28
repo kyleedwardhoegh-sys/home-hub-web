@@ -41,7 +41,7 @@
     ["reward:skip", "reward", "Both", "Skip-a-chore pass", "🎟️", 15, null, 4],
     ["reward:cash5", "reward", "Both", "$5 cash", "💵", 50, null, 5],
     ["reward:icecream", "reward", "Both", "Ice cream trip", "🍦", 50, null, 6],
-    ["reward:starbucks", "reward", "Both", "Starbucks trip", "☕", 60, null, 7],
+    ["reward:starbucks", "reward", "Both", "Starbucks trip", "☕", 30, null, 7],
     ["reward:cash10", "reward", "Both", "$10 cash", "💵", 100, null, 8],
     ["reward:sleepover", "reward", "Both", "Friend over or sleepover", "🏠", 200, { capDays: 60 }, 9],
   ].map(([id, kind, kid, title, emoji, stars, data, sort]) => ({ id, kind, kid, title, emoji, stars, data, removed: false, sort }));
