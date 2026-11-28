@@ -159,3 +159,29 @@
   .kx-row b { font-size: 14px; } .kx-row small { font-size: 12px; } .kx-check { width: 34px; height: 34px; font-size: 18px; border-width: 2px; }
   .kx-colshop { min-height: 56px; font-size: 15px; margin: 0 6px 6px; } .kx-colshop span { font-size: 22px; }
 }
+/* ---------- check-in wheel, scratch-off, 2x, levels (Kyle's first pass, 2026-11-27) ---------- */
+.kx-level { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 16px; background: #00000033; font-size: 15px; font-weight: 700; }
+.kx-level small { color: var(--a2); font-weight: 700; }
+.kx-ci { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 10px 0; min-height: 68px; border-radius: 20px; font-size: 20px; font-weight: 800;
+  background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: #2a1a00; box-shadow: 0 6px 24px #ff9f0a55; animation: kxPulse 1.8s ease-in-out infinite; }
+.kx-ci span { font-size: 30px; } .kx-ci.sc { background: linear-gradient(135deg, #bf5af2, #5e5ce6); color: #fff; box-shadow: 0 6px 24px #bf5af255; }
+@keyframes kxPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+.kx-row.x2 { box-shadow: inset 0 0 0 2px #ffd60a; }
+.kx-2x { display: inline-block; font-style: normal; background: #ffd60a; color: #2a1a00; border-radius: 6px; padding: 0 6px; margin-right: 4px; font-weight: 900; }
+.kx-checkin, .kx-scratch { text-align: center; }
+.kx-checkin h2, .kx-scratch h2 { font-size: 32px; margin: 4px 0 12px; }
+.kx-recap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.kx-recap div { background: #ffffff14; border-radius: 16px; padding: 10px 4px; } .kx-recap b { display: block; font-size: 26px; } .kx-recap small { font-size: 13px; color: var(--dim); }
+.kx-today { font-size: 18px; margin: 6px 0; } .kx-coming { font-size: 16px; color: var(--dim); text-align: left; margin: 6px auto; max-width: 520px; }
+.kx-coming ul { margin: 4px 0; padding-left: 20px; } .kx-coming li b { color: #fff; margin-right: 6px; }
+.kx-wheelbox { position: relative; width: 300px; height: 300px; margin: 14px auto 6px; }
+.kx-wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #ffffffcc; box-shadow: 0 10px 40px #0008; }
+.kx-pointer { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 34px; color: #fff; z-index: 2; text-shadow: 0 2px 6px #000; }
+.kx-odds { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: 14px; color: var(--dim); margin: 6px 0; }
+.kx-odds i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+#kx-spinres h3 { font-size: 24px; margin: 10px 0 4px; } #kx-spinres p { font-size: 20px; margin: 0; line-height: 1.5; }
+.kx-card { position: relative; width: 100%; max-width: 520px; height: 220px; margin: 12px auto; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(135deg, #2b2165, #5e2a84); touch-action: none; }
+.kx-prize { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.kx-prize b { font-size: 64px; color: #ffd60a; line-height: 1; } .kx-prize span { font-size: 24px; font-weight: 700; } .kx-prize small { font-size: 15px; color: var(--dim); }
+#kx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
