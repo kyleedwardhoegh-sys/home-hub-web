@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Reaction Wall · Hoegh Home Hub</title>
+<style>
+/* Reaction Wall (2026-11-27): a Batak-style reaction game for the 43" portrait kitchen screen (and phones).
+   Targets light up anywhere; slap them fast. Personal bests per player, a "Pro" mark to chase, +1 star for a kid's new
+   personal best (max 1 a day). For the kids it unlocks once today's chores are done (Kyle: no screens until chores are done).
+   Research: G:\My Drive\Claude Tools & Instructions\Research\Big-screen games - findings (2026-11-27).md */
+:root { --Nellie:#e64f8f; --Nash:#2f8fdc; --Kyle:#f5a000; --Logan:#8e5cc9; --Guest:#34c759; --gold:#ffd60a; --dim:rgba(235,235,245,.7);
+  --me:#ffd60a; --spring:cubic-bezier(.2,1.25,.35,1); font-family:-apple-system,"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+[hidden] { display:none !important; }
+html, body { margin:0; height:100%; overflow:hidden; background:#05050f; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; overscroll-behavior:none; }
+button { font:inherit; color:inherit; border:0; background:none; cursor:pointer; touch-action:manipulation; }
+.view { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; padding:5vh 6vw 4vh; }
+.bg { position:fixed; inset:0; background:radial-gradient(circle at 50% 0%,#1d1a4a 0,#05050f 60%); z-index:-1; }
+.top { width:100%; display:flex; align-items:center; justify-content:space-between; }
+.top .back { font-size:20px; color:#6fb6ff; padding:12px 4px; }
+h1 { font-size:clamp(36px,7.5vw,64px); margin:2vh 0 0; font-weight:900; letter-spacing:-.02em; text-align:center; }
+h1 em { font-style:normal; color:var(--gold); }
+.sub { color:var(--dim); font-size:clamp(17px,3vw,24px); text-align:center; margin:8px 0 3vh; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; max-width:640px; }
+.pl { aspect-ratio:1; border-radius:26px; background:linear-gradient(160deg,var(--c),color-mix(in srgb,var(--c) 55%,#000)); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-weight:900; font-size:clamp(20px,3.6vw,28px); box-shadow:0 10px 30px #0007; }
+.pl span { font-size:clamp(36px,7vw,56px); } .pl small { font-size:clamp(13px,2.2vw,16px); font-weight:700; opacity:.9; margin-top:4px; }
+.modes { width:100%; max-width:640px; display:flex; flex-direction:column; gap:14px; }
+.mode { display:flex; align-items:center; gap:18px; text-align:left; padding:18px 20px; border-radius:24px; background:#ffffff12; border:1px solid #ffffff1f; min-height:96px; }
+.mode span { font-size:44px; } .mode b { display:block; font-size:clamp(20px,3.6vw,28px); } .mode small { color:var(--dim); font-size:clamp(14px,2.4vw,18px); }
+.mode em { margin-left:auto; font-style:normal; text-align:right; color:var(--gold); font-weight:800; font-size:clamp(16px,2.8vw,22px); } .mode em small { display:block; color:var(--dim); font-weight:600; }
+.board { width:100%; max-width:640px; margin-top:3vh; background:#ffffff0d; border-radius:22px; padding:12px 16px; }
+.board h3 { margin:4px 0 8px; font-size:18px; color:var(--dim); font-weight:700; }
+.board li { display:flex; justify-content:space-between; padding:7px 0; font-size:clamp(16px,2.8vw,21px); border-top:1px solid #ffffff12; } .board ol { list-style:none; margin:0; padding:0; }
+.board li b { color:var(--gold); } .board li.pro { color:var(--dim); }
+.lock { text-align:center; max-width:560px; } .lock .big { font-size:120px; } .lock ul { text-align:left; font-size:22px; line-height:1.6; display:inline-block; }
+.btn { height:72px; padding:0 34px; border-radius:24px; font-weight:900; font-size:clamp(20px,3.4vw,26px); background:linear-gradient(135deg,var(--gold),#ff9f0a); color:#2a1a00; margin-top:3vh; }
+.btn.ghost { background:#ffffff16; color:#fff; }
+/* play */
+#play { padding:0; }
+.hud { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:2.2vh 6vw 0; z-index:3; pointer-events:none; }
+.hud .score { font-size:clamp(48px,10vw,90px); font-weight:900; line-height:1; } .hud .score small { display:block; font-size:16px; color:var(--dim); font-weight:700; }
+.hud .time { font-size:clamp(28px,5vw,44px); font-weight:800; text-align:right; } .hud .time small { display:block; font-size:16px; color:var(--dim); font-weight:700; }
+.bar { position:absolute; top:0; left:0; height:8px; background:var(--me); z-index:4; transition:width .1s linear; }
+.field { position:absolute; left:0; right:0; top:15vh; bottom:3vh; }
+.t { position:absolute; width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff 0,var(--me) 38%,color-mix(in srgb,var(--me) 50%,#000) 100%);
+  box-shadow:0 0 40px var(--me),0 0 90px color-mix(in srgb,var(--me) 60%,transparent); animation:pop .14s var(--spring); }
+.t.red { background:radial-gradient(circle at 35% 30%,#fff 0,#ff3b30 38%,#7a0d08 100%); box-shadow:0 0 40px #ff3b30,0 0 90px #ff3b3066; }
+.t.red::after { content:"✕"; position:absolute; inset:0; display:grid; place-items:center; font-weight:900; font-size:calc(var(--s) * .45); color:#fff; }
+@keyframes pop { from { transform:scale(.4); opacity:.3; } }
+.burst { position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; border:4px solid var(--me); animation:burst .35s ease-out forwards; pointer-events:none; }
+.burst.bad { border-color:#ff3b30; }
+@keyframes burst { to { transform:scale(7); opacity:0; } }
+.count { position:absolute; inset:0; display:grid; place-items:center; font-size:clamp(140px,34vw,300px); font-weight:900; z-index:5; text-shadow:0 10px 40px #000; }
+/* result */
+.res { text-align:center; } .res .n { font-size:clamp(110px,26vw,220px); font-weight:900; line-height:1; color:var(--me); text-shadow:0 0 60px color-mix(in srgb,var(--me) 60%,transparent); }
+.res .lbl { font-size:22px; color:var(--dim); } .res .pb { display:inline-block; margin-top:16px; padding:10px 20px; border-radius:999px; background:var(--gold); color:#2a1a00; font-weight:900; font-size:22px; }
+.res .meta { font-size:20px; color:var(--dim); margin-top:14px; line-height:1.5; }
+.toast { position:fixed; left:50%; bottom:6vh; transform:translateX(-50%); background:#000c; padding:12px 20px; border-radius:16px; font-size:18px; z-index:9; opacity:0; transition:opacity .3s; }
+.toast.on { opacity:1; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<section class="view" id="v-who">
+  <div class="top"><button class="back" id="to-hub">‹ Hub</button><span></span></div>
+  <h1>⚡ Reaction <em>Wall</em></h1>
+  <p class="sub">Slap the lights as fast as you can. Who's playing?</p>
+  <div class="grid" id="players"></div>
+  <div class="board" id="board-who"></div>
+</section>
+
+<section class="view" id="v-mode" hidden>
+  <div class="top"><button class="back" data-go="who">‹ Players</button><span id="mode-who"></span></div>
+  <h1 id="mode-title"></h1>
+  <p class="sub">Pick a game</p>
+  <div class="modes" id="modes"></div>
+</section>
+
+<section class="view" id="v-lock" hidden>
+  <div class="top"><button class="back" data-go="who">‹ Players</button><span></span></div>
+  <div class="lock">
+    <div class="big">🔒</div>
+    <h1 id="lock-title"></h1>
+    <p class="sub">Finish today's chores to unlock the Reaction Wall.</p>
+    <ul id="lock-list"></ul><br>
+    <button class="btn" id="lock-chores">✅ Go to chores</button>
+  </div>
+</section>
+
+<section class="view" id="play" hidden>
+  <div class="bar" id="bar"></div>
+  <div class="hud"><div class="score" id="score">0<small>hits</small></div><div class="time" id="time">60<small>seconds</small></div></div>
+  <div class="field" id="field"></div>
+  <div class="count" id="count" hidden></div>
+</section>
+
+<section class="view" id="v-res" hidden>
+  <div class="top"><span></span><span></span></div>
+  <div class="res" style="margin-top:6vh">
+    <div class="lbl" id="res-mode"></div>
+    <div class="n" id="res-n"></div>
+    <div class="lbl">hits</div>
+    <div id="res-pb"></div>
+    <div class="meta" id="res-meta"></div>
+    <button class="btn" id="again">⚡ Again</button>
+    <button class="btn ghost" data-go="mode">Other games</button>
+  </div>
+  <div class="board" id="board-res"></div>
+</section>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co", SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
+const P = new URLSearchParams(location.search), KIOSK = P.has("kiosk"), HUB = KIOSK ? "../?kiosk=1" : "../";
+const KIDS = ["Nellie", "Nash"];
+const PLAYERS = [["Nellie", "🏐"], ["Nash", "🏈"], ["Kyle", "🧢", "Dad"], ["Logan", "📚", "Mom"], ["Titus", "⚡"], ["Tatum", "⚡"]];
+const COLOR = { Nellie: "#e64f8f", Nash: "#2f8fdc", Kyle: "#f5a000", Logan: "#8e5cc9", Titus: "#34c759", Tatum: "#30d0c0" };
+const label = (p) => (PLAYERS.find((x) => x[0] === p) || [])[2] || p;
+// Pro marks: Batak Pro 60-second test (about 60 is a typical first try; 152 strong; an F1 driver reportedly hit 217)
+const MODES = [
+  { id: "reaction", icon: "⚡", name: "Reaction", desc: "One light at a time · 60 s", secs: 60, at: 1, red: 0, pro: 152 },
+  { id: "quick", icon: "⏱️", name: "Quick 30", desc: "One light at a time · 30 s", secs: 30, at: 1, red: 0, pro: 76 },
+  { id: "two", icon: "🙌", name: "Two hands", desc: "Two lights at once · 60 s", secs: 60, at: 2, red: 0, pro: 170 },
+  { id: "pro", icon: "🧠", name: "Pro: dodge the red", desc: "Red ✕ lights cost a point · 60 s", secs: 60, at: 1, red: 0.25, pro: 120 },
+];
+const $ = (id) => document.getElementById(id);
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => ymd(new Date());
+const H = (x) => ({ apikey: SB_KEY, "Content-Type": "application/json", ...x });
+function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2400); }
+function show(v) { for (const s of document.querySelectorAll(".view")) s.hidden = s.id !== (v === "play" ? "play" : "v-" + v); last = Date.now(); }
+
+// ---------- data: bests live in the stars ledger as 0-star "game" rows; a kid's new best earns 1 star a day ----------
+let rows = [], me = null, mode = null, last = Date.now();
+const LS = "hub.react.bests";
+let local = JSON.parse(localStorage.getItem(LS) || "{}");   // fallback when offline: "player|mode" -> best
+async function get(path) { try { const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: H() }); return r.ok ? r.json() : null; } catch { return null; } }
+async function upsert(table, list) {
+  try { const r = await fetch(`${SB_URL}/rest/v1/${table}?on_conflict=id`, { method: "POST", headers: H({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(list) }); return r.ok; } catch { return false; }
+}
+async function loadBests() {
+  const r = await get("stars?kind=eq.game&item=eq.reaction&select=id,kid,note");
+  if (r) rows = r;
+}
+function best(p, m) {
+  const r = rows.find((x) => x.id === `game|reaction|${p}|${m}`);
+  let b = 0; try { b = r ? JSON.parse(r.note).best || 0 : 0; } catch {}
+  return Math.max(b, local[`${p}|${m}`] || 0);
+}
+async function saveBest(p, m, score) {
+  local[`${p}|${m}`] = Math.max(score, local[`${p}|${m}`] || 0); localStorage.setItem(LS, JSON.stringify(local));
+  const row = { id: `game|reaction|${p}|${m}`, kid: p, day: today(), kind: "game", item: "reaction", title: `Reaction Wall best (${m})`, stars: 0, status: "ok", note: JSON.stringify({ best: score, on: today() }) };
+  const i = rows.findIndex((x) => x.id === row.id); if (i >= 0) rows[i] = row; else rows.push(row);
+  await upsert("stars", [row]);
+}
+async function awardStar(p) {   // +1 star for a kid's new personal best, max once a day (id is per day, so a 2nd best the same day changes nothing)
+  return upsert("stars", [{ id: `${today()}|${p}|reactionpb`, kid: p, day: today(), kind: "bonus", item: "reaction", title: "Reaction Wall personal best", stars: 1, status: "ok", note: null }]);
+}
+// chores gate: same rules as Stars & chores (kid_setup chores for today; trip mode or no chores = unlocked)
+async function choresLeft(kid) {
+  const [setup, log] = await Promise.all([get("kid_setup?select=id,kind,kid,title,emoji,data,removed"), get(`stars?day=eq.${today()}&kid=eq.${kid}&kind=eq.chore&select=item,status`)]);
+  if (!setup || !log) return [];   // can't check (offline): don't lock anyone out
+  const t = today(), dow = new Date().getDay();
+  const trip = setup.some((r) => r.kind === "trip" && !r.removed && r.data && r.data.from <= t && (!r.data.to || t <= r.data.to));
+  if (trip) return [];
+  const done = new Set(log.filter((r) => r.status === "ok").map((r) => r.item));
+  return setup.filter((r) => r.kind === "chore" && !r.removed && (r.kid === "Both" || r.kid === kid) && (!r.data || !r.data.days || r.data.days.includes(dow)) && !done.has(r.id));
+}
+
+// ---------- screens ----------
+function drawWho() {
+  $("players").innerHTML = PLAYERS.map(([p, e]) => `<button class="pl" data-p="${p}" style="--c:${COLOR[p]}"><span>${e}</span>${label(p)}<small>⚡ ${best(p, "reaction") || "–"}</small></button>`).join("");
+  drawBoard("board-who", "reaction");
+  show("who");
+}
+function drawBoard(el, m) {
+  const md = MODES.find((x) => x.id === m);
+  const list = PLAYERS.map(([p]) => [p, best(p, m)]).filter(([, b]) => b > 0).sort((a, b) => b[1] - a[1]);
+  const items = list.map(([p, b]) => `<li><span style="color:${COLOR[p]}">${label(p)}</span><b>${b}</b></li>`);
+  items.push(`<li class="pro"><span>🏆 Pro mark</span><span>${md.pro}</span></li>`);
+  $(el).innerHTML = `<h3>${md.icon} ${md.name} · best scores</h3><ol>${items.join("")}</ol>`;
+}
+async function pick(p) {
+  me = p; document.documentElement.style.setProperty("--me", COLOR[p]);
+  if (KIDS.includes(p) && !P.has("nolock")) {
+    const left = await choresLeft(p);
+    if (left.length) {
+      $("lock-title").textContent = `${p}: ${left.length} chore${left.length > 1 ? "s" : ""} left`;
+      $("lock-list").innerHTML = left.slice(0, 6).map((c) => `<li>${c.emoji || "✅"} ${c.title.replace(/[<>&]/g, "")}</li>`).join("");
+      return show("lock");
+    }
+  }
+  drawModes();
+}
+function drawModes() {
+  $("mode-who").textContent = label(me); $("mode-who").style.color = COLOR[me];
+  $("mode-title").innerHTML = `${label(me)}, <em>ready?</em>`;
+  $("modes").innerHTML = MODES.map((m) => `<button class="mode" data-m="${m.id}"><span>${m.icon}</span><div><b>${m.name}</b><small>${m.desc}</small></div><em>${best(me, m.id) || "–"}<small>your best</small></em></button>`).join("");
+  show("mode");
+}
+
+// ---------- the game ----------
+let game = null;
+function start(m) {
+  mode = { ...MODES.find((x) => x.id === m) };
+  if (+P.get("secs") > 0) mode.secs = +P.get("secs");   // testing only: ?secs=5
+  show("play"); $("field").innerHTML = ""; $("score").firstChild.nodeValue = "0"; $("time").firstChild.nodeValue = String(mode.secs); $("bar").style.width = "100%";
+  let n = 3; const c = $("count"); c.hidden = false; c.textContent = n;
+  const iv = setInterval(() => { n--; if (n > 0) c.textContent = n; else { clearInterval(iv); c.hidden = true; run(); } }, 800);
+}
+function run() {
+  const f = $("field"), W = f.clientWidth, Hh = f.clientHeight;
+  const size = Math.round(Math.max(90, Math.min(150, Math.min(W, Hh) * 0.2)));
+  game = { score: 0, hits: 0, reds: 0, t0: performance.now(), lastPos: [], live: 0 };
+  // truly random spots (no patterns), at least ~1.5 targets away from the last few
+  const spot = () => {
+    for (let k = 0; k < 40; k++) {
+      const x = size / 2 + Math.random() * (W - size), y = size / 2 + Math.random() * (Hh - size);
+      if (game.lastPos.every(([a, b]) => Math.hypot(a - x, b - y) > size * 1.5)) return [x, y];
+    }
+    return [size / 2 + Math.random() * (W - size), size / 2 + Math.random() * (Hh - size)];
+  };
+  // one real light per "slot" is always on screen; in Pro, each hit may also flash a red decoy that fades by itself
+  const place = (red) => {
+    const [x, y] = spot(); game.lastPos = [[x, y], ...game.lastPos].slice(0, 3);
+    const t = document.createElement("button"); t.className = "t" + (red ? " red" : ""); t.style.cssText = `--s:${size}px;left:${x}px;top:${y}px`;
+    t.addEventListener("pointerdown", (e) => { e.stopPropagation(); hit(t, red, x, y); });
+    f.appendChild(t);
+    if (red) setTimeout(() => t.remove(), 1100);
+  };
+  // at most one red decoy on screen at a time
+  const spawn = () => { if (!game) return; place(false); if (mode.red && !f.querySelector(".t.red") && Math.random() < mode.red * 1.4) place(true); };
+  const hit = (t, red, x, y) => {
+    if (!game || !t.isConnected) return;
+    t.remove(); const b = document.createElement("i"); b.className = "burst" + (red ? " bad" : ""); b.style.cssText = `left:${x}px;top:${y}px`; f.appendChild(b); setTimeout(() => b.remove(), 400);
+    if (red) { game.score = Math.max(0, game.score - 1); game.reds++; beep(220); $("score").firstChild.nodeValue = String(game.score); return; }
+    game.score++; game.hits++; beep(660 + Math.min(game.score, 60) * 6);
+    $("score").firstChild.nodeValue = String(game.score);
+    spawn();
+  };
+  for (let k = 0; k < mode.at; k++) spawn();
+  const tick = () => {
+    if (!game) return;
+    const left = mode.secs - (performance.now() - game.t0) / 1000;
+    $("time").firstChild.nodeValue = String(Math.max(0, Math.ceil(left)));
+    $("bar").style.width = `${Math.max(0, left / mode.secs) * 100}%`;
+    if (left <= 0) return finish();
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+let actx = null;
+function beep(f) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+  o.type = "triangle"; o.frequency.value = f; g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.13); } catch {} }
+async function finish() {
+  const g = game; game = null; $("field").innerHTML = "";
+  const prev = best(me, mode.id), isPB = g.score > prev;
+  $("res-mode").textContent = `${mode.icon} ${mode.name} · ${label(me)}`;
+  $("res-n").textContent = g.score;
+  $("res-pb").innerHTML = isPB ? `<span class="pb">🏅 NEW PERSONAL BEST${prev ? ` (was ${prev})` : ""}</span>` : "";
+  const toPro = mode.pro - g.score;
+  $("res-meta").innerHTML = [prev && !isPB ? `Your best: ${prev}` : "", g.reds ? `${g.reds} red ✕ hit` : "", toPro > 0 ? `${toPro} more to reach the Pro mark (${mode.pro})` : "🏆 Beat the Pro mark!"].filter(Boolean).join("<br>");
+  show("res"); drawBoard("board-res", mode.id);
+  if (isPB && g.score > 0) {
+    await saveBest(me, mode.id, g.score); drawBoard("board-res", mode.id);
+    if (KIDS.includes(me)) { const ok = await awardStar(me); if (ok) toast(`+1 ⭐ for ${me}'s new best (1 a day)`); }
+  }
+}
+
+// ---------- taps ----------
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.p) return pick(b.dataset.p);
+  if (b.dataset.m) return start(b.dataset.m);
+  if (b.dataset.go === "who") return drawWho();
+  if (b.dataset.go === "mode") return drawModes();
+});
+$("again").onclick = () => start(mode.id);
+$("to-hub").onclick = () => (location.href = HUB);
+$("lock-chores").onclick = () => (location.href = KIOSK ? "../?kiosk=1&app=stars" : "../?app=stars");
+addEventListener("pointerdown", () => { last = Date.now(); }, true);
+// kitchen screen: idle 2 minutes (and not mid-game) → back to the hub
+if (KIOSK) setInterval(() => { if (!game && Date.now() - last > 120000) location.href = HUB; }, 15000);
+loadBests().then(drawWho);
+drawWho();
+</script>
+</body>
+</html>

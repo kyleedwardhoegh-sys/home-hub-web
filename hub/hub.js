@@ -350,6 +350,7 @@
     if (b.dataset.cc === "training" && window.HubApps && window.HubApps.training) { closeApps(); window.HubApps.training.open(); }
     if (b.dataset.cc === "reload") location.reload();
     if (b.dataset.cc === "tour") location.href = KIOSK ? "tour/?kiosk=1" : "tour/";   // family tour (2026-11-27)
+    if (b.dataset.cc === "react") location.href = KIOSK ? "react/?kiosk=1" : "react/";   // Reaction Wall game (2026-11-27)
     if (b.dataset.cc === "ideas") location.href = KIOSK ? "http://localhost:8790/" : "https://home-hub-web-hoegh-home.vercel.app/hub/";
     if (b.dataset.cc === "chorequiz") location.href = "http://localhost:8790/?deck=chores";   // kitchen PC only (2026-11-26)
     if (b.dataset.cc === "starsquiz") location.href = "http://localhost:8790/?deck=stars";
