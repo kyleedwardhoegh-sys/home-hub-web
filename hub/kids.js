@@ -33,14 +33,14 @@
     ["chore:shower", "chore", "Both", "Shower", "🚿", 1, { when: "evening" }, 8],
     ["chore:teeth", "chore", "Both", "Brush teeth", "🦷", 1, { when: "evening" }, 9],
     ["chore:charger", "chore", "Both", "Phone, iPad & Chromebook on the kitchen charger", "🔌", 1, { when: "evening" }, 10],
-    // Kyle 2026-11-27: 10 stars = $1 (cash is always an option); screen time 10 stars an hour; sleepover 200, once per 2 months.
+    // Kyle 2026-11-27: cash 10 stars = $1 (always an option); prizes 10 stars = $2 worth (a better deal than cash); screen time 10 stars an hour; sleepover 200, once per 2 months.
     // Rated 1-4 and dropped: stay up late, pick dinner, front seat.
     ["reward:screen30", "reward", "Both", "30 min screen time", "📱", 5, { minutes: 30 }, 1],
     ["reward:screen60", "reward", "Both", "1 hour screen time", "🎮", 10, { minutes: 60 }, 2],
     ["reward:cash1", "reward", "Both", "$1 cash", "💵", 10, null, 3],
     ["reward:skip", "reward", "Both", "Skip-a-chore pass", "🎟️", 15, null, 4],
     ["reward:cash5", "reward", "Both", "$5 cash", "💵", 50, null, 5],
-    ["reward:icecream", "reward", "Both", "Ice cream trip", "🍦", 50, null, 6],
+    ["reward:icecream", "reward", "Both", "Ice cream trip", "🍦", 25, null, 6],
     ["reward:starbucks", "reward", "Both", "Starbucks trip", "☕", 30, null, 7],
     ["reward:cash10", "reward", "Both", "$10 cash", "💵", 100, null, 8],
     ["reward:sleepover", "reward", "Both", "Friend over or sleepover", "🏠", 200, { capDays: 60 }, 9],
@@ -528,7 +528,7 @@
         <h3>Rewards</h3>
         ${kidsRows("reward").map((r) => `<div class="kx-prow"><span>${esc(r.emoji || "🎁")}</span><b>${esc(r.title)}<small>${r.kid === "Both" ? "Both kids" : esc(r.kid)} · ⭐ ${r.stars}</small></b><button class="kx-pbtn" data-rm="${esc(r.id)}">Remove</button></div>`).join("")}
         <button class="kx-addrow" data-act="add-reward">＋ Add a reward</button>
-        <p class="kx-fine">10 ⭐ = $1. Morning check-in wheel: 2× two chores 75%, mystery box (+3–8) 10%, pick your own 2× 10%, golden (all 2×) 5%. After-school scratch-off doubles one chore worth more than 1 ⭐ (or +2–4 instantly). Levels: Silver at 100 ⭐ earned, Gold 300, Diamond 700.</p>
+        <p class="kx-fine">Cash: 10 ⭐ = $1. Prizes: 10 ⭐ = $2 worth (saving for a prize beats cash). Morning check-in wheel: 2× two chores 75%, mystery box (+3–8) 10%, pick your own 2× 10%, golden (all 2×) 5%. After-school scratch-off doubles one chore worth more than 1 ⭐ (or +2–4 instantly). Levels: Silver at 100 ⭐ earned, Gold 300, Diamond 700.</p>
         <p class="kx-fine">Stars: chores as listed, +${ALLDONE_BONUS} when every chore is done, +1 per ${TRAIN_PTS_PER_STAR} Training Hub points (max ${TRAIN_MAX}/day). Streak = days with every chore done; trip days and days with no chores don't break it.</p>
       </div>`;
   }
