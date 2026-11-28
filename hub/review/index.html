@@ -50,6 +50,8 @@ textarea { width:100%; min-height:48px; border-radius:14px; background:var(--gla
   <p class="sub">You answer every card, including your best guess for the kids' cards. Tap <b>Skip</b> if you'd rather not, and tap a name if they should weigh in too. The family only gets asked about the cards you flag.</p>
   <div id="decks"></div>
   <div class="status" id="status"></div>
+  <button class="big ghost" id="export">📋 Copy my answers for Claude</button>
+  <div class="status" id="export-msg"></div>
 </section>
 
 <section id="v-card" hidden>
@@ -247,6 +249,27 @@ function drawSummary() {
   $("sum-next").onclick = () => openDeck(nxt[0]);
   $("sum-review").onclick = () => openDeck(deckId, 0);
 }
+
+// Copy every answer as compact text to paste into the Claude chat (works without the database).
+// One line per card: deck card-id | rating or skip | ask:names | note
+function exportText() {
+  const lines = ["HUB QUIZ ANSWERS (Kyle) " + new Date().toISOString().slice(0, 16)];
+  for (const [d] of DECKS) for (const c of decks[d].ideas) {
+    const a = answers[key(d, c.id)]; if (!a) continue;
+    lines.push([`${d} ${c.id}`, a.skipped ? "skip" : (a.rating ?? "-"), a.ask?.length ? "ask:" + a.ask.join("+") : "", a.note || ""].join(" | ").replace(/( \| )+$/, ""));
+  }
+  return lines.join("\n");
+}
+$("export").onclick = async () => {
+  const t = exportText(), n = t.split("\n").length - 1;
+  if (!n) { $("export-msg").textContent = "No answers yet."; return; }
+  try { await navigator.clipboard.writeText(t); $("export-msg").textContent = `Copied ${n} answers. Paste them into the Claude chat.`; }
+  catch {
+    if (navigator.share) { navigator.share({ text: t }).catch(() => {}); return; }
+    const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+    $("export-msg").textContent = `Copied ${n} answers. Paste them into the Claude chat.`;
+  }
+};
 
 (async () => {
   await loadDecks();
