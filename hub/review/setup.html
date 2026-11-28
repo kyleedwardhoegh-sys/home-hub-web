@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quiz table setup</title>
+<style>
+body { margin:0; padding:16px; background:#0c0a1f; color:#fff; font-family:-apple-system,"Segoe UI",system-ui,sans-serif; }
+h1 { font-size:24px; } ol { line-height:1.6; padding-left:20px; } a { color:#6fb6ff; }
+button { display:block; width:100%; height:56px; border:0; border-radius:16px; background:#f5a000; color:#1a1200; font-size:18px; font-weight:700; margin:14px 0; }
+pre { background:#ffffff12; border-radius:12px; padding:12px; font-size:11px; white-space:pre-wrap; max-height:40vh; overflow:auto; }
+#msg { text-align:center; color:#9fe6a0; min-height:20px; }
+</style>
+</head>
+<body>
+<h1>Quiz table setup (1 min)</h1>
+<button id="copy">📋 Copy the setup code</button>
+<div id="msg"></div>
+<ol>
+  <li>Open <a href="https://supabase.com/dashboard" target="_blank">supabase.com/dashboard</a> and tap the Home Hub project.</li>
+  <li>Tap <b>SQL Editor</b> (left menu, the <code>&gt;_</code> icon), then <b>New query</b> (or the <b>+</b>).</li>
+  <li>Paste, then tap <b>Run</b>.</li>
+  <li>It should say <b>Quiz answers are ready</b>. Then reopen your quiz page and your answers upload by themselves.</li>
+</ol>
+<pre id="sql">Loading…</pre>
+<script>
+fetch("/supabase/quiz.sql", { cache: "no-store" }).then((r) => r.text()).then((t) => { document.getElementById("sql").textContent = t; });
+document.getElementById("copy").onclick = async () => {
+  const t = document.getElementById("sql").textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch { const r = document.createRange(); r.selectNodeContents(document.getElementById("sql")); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand("copy"); }
+  document.getElementById("msg").textContent = "Copied ✓ Now paste it in Supabase's SQL Editor.";
+};
+</script>
+</body>
+</html>
