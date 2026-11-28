@@ -165,7 +165,8 @@ main { position: absolute; inset: 0; display: flex; flex-direction: column; padd
 .cc { position: fixed; inset: 0; z-index: 30; background: #0008; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   display: flex; flex-direction: column; align-items: flex-end; padding: 150px 30px 0; animation: ccin .35s var(--spring); }
 @keyframes ccin { from { opacity: 0; transform: translateY(-40px); } }
-.cc-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 440px; max-width: 100%; }
+/* 3 columns since 2026-11-27: 14 tiles in 2 columns ran past the bottom of the 720x1280 kiosk */
+.cc-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 660px; max-width: 100%; }
 .cc-tile { height: 150px; border-radius: 32px; background: #ffffff26; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 19px; font-weight: 600; }
 .cc-tile span { font-size: 46px; }
 .cc-tile .ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; background: conic-gradient(#ff3b30 var(--p, 0%), #ffffff22 0); }
