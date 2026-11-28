@@ -58,6 +58,15 @@ h1 em { font-style:normal; color:var(--gold); }
 .res { text-align:center; } .res .n { font-size:clamp(110px,26vw,220px); font-weight:900; line-height:1; color:var(--me); text-shadow:0 0 60px color-mix(in srgb,var(--me) 60%,transparent); }
 .res .lbl { font-size:22px; color:var(--dim); } .res .pb { display:inline-block; margin-top:16px; padding:10px 20px; border-radius:999px; background:var(--gold); color:#2a1a00; font-weight:900; font-size:22px; }
 .res .meta { font-size:20px; color:var(--dim); margin-top:14px; line-height:1.5; }
+/* guest name entry (on-screen keyboard; the kiosk has no keyboard) */
+.typed { width:100%; max-width:640px; min-height:84px; border-radius:22px; background:#ffffff12; border:2px solid #34c75988; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(34px,6vw,52px); font-weight:900; } .typed .ph { color:#ffffff44; font-weight:700; }
+.mic { margin-top:12px; height:60px; padding:0 26px; border-radius:20px; background:#34c759; font-weight:800; font-size:20px; }
+.mic.live { animation:kxp 1s ease-in-out infinite; } @keyframes kxp { 50% { opacity:.6; } }
+.kb { width:100%; max-width:680px; margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+.kb .row { display:flex; gap:6px; justify-content:center; }
+.kb button { flex:1; max-width:62px; height:64px; border-radius:14px; background:#ffffff18; font-size:24px; font-weight:800; text-transform:uppercase; }
+.kb button.wide { max-width:220px; flex:4; font-size:18px; text-transform:none; } .kb button.mid { max-width:110px; flex:2; font-size:20px; }
 .toast { position:fixed; left:50%; bottom:6vh; transform:translateX(-50%); background:#000c; padding:12px 20px; border-radius:16px; font-size:18px; z-index:9; opacity:0; transition:opacity .3s; }
 .toast.on { opacity:1; }
 </style>
@@ -78,6 +87,16 @@ h1 em { font-style:normal; color:var(--gold); }
   <h1 id="mode-title"></h1>
   <p class="sub">Pick a game</p>
   <div class="modes" id="modes"></div>
+</section>
+
+<section class="view" id="v-name" hidden>
+  <div class="top"><button class="back" data-go="who">‹ Players</button><span></span></div>
+  <h1>🙋 Hi, <em>guest!</em></h1>
+  <p class="sub">What's your name? It goes on the leaderboard.</p>
+  <div class="typed" id="g-typed"><span class="ph">Your name</span></div>
+  <button class="mic" id="g-mic" hidden>🎤 Say your name</button>
+  <div class="kb" id="g-kb"></div>
+  <button class="btn" id="g-go">⚡ Let's play</button>
 </section>
 
 <section class="view" id="v-lock" hidden>
@@ -118,8 +137,11 @@ const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co", SB_KEY = "sb_publisha
 const P = new URLSearchParams(location.search), KIOSK = P.has("kiosk"), HUB = KIOSK ? "../?kiosk=1" : "../";
 const KIDS = ["Nellie", "Nash"];
 const PLAYERS = [["Nellie", "🏐"], ["Nash", "🏈"], ["Kyle", "🧢", "Dad"], ["Logan", "📚", "Mom"], ["Guest", "🙋"]];   // household + one Guest slot for visiting friends (Kyle 2026-11-27: only our household gets named tiles)
-const COLOR = { Nellie: "#e64f8f", Nash: "#2f8fdc", Kyle: "#f5a000", Logan: "#8e5cc9", Guest: "#34c759" };
-const label = (p) => (PLAYERS.find((x) => x[0] === p) || [])[2] || p;
+const COLOR_ = { Nellie: "#e64f8f", Nash: "#2f8fdc", Kyle: "#f5a000", Logan: "#8e5cc9", Guest: "#34c759" };
+// guests type their name; they play as "G:<Name>" (scores on the board as "Name (guest)", never a tile of their own)
+const isGuest = (p) => typeof p === "string" && p.startsWith("G:");
+const COLOR = new Proxy(COLOR_, { get: (o, p) => (isGuest(p) ? o.Guest : o[p]) });
+const label = (p) => (isGuest(p) ? p.slice(2) : (PLAYERS.find((x) => x[0] === p) || [])[2] || p);
 // Pro marks: Batak Pro 60-second test (about 60 is a typical first try; 152 strong; an F1 driver reportedly hit 217)
 const MODES = [
   { id: "reaction", icon: "⚡", name: "Reaction", desc: "One light at a time · 60 s", secs: 60, at: 1, red: 0, pro: 152 },
@@ -153,7 +175,7 @@ function best(p, m) {
 }
 async function saveBest(p, m, score) {
   local[`${p}|${m}`] = Math.max(score, local[`${p}|${m}`] || 0); localStorage.setItem(LS, JSON.stringify(local));
-  const row = { id: `game|reaction|${p}|${m}`, kid: p, day: today(), kind: "game", item: "reaction", title: `Reaction Wall best (${m})`, stars: 0, status: "ok", note: JSON.stringify({ best: score, on: today() }) };
+  const row = { id: `game|reaction|${p}|${m}`, kid: isGuest(p) ? "Guest" : p, day: today(), kind: "game", item: "reaction", title: `Reaction Wall best (${m})`, stars: 0, status: "ok", note: JSON.stringify({ best: score, on: today() }) };
   const i = rows.findIndex((x) => x.id === row.id); if (i >= 0) rows[i] = row; else rows.push(row);
   await upsert("stars", [row]);
 }
@@ -173,18 +195,53 @@ async function choresLeft(kid) {
 
 // ---------- screens ----------
 function drawWho() {
-  $("players").innerHTML = PLAYERS.map(([p, e]) => `<button class="pl" data-p="${p}" style="--c:${COLOR[p]}"><span>${e}</span>${label(p)}<small>⚡ ${best(p, "reaction") || "–"}</small></button>`).join("");
+  $("players").innerHTML = PLAYERS.map(([p, e]) => `<button class="pl" data-p="${p}" style="--c:${COLOR[p]}"><span>${e}</span>${label(p)}<small>${p === "Guest" ? "type your name" : `⚡ ${best(p, "reaction") || "–"}`}</small></button>`).join("");
   drawBoard("board-who", "reaction");
   show("who");
 }
 function drawBoard(el, m) {
   const md = MODES.find((x) => x.id === m);
-  const list = PLAYERS.map(([p]) => [p, best(p, m)]).filter(([, b]) => b > 0).sort((a, b) => b[1] - a[1]);
-  const items = list.map(([p, b]) => `<li><span style="color:${COLOR[p]}">${label(p)}</span><b>${b}</b></li>`);
+  // household players + every guest who has a score in this mode; top 8
+  const guests = new Set([...rows.map((r) => r.id.split("|")[2]), ...Object.keys(local).map((k) => k.split("|")[0])].filter(isGuest));
+  const who = PLAYERS.map(([p]) => p).filter((p) => p !== "Guest").concat([...guests]);
+  const list = who.map((p) => [p, best(p, m)]).filter(([, b]) => b > 0).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const esc = (s) => s.replace(/[&<>"]/g, "");
+  const items = list.map(([p, b]) => `<li><span style="color:${COLOR[p]}">${esc(label(p))}${isGuest(p) ? ' <small style="color:var(--dim)">(guest)</small>' : ""}</span><b>${b}</b></li>`);
   items.push(`<li class="pro"><span>🏆 Pro mark</span><span>${md.pro}</span></li>`);
   $(el).innerHTML = `<h3>${md.icon} ${md.name} · best scores</h3><ol>${items.join("")}</ol>`;
 }
+// ---------- guest name ----------
+let gname = "";
+function drawName() { gname = ""; drawTyped(); $("g-mic").hidden = !Speech; document.documentElement.style.setProperty("--me", COLOR_.Guest); show("name"); }
+function drawTyped() { $("g-typed").innerHTML = gname ? gname.replace(/[&<>"]/g, "") : '<span class="ph">Your name</span>'; }
+const clean = (s) => s.replace(/[^A-Za-z' -]/g, "").replace(/\s+/g, " ").trim().slice(0, 14).replace(/\b\w/g, (c) => c.toUpperCase());
+(function buildKb() {
+  const rowsK = ["qwertyuiop", "asdfghjkl", "zxcvbnm"], kb = $("g-kb");
+  const key = (t, fn, cls = "") => { const b = document.createElement("button"); b.textContent = t; b.className = cls; b.addEventListener("click", (e) => { e.stopPropagation(); fn(); drawTyped(); }); return b; };
+  rowsK.forEach((r, n) => { const row = document.createElement("div"); row.className = "row";
+    [...r].forEach((ch) => row.appendChild(key(ch, () => { if (gname.length < 14) gname = clean(gname + ch) || gname; })));
+    if (n === 2) row.appendChild(key("⌫", () => { gname = gname.slice(0, -1); }, "mid"));
+    kb.appendChild(row); });
+  const last = document.createElement("div"); last.className = "row"; last.appendChild(key("space", () => { if (gname && !gname.endsWith(" ")) gname += " "; }, "wide")); kb.appendChild(last);
+})();
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+$("g-mic").addEventListener("click", (e) => {
+  e.stopPropagation(); if (!Speech) return;
+  const rec = new Speech(); rec.lang = "en-US"; $("g-mic").classList.add("live"); $("g-mic").textContent = "🎤 Listening…";
+  rec.onresult = (ev) => { const t = ev.results[0][0].transcript.replace(/^(my name is|i'm|i am|it's)\s+/i, ""); gname = clean(t.split(" ").slice(0, 2).join(" ")); drawTyped(); };
+  rec.onend = () => { $("g-mic").classList.remove("live"); $("g-mic").textContent = "🎤 Say your name"; };
+  try { rec.start(); } catch {}
+});
+$("g-go").addEventListener("click", (e) => {
+  e.stopPropagation(); const n = clean(gname);
+  if (n.length < 2) return toast("Type or say your name first");
+  // a guest can't take a household name
+  if (["nellie", "nash", "kyle", "logan", "dad", "mom"].includes(n.toLowerCase())) return toast("That name's taken. Try another!");
+  pick("G:" + n);
+});
+
 async function pick(p) {
+  if (p === "Guest") return drawName();
   me = p; document.documentElement.style.setProperty("--me", COLOR[p]);
   if (KIDS.includes(p) && !P.has("nolock")) {
     const left = await choresLeft(p);
