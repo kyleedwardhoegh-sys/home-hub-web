@@ -1,0 +1,44 @@
+{
+  "ui": {
+    "title": "Training Quiz",
+    "h1": "How should training work on the hub?",
+    "p": "Ideas from real athletes and training apps. Rate each one 1 to 10. 10 = love it! Tap 🤔 Other to say how you'd do it.",
+    "who": "training ideas",
+    "aboutLabel": "What other<br>athletes do",
+    "aboutTitle": "What other young athletes say works",
+    "other": "Instead of \"%s\", how would you do it? Say it or type it."
+  },
+  "about": [
+    ["🔢 Counting your makes", "Kids who stick with training apps brag about their totals: \"76,000 shots and counting.\" Seeing the number grow is proof you're getting better."],
+    ["🪜 Levels with make goals", "The most-copied workout online is written in levels: 5 makes from each wing, then 15 free throws MADE. You pass a level when you hit the makes, not when time runs out."],
+    ["😡 Bad counting ruins it", "The top complaint about camera apps: \"I did 10 and it gave me 4.\" Kids would rather tap their own count."],
+    ["🏐 Volleyball is left out", "The big training apps are basketball and soccer only. Volleyball players say they can't find one."],
+    ["How it works", "Rate each card 1 to 10 (10 = love it, 1 = no way), or tap 🤔 Other and say what you'd do instead. Got an idea? Tap 🎤."]
+  ],
+  "audiences": [
+    {"id": "everyone", "name": "Everyone", "emoji": "🏠", "voters": ["Kyle", "Logan", "Nellie", "Nash"]},
+    {"id": "parents", "name": "Mom & Dad", "emoji": "👫", "voters": ["Kyle", "Logan"]},
+    {"id": "kids", "name": "Nellie & Nash", "emoji": "👧👦", "voters": ["Nellie", "Nash", "Kyle", "Logan"]},
+    {"id": "Nellie", "name": "Just Nellie", "emoji": "🏐", "voters": ["Nellie"]},
+    {"id": "Nash", "name": "Just Nash", "emoji": "🏈", "voters": ["Nash"]}
+  ],
+  "sources": {
+    "big": "💡 Big idea",
+    "families": "🏀 Other athletes say this works",
+    "ours": "💡 From our family"
+  },
+  "ideas": [
+    {"id": "tr-counter", "for": "kids", "src": "families", "tier": 0, "emoji": "🔢", "title": "Season counter", "desc": "Your page shows your total makes, reps and workouts this season, and the number keeps climbing."},
+    {"id": "tr-levels", "for": "kids", "src": "families", "tier": 0, "emoji": "🪜", "title": "Workouts as levels", "desc": "Each workout has levels. Hit the makes (like 15 free throws made) to unlock the next level."},
+    {"id": "tr-pb", "for": "kids", "src": "families", "tier": 1, "emoji": "🏅", "title": "Beat your best", "desc": "When you beat your personal best, it lights up on the screen. You only race yourself."},
+    {"id": "tr-tap", "for": "kids", "src": "families", "tier": 1, "emoji": "👆", "title": "Big +1 / +5 buttons", "desc": "During a workout, tap big buttons to count your makes. No camera guessing wrong."},
+    {"id": "tr-ring", "for": "kids", "src": "big", "tier": 1, "emoji": "⭕", "title": "Week ring", "desc": "Like Apple Watch rings: 3 workouts a week fills your ring."},
+    {"id": "tr-rotate", "for": "kids", "src": "families", "tier": 2, "emoji": "🔄", "title": "Drill of the week", "desc": "A new featured drill every week, so training never gets repetitive."},
+    {"id": "tr-friends", "for": "kids", "src": "big", "tier": 2, "emoji": "🤝", "title": "Challenge a friend", "desc": "Opt in to a challenge with friends (like Titus and Tatum). Never brother vs. sister."},
+    {"id": "tr-growth", "for": "everyone", "src": "families", "tier": 2, "emoji": "🌱", "title": "After-game check-in", "desc": "After a game, one tap: what went better? (Nerves, serve, defense…) Growth isn't only numbers."},
+    {"id": "tr-clip", "for": "everyone", "src": "big", "tier": 3, "emoji": "🎥", "title": "Form clip", "desc": "Record 5 seconds of your shot or serve and see it next to a model, side by side."},
+    {"id": "tr-volleyball", "for": "Nellie", "src": "ours", "tier": 0, "emoji": "🏐", "title": "A real volleyball plan", "desc": "Serving, passing and jump-training levels just for you, the same way basketball works."},
+    {"id": "tr-football", "for": "Nash", "src": "ours", "tier": 0, "emoji": "🏈", "title": "Football + baseball plans too", "desc": "Speed, agility and throwing levels for football and baseball, not just basketball."},
+    {"id": "tr-parent-check", "for": "parents", "src": "families", "tier": 1, "emoji": "✅", "title": "Parent spot-check", "desc": "Mom or Dad can see each workout's counts and give a 👍. No approval needed for every one."}
+  ]
+}

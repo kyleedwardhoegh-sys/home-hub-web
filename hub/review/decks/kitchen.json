@@ -1,0 +1,38 @@
+{
+  "ui": {
+    "title": "Kitchen Quiz",
+    "h1": "Groceries, dinners and voice",
+    "p": "Ideas from thousands of family reviews of grocery and meal apps. Rate each one 1 to 10. 10 = love it! Tap 🤔 Other to say how you'd do it.",
+    "who": "kitchen ideas",
+    "aboutLabel": "What other<br>families do",
+    "aboutTitle": "What other families say works",
+    "other": "Instead of \"%s\", how would you do it? Say it or type it."
+  },
+  "about": [
+    ["🗣️ Voice is the big one", "The #1 thing people love: \"I used the last of something, so I just asked the speaker to add it. No phone, no forgetting.\" When voice breaks, families switch apps."],
+    ["🔄 Same dinners is OK", "Parents are surprised: kids like a simple rotation (tacos, spaghetti…). Some families use a week 1 / week 2 list."],
+    ["👫 One shared list", "Whoever gets to the store first uses the list, and checking something off removes it for everyone. No double buying."],
+    ["How it works", "Rate each card 1 to 10 (10 = love it, 1 = no way), or tap 🤔 Other and say what you'd do instead. Got an idea? Tap 🎤."]
+  ],
+  "audiences": [
+    {"id": "everyone", "name": "Everyone", "emoji": "🏠", "voters": ["Kyle", "Logan", "Nellie", "Nash"]},
+    {"id": "parents", "name": "Mom & Dad", "emoji": "👫", "voters": ["Kyle", "Logan"]}
+  ],
+  "sources": {
+    "big": "💡 Big idea",
+    "families": "👪 Other families say this works",
+    "ours": "💡 From our family"
+  },
+  "ideas": [
+    {"id": "k-voice", "for": "everyone", "src": "families", "tier": 0, "emoji": "🗣️", "title": "\"Hey Google, add milk\"", "desc": "Say it to any Google speaker (bedroom or kitchen) and it shows up on the hub's grocery list."},
+    {"id": "k-list", "for": "everyone", "src": "families", "tier": 0, "emoji": "🛒", "title": "Grocery list on the hub", "desc": "A big list on the screen that's the same list on everyone's phone. Tap to check things off."},
+    {"id": "k-dinners", "for": "everyone", "src": "families", "tier": 0, "emoji": "🍽️", "title": "This week's dinners", "desc": "The home screen shows what's for dinner tonight and this week."},
+    {"id": "k-rotation", "for": "everyone", "src": "families", "tier": 1, "emoji": "🔄", "title": "Dinner rotation", "desc": "A week 1 / week 2 list of our favorite dinners, so planning takes seconds."},
+    {"id": "k-vote", "for": "everyone", "src": "families", "tier": 1, "emoji": "🔥", "title": "New recipe vote", "desc": "Try one new recipe a week. Everyone votes: keep it or burn it."},
+    {"id": "k-pick", "for": "everyone", "src": "ours", "tier": 2, "emoji": "🙋", "title": "Kids pick a dinner", "desc": "Each kid picks one dinner a week from the favorites list."},
+    {"id": "k-ingredients", "for": "parents", "src": "families", "tier": 1, "emoji": "➕", "title": "Recipe → grocery list", "desc": "Tap a recipe and its ingredients go straight onto the list."},
+    {"id": "k-aisle", "for": "parents", "src": "families", "tier": 2, "emoji": "🗺️", "title": "Sorted by store aisle", "desc": "The list is in the order of the aisles at our usual store. (Tap Other to tell us which store.)"},
+    {"id": "k-keep", "for": "parents", "src": "big", "tier": 2, "emoji": "📝", "title": "Use Google Keep for the list", "desc": "It's free and works with our Nest speakers. (Other choice: AnyList, which is better for recipes but only does voice through Alexa.)"},
+    {"id": "k-snap", "for": "parents", "src": "big", "tier": 3, "emoji": "📷", "title": "Snap a recipe", "desc": "Take a picture of a recipe card or cookbook page and it becomes a recipe on the hub (like snap-a-flyer)."}
+  ]
+}

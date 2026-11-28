@@ -1,0 +1,45 @@
+{
+  "ui": {
+    "title": "Check-in Quiz",
+    "h1": "Want to spin for bonus stars?",
+    "p": "Ideas for checking in each morning and after school, plus a few things for the home screen. Rate each one 1 to 10. 10 = love it! Tap 🤔 Other to say how you'd do it.",
+    "who": "check-in ideas",
+    "aboutLabel": "What other<br>families do",
+    "aboutTitle": "What other families say works",
+    "other": "Instead of \"%s\", how would you do it? Say it or type it."
+  },
+  "about": [
+    ["😴 The #1 problem: nobody touches it", "Hundreds of reviews of wall calendars like Skylight say the same thing: after a few weeks the family stops using it and it becomes \"a very expensive wall hanging.\" The ones that last give kids a reason to tap it every day."],
+    ["🎡 Random picks stop fights", "Parents online put chores on sticks and draw them at random so nobody argues about who got the worse job. Some put workouts on the sticks too (\"30 sit-ups\")."],
+    ["📸 Photos pull people in", "Families who keep using their screens say a family photo slideshow is the part they look at most."],
+    ["🔒 Parents want a lock", "A common question in reviews: \"Can the kids change the chores?\" Many parents want a code on the grown-up settings."],
+    ["How it works", "Rate each card 1 to 10 (10 = love it, 1 = no way), or tap 🤔 Other and say what you'd do instead. Got an idea? Tap 🎤."]
+  ],
+  "audiences": [
+    {"id": "everyone", "name": "Everyone", "emoji": "🏠", "voters": ["Kyle", "Logan", "Nellie", "Nash"]},
+    {"id": "parents", "name": "Mom & Dad", "emoji": "👫", "voters": ["Kyle", "Logan"]},
+    {"id": "kids", "name": "Nellie & Nash", "emoji": "👧👦", "voters": ["Nellie", "Nash", "Kyle", "Logan"]}
+  ],
+  "sources": {
+    "big": "💡 Big idea",
+    "families": "👪 Other families say this works",
+    "ours": "💡 From our family"
+  },
+  "ideas": [
+    {"id": "ci-morning", "for": "everyone", "src": "ours", "tier": 0, "emoji": "☀️", "title": "Morning check-in", "desc": "When you come downstairs, tap your face. You see your stars this week, your streak, and what's due today and the next few days."},
+    {"id": "ci-wheel", "for": "kids", "src": "ours", "tier": 0, "emoji": "🎡", "title": "Spin for double stars", "desc": "After you check in, spin the wheel. It picks 2 of today's chores or workouts that are worth double stars today. Only before 8 AM on school days."},
+    {"id": "ci-rare", "for": "kids", "src": "big", "tier": 1, "emoji": "🎁", "title": "Rare wheel prizes", "desc": "Most spins give double stars, but some slices are a mystery box, \"pick your own double\", or a super-rare golden slice."},
+    {"id": "ci-streak", "for": "kids", "src": "big", "tier": 1, "emoji": "🔥", "title": "Check-in streak", "desc": "A flame grows every day in a row that you check in. Miss a day and it starts over (trip mode pauses it)."},
+    {"id": "ci-afterschool", "for": "kids", "src": "ours", "tier": 1, "emoji": "🎟️", "title": "After-school scratch-off", "desc": "First tap after school gives you a scratch-off. It boosts one homework or practice item if you finish it before dinner."},
+    {"id": "ci-workout-slice", "for": "kids", "src": "families", "tier": 1, "emoji": "💪", "title": "Bonus workouts on the wheel", "desc": "Some slices are a quick bonus workout, like 30 sit-ups or 50 makes, for extra stars."},
+    {"id": "ci-sticks", "for": "everyone", "src": "families", "tier": 2, "emoji": "🥢", "title": "Random picks for shared chores", "desc": "For chores you share (dishes, trash), the screen picks who does which at random, so nobody argues."},
+    {"id": "ci-photos", "for": "everyone", "src": "families", "tier": 2, "emoji": "📸", "title": "Family photo slideshow", "desc": "Our photos slowly rotate at the top of the home screen."},
+    {"id": "ci-wake", "for": "everyone", "src": "families", "tier": 2, "emoji": "👀", "title": "Screen wakes when you walk up", "desc": "The screen dims when nobody's in the kitchen and wakes up when someone walks by."},
+    {"id": "ci-weather", "for": "everyone", "src": "families", "tier": 2, "emoji": "🧥", "title": "Weather + what to wear", "desc": "Today's weather on the home screen, with a tip like \"Coat and hat day\" or \"Shorts OK\"."},
+    {"id": "ci-scores", "for": "everyone", "src": "families", "tier": 2, "emoji": "🏆", "title": "Sports scores", "desc": "Vikings, Wolves and Gophers scores, plus results from Nellie's and Nash's own games."},
+    {"id": "ci-nest-up", "for": "everyone", "src": "big", "tier": 3, "emoji": "🗣️", "title": "\"Hey Google, I'm up\"", "desc": "Say it to the speaker in your bedroom and it checks you in (you still spin downstairs)."},
+    {"id": "ci-nest-announce", "for": "everyone", "src": "big", "tier": 3, "emoji": "📢", "title": "Hub talks through the Google speakers", "desc": "Reminders on the bedroom and kitchen speakers, like \"Leave for practice in 10 minutes\"."},
+    {"id": "ci-lock", "for": "parents", "src": "families", "tier": 2, "emoji": "🔒", "title": "Code on the Mom & Dad tab", "desc": "A short code so only parents can change chores, star values and prizes."},
+    {"id": "ci-porch", "for": "parents", "src": "families", "tier": 3, "emoji": "🚪", "title": "Porch camera on the screen", "desc": "When the doorbell rings, the screen shows who's at the door."}
+  ]
+}

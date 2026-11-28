@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Dad's first pass · Hub quizzes</title>
+<style>
+/* Kyle's first pass (2026-11-27): Kyle answers every quiz card from his phone, including his guess for the
+   kids' cards, and flags who else should answer. Family only gets pulled in where he asks. */
+:root { --Kyle:#f5a000; --Logan:#8e5cc9; --Nellie:#e64f8f; --Nash:#2f8fdc; --dim:rgba(235,235,245,.68); --glass:rgba(255,255,255,.1);
+  font-family:-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+[hidden] { display:none !important; }
+body { margin:0; background:#0c0a1f; color:#fff; min-height:100vh; padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
+button, textarea { font:inherit; color:inherit; border:0; background:none; cursor:pointer; }
+h1 { font-size:28px; margin:18px 0 4px; } .sub { color:var(--dim); margin:0 0 18px; font-size:15px; line-height:1.4; }
+.deck { display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--glass); border-radius:18px; padding:16px; margin-bottom:10px; }
+.deck .e { font-size:30px; } .deck b { display:block; font-size:18px; } .deck small { color:var(--dim); }
+.deck .bar { height:6px; background:#ffffff22; border-radius:3px; margin-top:8px; overflow:hidden; } .deck .bar i { display:block; height:100%; background:var(--Kyle); }
+.deck .go { margin-left:auto; color:var(--dim); font-size:22px; }
+.status { font-size:13px; color:var(--dim); text-align:center; margin:14px 0; }
+.top { display:flex; align-items:center; gap:10px; margin-top:12px; } .top .back { font-size:17px; color:#6fb6ff; padding:8px 0; }
+.top .count { margin-left:auto; color:var(--dim); font-size:14px; }
+.pbar { height:5px; background:#ffffff22; border-radius:3px; margin:8px 0 14px; overflow:hidden; } .pbar i { display:block; height:100%; background:var(--Kyle); transition:width .25s; }
+.card { background:linear-gradient(160deg,#2a2550,#18153a); border-radius:24px; padding:20px 18px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; } .chip { font-size:12px; padding:4px 10px; border-radius:999px; background:#ffffff1c; color:var(--dim); }
+.card .emoji { font-size:52px; margin:12px 0 4px; } .card h2 { font-size:24px; margin:4px 0 8px; } .card p { color:#e6e6f2; font-size:16px; line-height:1.45; margin:0; }
+.guess { margin-top:12px; font-size:14px; padding:10px 12px; border-radius:12px; background:#ffffff12; color:#ffd88a; }
+.label { font-size:13px; color:var(--dim); margin:16px 2px 8px; display:flex; justify-content:space-between; }
+.scale { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+.scale button { height:54px; border-radius:14px; font-size:20px; font-weight:700; background:hsl(var(--h) 55% 32%); }
+.scale button.on { outline:3px solid #fff; background:hsl(var(--h) 70% 45%); }
+.asks { display:flex; gap:8px; } .asks button { flex:1; height:46px; border-radius:14px; background:var(--glass); font-weight:600; font-size:15px; }
+.asks button.on { background:var(--c); } .asks button.hint { box-shadow:inset 0 0 0 2px var(--c); }
+.hintline { font-size:13px; color:var(--dim); margin:6px 2px 0; }
+textarea { width:100%; min-height:48px; border-radius:14px; background:var(--glass); padding:12px; font-size:16px; resize:vertical; }
+.row { display:flex; gap:8px; margin-top:14px; } .row button { flex:1; height:50px; border-radius:14px; background:var(--glass); font-weight:600; }
+.row .skip.on { background:#5b5b70; } .row .nav { flex:.6; }
+.saved { text-align:center; font-size:13px; color:var(--dim); height:18px; margin-top:8px; }
+.sum h3 { margin:20px 0 8px; font-size:17px; } .sum li { margin:6px 0; color:#e6e6f2; } .sum .who { font-weight:700; }
+.big { display:block; width:100%; height:54px; border-radius:16px; background:var(--Kyle); color:#1a1200; font-weight:700; font-size:17px; margin-top:14px; }
+.big.ghost { background:var(--glass); color:#fff; }
+</style>
+</head>
+<body>
+
+<section id="v-home">
+  <h1>Dad's first pass</h1>
+  <p class="sub">You answer every card, including your best guess for the kids' cards. Tap <b>Skip</b> if you'd rather not, and tap a name if they should weigh in too. The family only gets asked about the cards you flag.</p>
+  <div id="decks"></div>
+  <div class="status" id="status"></div>
+</section>
+
+<section id="v-card" hidden>
+  <div class="top"><button class="back" id="to-home">‹ Quizzes</button><span class="count" id="count"></span></div>
+  <div class="pbar"><i id="pbar"></i></div>
+  <article class="card">
+    <div class="chips"><span class="chip" id="c-aud"></span><span class="chip" id="c-src"></span></div>
+    <div class="emoji" id="c-emoji"></div>
+    <h2 id="c-title"></h2>
+    <p id="c-desc"></p>
+    <div class="guess" id="c-guess" hidden></div>
+  </article>
+
+  <div class="label"><span>Ask someone else too? (optional)</span></div>
+  <div class="asks" id="asks"></div>
+  <div class="hintline" id="hint" hidden></div>
+
+  <div class="label"><span>1 = no way</span><span>10 = gotta have it</span></div>
+  <div class="scale" id="scale"></div>
+
+  <div class="label"><span>Note (optional; the phone mic works here)</span></div>
+  <textarea id="note" placeholder="e.g. only on weekends · ask Nash about the colors"></textarea>
+
+  <div class="row">
+    <button class="nav" id="prev">‹ Back</button>
+    <button class="skip" id="skip">Skip</button>
+    <button class="nav" id="next">Next ›</button>
+  </div>
+  <div class="saved" id="saved"></div>
+</section>
+
+<section id="v-sum" hidden>
+  <div class="top"><button class="back" id="sum-home">‹ Quizzes</button></div>
+  <h1 id="sum-title"></h1>
+  <div class="sum" id="sum"></div>
+  <button class="big" id="sum-next">Next quiz ›</button>
+  <button class="big ghost" id="sum-review">↩︎ Go back through this quiz</button>
+</section>
+
+<script>
+const SB_URL = "https://xfnxjkstiwnrshprnzsz.supabase.co";
+const SB_KEY = "sb_publishable_cFFIRMpngL0aFzQ7SHe2eg_lpK7k9Jg";
+const ME = "Kyle", OTHERS = ["Logan", "Nellie", "Nash"];
+// shortest first: the new research decks, then the two long ones nobody has started
+const DECKS = [["checkin", "🎡", "Check-in"], ["training", "🏅", "Training"], ["kitchen", "🛒", "Kitchen"], ["chores", "🧹", "Chores"], ["stars", "🎟️", "Stars & prizes"]];
+const $ = (id) => document.getElementById(id);
+const LS = "hubReview.answers", OUT = "hubReview.outbox";
+let answers = JSON.parse(localStorage.getItem(LS) || "{}");   // id -> answer
+let outbox = JSON.parse(localStorage.getItem(OUT) || "[]");   // ids waiting to upload
+let decks = {}, deckId = null, cards = [], pos = 0, dbOk = null;
+
+const key = (d, c) => `${d}|${c}|${ME}`;
+const persist = () => { localStorage.setItem(LS, JSON.stringify(answers)); localStorage.setItem(OUT, JSON.stringify(outbox)); };
+const hdr = (x) => ({ apikey: SB_KEY, "Content-Type": "application/json", ...x });
+
+// who Claude would suggest asking, by who the card is for (Kyle decides; it's only a hint)
+function suggest(deck, c) {
+  const over = { "k-aisle": ["Logan"], "k-keep": ["Logan"], "k-pick": ["Nellie", "Nash"] };
+  if (over[c.id]) return over[c.id];
+  if (c.for === "Nellie" || c.for === "Nash" || c.for === "Logan") return [c.for];
+  return [];
+}
+function guessText(c) {
+  if (c.for === "kids") return "Kids' card: rate it how you think Nellie and Nash would feel. Tap their names if you're not sure.";
+  if (c.for === "Nellie" || c.for === "Nash") return `Just for ${c.for}: give your best guess, or tap her/his name to ask.`;
+  if (c.for === "Logan") return "Just for Logan: give your guess, or tap Logan to ask her.";
+  if (c.for === "parents") return "Mom & Dad card: your answer, and tap Logan if she should weigh in.";
+  return "";
+}
+
+async function loadDecks() {
+  await Promise.all(DECKS.map(async ([id]) => { decks[id] = await fetch(`decks/${id}.json`, { cache: "no-store" }).then((r) => r.json()); }));
+}
+async function pull() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/quiz_answers?person=eq.${ME}&select=*`, { headers: hdr() });
+    if (!r.ok) { dbOk = false; return; }
+    dbOk = true;
+    for (const a of await r.json()) if (!outbox.includes(a.id)) answers[a.id] = { rating: a.rating, skipped: a.skipped, ask: a.ask || [], note: a.note || "" };
+    persist();
+  } catch { dbOk = false; }
+}
+async function flush() {
+  if (!outbox.length) return true;
+  const rows = outbox.map((id) => { const [deck, card, person] = id.split("|"); const a = answers[id] || {};
+    return { id, deck, card, person, rating: a.rating ?? null, skipped: !!a.skipped, ask: a.ask || [], note: a.note || null }; });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/quiz_answers?on_conflict=id`, { method: "POST", headers: hdr({ Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(rows) });
+    if (!r.ok) { dbOk = false; return false; }
+    dbOk = true; outbox = []; persist(); return true;
+  } catch { dbOk = false; return false; }
+}
+function status() {
+  $("status").textContent = dbOk ? (outbox.length ? `${outbox.length} waiting to upload…` : "✓ Saved to the hub database")
+    : `Saved on this phone (${Object.keys(answers).length} answers). They upload by themselves once the hub database is set up.`;
+}
+
+// ---------- home ----------
+function drawHome() {
+  show("home");
+  const box = $("decks"); box.innerHTML = "";
+  for (const [id, emoji, name] of DECKS) {
+    const list = decks[id].ideas, done = list.filter((c) => answers[key(id, c.id)]).length;
+    const b = document.createElement("button"); b.className = "deck";
+    b.innerHTML = `<span class="e">${emoji}</span><span style="flex:1"><b>${name}</b><small>${done} of ${list.length} answered</small><div class="bar"><i style="width:${(done / list.length) * 100}%"></i></div></span><span class="go">›</span>`;
+    b.onclick = () => openDeck(id);
+    box.appendChild(b);
+  }
+  status();
+}
+function show(v) { for (const s of ["home", "card", "sum"]) $("v-" + s).hidden = s !== v; scrollTo(0, 0); }
+
+// ---------- cards ----------
+function openDeck(id, startAt) {
+  deckId = id;
+  cards = decks[id].ideas.slice().sort((a, b) => (a.tier ?? 4) - (b.tier ?? 4));
+  const first = cards.findIndex((c) => !answers[key(id, c.id)]);
+  if (startAt === undefined && first < 0) return drawSummary();
+  pos = startAt ?? first;
+  show("card"); drawCard();
+}
+const cur = () => cards[pos];
+const ans = () => answers[key(deckId, cur().id)];
+function drawCard() {
+  const c = cur(); if (!c) return drawSummary();
+  const d = decks[deckId], aud = d.audiences.find((a) => a.id === c.for) || d.audiences[0];
+  const done = cards.filter((x) => answers[key(deckId, x.id)]).length;
+  $("count").textContent = `${pos + 1} of ${cards.length}`;
+  $("pbar").style.width = (done / cards.length) * 100 + "%";
+  $("c-aud").textContent = `${aud.emoji} For ${aud.name.replace("Just ", "")}`;
+  $("c-src").textContent = d.sources[c.src] || ""; $("c-src").hidden = !d.sources[c.src];
+  $("c-emoji").textContent = c.emoji || "💡"; $("c-title").textContent = c.title; $("c-desc").textContent = c.desc || "";
+  const g = guessText(c); $("c-guess").hidden = !g; $("c-guess").textContent = g;
+  const a = ans() || { ask: [] }, hint = suggest(deckId, c);
+  const asks = $("asks"); asks.innerHTML = "";
+  for (const p of OTHERS) {
+    const b = document.createElement("button"); b.textContent = p; b.style.setProperty("--c", `var(--${p})`);
+    b.className = (a.ask || []).includes(p) ? "on" : hint.includes(p) ? "hint" : "";
+    b.onclick = () => toggleAsk(p);
+    asks.appendChild(b);
+  }
+  $("hint").hidden = !hint.length; $("hint").textContent = hint.length ? `Claude's suggestion: ask ${hint.join(" & ")} (outlined). Your call.` : "";
+  for (const b of $("scale").children) b.classList.toggle("on", a.rating === Number(b.dataset.n));
+  $("skip").classList.toggle("on", !!a.skipped);
+  $("note").value = a.note || "";
+  $("prev").disabled = pos === 0;
+  $("saved").textContent = ans() ? (a.skipped ? "Skipped" : a.rating ? `Your rating: ${a.rating}` : "Flagged") : "";
+}
+function save(patch, advance) {
+  const id = key(deckId, cur().id), a = { ask: [], note: "", ...(answers[id] || {}), ...patch };
+  a.note = $("note").value.trim();
+  answers[id] = a;
+  if (!outbox.includes(id)) outbox.push(id);
+  persist(); flush().then(status);
+  if (advance) setTimeout(() => { pos++; if (pos >= cards.length) { const open1 = cards.findIndex((x) => !answers[key(deckId, x.id)]); pos = open1 < 0 ? cards.length : open1; } drawCard(); }, 220);
+  else drawCard();
+}
+function toggleAsk(p) {
+  const a = ans() || { ask: [] }, ask = new Set(a.ask || []);
+  ask.has(p) ? ask.delete(p) : ask.add(p);
+  // flagging alone counts as an answer (rating can come later or never)
+  save({ ask: [...ask] }, false);
+}
+(function buildScale() {
+  for (let n = 1; n <= 10; n++) {
+    const b = document.createElement("button"); b.textContent = n; b.dataset.n = n; b.style.setProperty("--h", Math.round((n - 1) * 13.3));
+    b.onclick = () => save({ rating: n, skipped: false }, true);
+    $("scale").appendChild(b);
+  }
+})();
+$("skip").onclick = () => save({ rating: null, skipped: true }, true);
+$("note").addEventListener("change", () => { if (ans() || $("note").value.trim()) save({}, false); });
+$("prev").onclick = () => { if (pos > 0) { pos--; drawCard(); } };
+$("next").onclick = () => { if (pos < cards.length - 1) { pos++; drawCard(); } else drawSummary(); };
+$("to-home").onclick = drawHome; $("sum-home").onclick = drawHome;
+
+// ---------- summary: who to bring in ----------
+function drawSummary() {
+  show("sum");
+  const name = DECKS.find((d) => d[0] === deckId)[2];
+  $("sum-title").textContent = `${name}: done`;
+  const rows = cards.map((c) => ({ c, a: answers[key(deckId, c.id)] }));
+  const rated = rows.filter((r) => r.a?.rating), skipped = rows.filter((r) => r.a?.skipped), open1 = rows.filter((r) => !r.a);
+  const byWho = Object.fromEntries(OTHERS.map((p) => [p, rows.filter((r) => r.a?.ask?.includes(p))]));
+  const esc = (s) => s.replace(/[&<>]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[x]));
+  let h = `<p class="sub">${rated.length} rated · ${skipped.length} skipped${open1.length ? ` · ${open1.length} not answered yet` : ""}</p>`;
+  const top = rated.slice().sort((x, y) => y.a.rating - x.a.rating).slice(0, 5);
+  if (top.length) h += `<h3>Your top picks</h3><ul>${top.map((r) => `<li>${r.c.emoji || ""} ${esc(r.c.title)} <b>${r.a.rating}</b></li>`).join("")}</ul>`;
+  const asked = OTHERS.filter((p) => byWho[p].length);
+  h += asked.length ? `<h3>Who to bring in</h3>` + asked.map((p) => `<p><span class="who" style="color:var(--${p})">${p}</span>: ${byWho[p].length} card${byWho[p].length > 1 ? "s" : ""}</p><ul>${byWho[p].map((r) => `<li>${esc(r.c.title)}</li>`).join("")}</ul>`).join("")
+    : `<h3>Nobody else needed</h3><p class="sub">You didn't flag anyone on this quiz.</p>`;
+  $("sum").innerHTML = h;
+  const idx = DECKS.findIndex((d) => d[0] === deckId), nxt = DECKS[idx + 1];
+  $("sum-next").hidden = !nxt; if (nxt) $("sum-next").textContent = `Next quiz: ${nxt[2]} ›`;
+  $("sum-next").onclick = () => openDeck(nxt[0]);
+  $("sum-review").onclick = () => openDeck(deckId, 0);
+}
+
+(async () => {
+  await loadDecks();
+  await pull(); await flush();
+  drawHome();
+  setInterval(() => { if (outbox.length) flush().then(status); }, 30000);
+})();
+</script>
+</body>
+</html>

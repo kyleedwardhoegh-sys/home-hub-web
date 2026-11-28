@@ -1,0 +1,105 @@
+{
+  "ui": {
+    "title": "Chore Quiz",
+    "h1": "How should chores work?",
+    "p": "Tap your icon and rate each idea from 1 to 10. 10 = love it! Not sure? Tap 🤔 Other and say what you'd do instead.",
+    "who": "chore ideas",
+    "aboutLabel": "About the<br>quiz",
+    "aboutTitle": "About the chore quiz",
+    "other": "Instead of \"%s\", how would you do it? Say it or type it."
+  },
+  "about": [
+    [
+      "⭐ Why a quiz?",
+      "Stars & chores is already on the hub, but Dad and Claude guessed at the chores, the star values and the prizes. This quiz lets all four of us decide how it should really work."
+    ],
+    [
+      "Order of the cards",
+      "First how the chore chart works, then which chores go on it, then house rules (screens, weekends, game days), then a few just for you. Stars and prizes have their own quiz: ⭐ Stars quiz."
+    ],
+    [
+      "✅ In the app now",
+      "Cards marked like this are already in Stars & chores. A low number means take it out or change it."
+    ],
+    [
+      "⭐ Skylight",
+      "Cards marked Skylight are how Skylight's chore chart works, which lots of families use."
+    ],
+    [
+      "How it works",
+      "Rate each card 1 to 10 (10 = love it, 1 = no way), or tap 🤔 Other and say what you'd do instead. Parents also rate the kids' cards. Got your own idea? Tap 🎤."
+    ]
+  ],
+  "audiences": [
+    { "id": "everyone", "name": "Everyone", "emoji": "🏠", "voters": [
+        "Kyle", "Logan", "Nellie", "Nash"
+      ] },
+    { "id": "parents", "name": "Mom & Dad", "emoji": "👫", "voters": [
+        "Kyle", "Logan"
+      ] },
+    { "id": "kids", "name": "Nellie & Nash", "emoji": "👧👦", "voters": [
+        "Nellie", "Nash", "Kyle", "Logan"
+      ] },
+    { "id": "Kyle", "name": "Just Kyle", "emoji": "🧢", "voters": [
+        "Kyle"
+      ] },
+    { "id": "Logan", "name": "Just Logan", "emoji": "📚", "voters": [
+        "Logan"
+      ] },
+    { "id": "Nellie", "name": "Just Nellie", "emoji": "🏐", "voters": [
+        "Nellie"
+      ] },
+    { "id": "Nash", "name": "Just Nash", "emoji": "🏈", "voters": [
+        "Nash"
+      ] }
+  ],
+  "sources": {
+    "now": "✅ In the app now",
+    "how": "⚙️ How it works",
+    "skylight": "⭐ How Skylight does it",
+    "chore": "🧹 Chore for the chart?",
+    "rule": "📏 House rule",
+    "ours": "💡 From our family"
+  },
+  "ideas": [
+    { "id": "how-times", "for": "everyone", "src": "now", "tier": 0, "emoji": "🕒", "title": "Chores split into Morning, After school and Evening", "desc": "The chart shows three groups so you only see what's due right now." },
+    { "id": "how-parents", "for": "everyone", "src": "skylight", "tier": 0, "emoji": "👨‍👩‍👧‍👦", "title": "Mom & Dad are on the chart too", "desc": "Like Skylight: everyone gets a column, so the kids can see the parents doing their part." },
+    { "id": "how-phone", "for": "everyone", "src": "how", "tier": 0, "emoji": "📱", "title": "Check chores off from your iPhone", "desc": "Not just the kitchen screen. Check it off from your phone or iPad anywhere in the house." },
+    { "id": "how-tiles", "for": "kids", "src": "now", "tier": 0, "emoji": "🖼️", "title": "Big picture tiles you tap", "desc": "Each chore is a big tile with a picture. Tap it and it turns into a check mark." },
+    { "id": "how-confetti", "for": "kids", "src": "skylight", "tier": 0, "emoji": "🎉", "title": "Confetti and a sound when you finish", "desc": "A little celebration when you check off a chore, and a bigger one when the whole list is done." },
+    { "id": "how-voice", "for": "kids", "src": "now", "tier": 0, "emoji": "🎤", "title": "Say \"I'm done with dishes\"", "desc": "Say it out loud to the hub and it checks the chore off for you." },
+    { "id": "how-approve", "for": "kids", "src": "how", "tier": 0, "emoji": "👍", "title": "Mom or Dad checks big chores first", "desc": "For big jobs like a clean room, a parent gives a thumbs up before the stars count." },
+    { "id": "how-remind", "for": "kids", "src": "how", "tier": 0, "emoji": "⏰", "title": "Reminders if a chore isn't done", "desc": "If a chore isn't done by its time (like backpack by 8 PM), the hub shows your name and the chore on the screen." },
+    { "id": "how-rotate", "for": "kids", "src": "skylight", "tier": 0, "emoji": "🔄", "title": "Take turns on shared chores", "desc": "Shared jobs like the dishwasher switch every week: Nellie this week, Nash next week." },
+    { "id": "how-bonus", "for": "kids", "src": "how", "tier": 0, "emoji": "🙋", "title": "Bonus jobs board", "desc": "Extra jobs (wash the car, rake leaves) are posted for extra stars. First one to claim it gets it." },
+    { "id": "how-training", "for": "kids", "src": "now", "tier": 0, "emoji": "🏀", "title": "Training workouts earn stars too", "desc": "Finishing your Training Hub workout counts like a chore." },
+    { "id": "ch-bed", "for": "kids", "src": "now", "tier": 1, "emoji": "🛏️", "title": "Make your bed", "desc": "Every morning." },
+    { "id": "ch-dishes", "for": "kids", "src": "now", "tier": 1, "emoji": "🍽️", "title": "Dishes to the dishwasher", "desc": "Your own dishes after meals." },
+    { "id": "ch-unload", "for": "kids", "src": "chore", "tier": 1, "emoji": "🫧", "title": "Unload the dishwasher", "desc": "Put the clean dishes away." },
+    { "id": "ch-table", "for": "kids", "src": "chore", "tier": 1, "emoji": "🍴", "title": "Set or clear the table", "desc": "Before or after dinner." },
+    { "id": "ch-room", "for": "kids", "src": "now", "tier": 1, "emoji": "🧹", "title": "Tidy your room", "desc": "Floor picked up and things put away." },
+    { "id": "ch-laundry", "for": "kids", "src": "now", "tier": 1, "emoji": "👕", "title": "Put laundry away", "desc": "Clean clothes folded and in drawers." },
+    { "id": "ch-ownlaundry", "for": "kids", "src": "chore", "tier": 1, "emoji": "🧺", "title": "Do your own laundry start to finish", "desc": "Wash, dry, fold and put away. Once a week." },
+    { "id": "ch-backpack", "for": "kids", "src": "now", "tier": 1, "emoji": "🎒", "title": "Backpack ready for tomorrow", "desc": "On school nights." },
+    { "id": "ch-homework", "for": "kids", "src": "now", "tier": 1, "emoji": "📚", "title": "Homework done", "desc": "On school days." },
+    { "id": "ch-sportsbag", "for": "kids", "src": "chore", "tier": 1, "emoji": "👟", "title": "Sports bag packed, uniform washed", "desc": "Before practices and games: shoes, water bottle, uniform, knee brace." },
+    { "id": "ch-trash", "for": "kids", "src": "chore", "tier": 1, "emoji": "🗑️", "title": "Trash and recycling out", "desc": "Bins to the curb on trash day and back after." },
+    { "id": "ch-vacuum", "for": "kids", "src": "chore", "tier": 1, "emoji": "🧽", "title": "Vacuum or wipe a bathroom", "desc": "A bigger weekly job, like Saturday morning." },
+    { "id": "ch-cook", "for": "kids", "src": "chore", "tier": 1, "emoji": "👩‍🍳", "title": "Help cook dinner once a week", "desc": "Pick a recipe and help make it." },
+    { "id": "ch-snow", "for": "kids", "src": "chore", "tier": 1, "emoji": "❄️", "title": "Shovel snow / yard work", "desc": "Minnesota special: shovel in winter, help with the yard in summer." },
+    { "id": "ch-read", "for": "kids", "src": "chore", "tier": 1, "emoji": "📖", "title": "Read 20 minutes", "desc": "Any book counts." },
+    { "id": "ch-phone", "for": "kids", "src": "chore", "tier": 1, "emoji": "🔌", "title": "Phone on the kitchen charger by bedtime", "desc": "Devices sleep in the kitchen, not in bedrooms." },
+    { "id": "ch-hygiene", "for": "kids", "src": "chore", "tier": 1, "emoji": "🪥", "title": "Shower and brush teeth", "desc": "On the evening list as a quick check." },
+    { "id": "rule-noscreen", "for": "everyone", "src": "rule", "tier": 3, "emoji": "🚫", "title": "No screens until today's chores are done", "desc": "Screen time unlocks after the list is checked off." },
+    { "id": "rule-weekend", "for": "everyone", "src": "rule", "tier": 3, "emoji": "🛋️", "title": "Lighter chores on weekends", "desc": "Fewer daily chores Saturday and Sunday, plus one bigger weekly job." },
+    { "id": "rule-gameday", "for": "everyone", "src": "rule", "tier": 3, "emoji": "🏟️", "title": "Game and tournament days pause chores", "desc": "Like trip mode, chores are off on tournament days and streaks don't break." },
+    { "id": "rule-trip", "for": "everyone", "src": "now", "tier": 3, "emoji": "✈️", "title": "Trip mode", "desc": "Turn chores off while we travel. Streaks stay safe." },
+    { "id": "rule-trade", "for": "kids", "src": "rule", "tier": 3, "emoji": "🔁", "title": "Do your sibling's chore for their stars", "desc": "If Nash does Nellie's chore, Nash gets the stars (when both agree)." },
+    { "id": "rule-pin", "for": "parents", "src": "rule", "tier": 3, "emoji": "🔒", "title": "Lock the Mom & Dad tab with a code", "desc": "Right now anyone can open it. A 4-digit code would keep kids from pricing their own wishes." },
+    { "id": "rule-report", "for": "parents", "src": "rule", "tier": 3, "emoji": "📊", "title": "Weekly chore report on our phones", "desc": "Sunday night: what each kid finished, stars earned and spent, and streaks." },
+    { "id": "me-nellie-skin", "for": "Nellie", "src": "chore", "tier": 4, "emoji": "🧴", "title": "Skincare AM & PM on my chart", "desc": "My morning and night skincare steps as check-offs." },
+    { "id": "me-nash-teaser", "for": "Nash", "src": "chore", "tier": 4, "emoji": "🧩", "title": "Brain teaser of the day for a bonus star", "desc": "Solve the daily puzzle and get an extra star." },
+    { "id": "me-kyle-stats", "for": "Kyle", "src": "how", "tier": 4, "emoji": "📈", "title": "Coach view: charts of stars and streaks", "desc": "Weekly graphs per kid, like game stats." },
+    { "id": "me-logan-jobs", "for": "Logan", "src": "how", "tier": 4, "emoji": "🍎", "title": "Classroom-style job board", "desc": "Like a 4th grade class: jobs with titles (Dish Captain, Trash Boss) that switch every week." }
+  ]
+}
